@@ -1,18 +1,20 @@
 {
-  "name": "backend",
-  "type": "module",
+  "name": "sikatbosku-backend",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.1",
-    "hono": "^4.13.9"
+    "@supabase/supabase-js": "^2.117.2",
+    "hono": "^4.6.9",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
-    "tsx": "^4.23.0",
-    "typescript": "^7.0.2"
+    "@cloudflare/workers-types": "^4.20241022.0",
+    "typescript": "^5.6.3",
+    "wrangler": "^3.83.0"
   }
 }
