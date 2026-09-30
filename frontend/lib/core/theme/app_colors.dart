@@ -25,4 +25,8 @@ abstract final class AppColors {
   static const Color warning = Color(0xFFFFA726);
   static const Color error = Color(0xFFD32F2F);
   static const Color info = Color(0xFF2196F3);
+
+  //BrandColor
+  static const Color rijikiOrange = Color(0xFFF68539);
+  static const Color rijikiBlue = Color(0xFF2EB4F2);
 }

@@ -1,6 +1,10 @@
 abstract final class AppStrings {
-  static const String appName = 'SikatBosku';
-  static const String appTagline = 'Perawatan sepatu, beres tanpa ribet';
-  static const String splashLoading = 'Menyiapkan aplikasi…';
+  static const String appName = 'RIJIKI';
+  static const String appTagline = 'Shoe & Bag Care';
+
+  static const String collabPrimary = 'Rijiki';
+  static const String collabSecondary = 'TaTuTI';
+
   static const String splashErrorTitle = 'Gagal memuat sesi';
+  static const String retry = 'Coba lagi';
 }

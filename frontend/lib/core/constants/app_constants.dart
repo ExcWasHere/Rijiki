@@ -1,4 +1,7 @@
 abstract final class AppConstants {
-  static const Duration splashMinDuration = Duration(milliseconds: 1800);
-  static const Duration splashAnimation = Duration(milliseconds: 900);
+  /// Total durasi animasi bertahap: ikon -> huruf RIJIKI -> tagline.
+  static const Duration splashStageDuration = Duration(milliseconds: 1500);
+
+  /// Durasi minimum splash tampil sebelum pindah halaman.
+  static const Duration splashMinDuration = Duration(milliseconds: 2800);
 }
