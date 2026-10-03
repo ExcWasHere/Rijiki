@@ -11,8 +11,6 @@ import '/../features/auth/presentation/widgets/splash_content.dart';
 import '/../features/auth/presentation/widgets/splash_loading_dots.dart';
 import '/../shared/widgets/error_state.dart';
 
-/// Halaman pertama aplikasi. Hanya menyusun layout; proses startup ada di
-/// [SplashController], tahapan animasi logo/huruf ada di [SplashContent].
 class SplashPage extends ConsumerWidget {
   const SplashPage({super.key});
 
@@ -45,8 +43,6 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Badge kolaborasi muncul sedikit sebelum dots, keduanya setelah
-    // animasi utama (ikon + huruf + tagline) selesai.
     final collabDelay = AppConstants.splashStageDuration * 0.95;
     final dotsDelay = AppConstants.splashStageDuration * 1.25;
 
@@ -72,7 +68,6 @@ class _LoadingView extends StatelessWidget {
   }
 }
 
-/// Menahan [child] transparan sampai [delay] berlalu, lalu fade-in.
 class _DelayedFadeIn extends StatelessWidget {
   const _DelayedFadeIn({required this.delay, required this.child});
 

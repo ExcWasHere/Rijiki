@@ -1,25 +1,32 @@
 import { z } from 'zod';
 
-export const RegisterSchema = z.object({
-  email: z.string().email('Format email tidak valid'),
-  password: z.string().min(8, 'Kata sandi minimal 8 karakter'),
-});
-export type RegisterInput = z.infer<typeof RegisterSchema>;
+const email = z.string().trim().toLowerCase().email('Format email tidak valid');
 
-export const LoginSchema = z.object({
-  email: z.string().email('Format email tidak valid'),
-  password: z.string().min(1, 'Kata sandi wajib diisi'),
-});
-export type LoginInput = z.infer<typeof LoginSchema>;
+const newPassword = z
+  .string()
+  .min(8, 'Password minimal 8 karakter')
+  .max(72, 'Password maksimal 72 karakter');
 
-export const RefreshSchema = z.object({
-  refresh_token: z.string().min(1),
-});
-export type RefreshInput = z.infer<typeof RefreshSchema>;
+export const registerSchema = z.object({ email, password: newPassword });
 
-export const UpdateMeSchema = z.object({
-  full_name: z.string().min(1).optional(),
-  phone_number: z.string().min(8).optional(),
-  avatar_url: z.string().url().optional(),
+export const loginSchema = z.object({
+  email,
+  password: z.string().min(1, 'Password wajib diisi'),
 });
-export type UpdateMeInput = z.infer<typeof UpdateMeSchema>;
+
+export const verifyEmailSchema = z.object({
+  email,
+  code: z.string().regex(/^\d{6}$/, 'Kode verifikasi harus 6 digit angka'),
+});
+
+export const resendVerificationSchema = z.object({ email });
+
+export const refreshSchema = z.object({
+  refresh_token: z.string().min(1, 'refresh_token wajib diisi'),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+export type RefreshInput = z.infer<typeof refreshSchema>;

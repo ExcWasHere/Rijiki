@@ -1,5 +1,5 @@
-name: frontend
-description: "A new Flutter project."
+name: rijiki
+description: "Rijiki Shoe & Care."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_riverpod: 3.3.2
   go_router: ^14.6.2
+  http: ^1.6.0
+  flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
   flutter_test:

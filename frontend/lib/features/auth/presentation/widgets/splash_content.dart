@@ -4,9 +4,6 @@ import '/../core/constants/app_strings.dart';
 import '/../core/constants/asset_paths.dart';
 import '/../core/theme/app_colors.dart';
 
-/// Ilustrasi splash: ikon Rijiki muncul, lalu huruf RIJIKI pop up satu per
-/// satu, diikuti tagline. Badge kolaborasi ada di [SplashCollabBadge]
-/// terpisah, supaya bisa diletakkan lebih ke bawah layar.
 class SplashContent extends StatefulWidget {
   const SplashContent({super.key});
 
@@ -40,7 +37,6 @@ class _SplashContentState extends State<SplashContent>
 
     _iconAnim = _stage(0.0, 0.28, curve: Curves.easeOutBack);
 
-    // Setiap huruf muncul berurutan setelah ikon.
     const letterStart = 0.30;
     const letterStep = 0.09;
     _letterAnims = List.generate(_letters.length, (i) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '/../core/theme/app_colors.dart';
 
-/// Tiga titik yang berdenyut bergantian.
 class SplashLoadingDots extends StatefulWidget {
   const SplashLoadingDots({super.key});
 
