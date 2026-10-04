@@ -1,21 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/providers.dart';
-import '../../../../app/router/role_redirect.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/session/session_provider.dart';
+import 'package:rijiki/app/providers.dart';
+import 'package:rijiki/app/router/role_redirect.dart';
+import 'package:rijiki/core/constants/app_constants.dart';
+import 'package:rijiki/core/session/session_provider.dart';
 
-/// State: loading -> splash tampil, data -> rute tujuan, error -> Failure.
 final splashControllerProvider =
     AsyncNotifierProvider.autoDispose<SplashController, String>(
-      SplashController.new,
-    );
+  SplashController.new,
+);
 
-class SplashController extends AutoDisposeAsyncNotifier<String> {
+class SplashController extends AsyncNotifier<String> {
   @override
   Future<String> build() async {
     final repository = ref.read(authRepositoryProvider);
 
-    // Pulihkan sesi dan tahan durasi minimum secara paralel.
     final userFuture = repository.restoreSession();
     final minDuration = Future<void>.delayed(AppConstants.splashMinDuration);
 

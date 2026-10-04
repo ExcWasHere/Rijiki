@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppTypography {
-  /// Isi nama family kalau pakai font kustom (daftarkan di pubspec.yaml,
-  /// file font di assets/fonts/). null = font bawaan platform.
   static const String? fontFamily = null;
 
   static const TextTheme textTheme = TextTheme(
