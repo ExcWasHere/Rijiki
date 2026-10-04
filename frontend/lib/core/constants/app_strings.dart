@@ -8,13 +8,15 @@ abstract final class AppStrings {
   static const String splashErrorTitle = 'Gagal memuat sesi';
   static const String retry = 'Coba lagi';
 
-  // General Auth
+  // Auth: general
   static const String emailLabel = 'Email';
   static const String emailHint = 'nama@email.com';
   static const String passwordLabel = 'Password';
   static const String passwordHint = 'Minimal 8 karakter';
   static const String confirmPasswordLabel = 'Konfirmasi password';
   static const String logout = 'Keluar';
+  static const String orDivider = 'atau';
+  static const String continueWithGoogle = 'Lanjutkan dengan Google';
 
   // Login
   static const String loginTitle = 'Masuk';
@@ -40,7 +42,7 @@ abstract final class AppStrings {
   static const String changeEmail = 'Ganti email';
   static String resendCountdown(int seconds) => 'Kirim ulang kode dalam ${seconds}s';
 
-  // Onboarding (placeholder)
+  // Onboarding
   static const String onboardingPlaceholder =
       'Halaman onboarding belum dibuat.\nNama & nomor HP akan diisi di sini.';
 
@@ -52,7 +54,7 @@ abstract final class AppStrings {
   static const String errConfirmRequired = 'Konfirmasi password wajib diisi';
   static const String errConfirmMismatch = 'Konfirmasi password tidak sama';
 
-  // Error umum
+  // Error
   static const String errNetwork =
       'Tidak bisa terhubung ke server. Cek koneksi internet kamu.';
   static const String errUnknown = 'Terjadi kesalahan. Coba lagi.';
@@ -60,4 +62,11 @@ abstract final class AppStrings {
   static const String errInvalidCredentials = 'Email atau password salah';
   static const String errInvalidOtp = 'Kode salah atau sudah kedaluwarsa';
   static const String errEmailTaken = 'Email sudah terdaftar. Silakan masuk';
+
+  // Google Sign-In
+  static const String errGoogleFailed = 'Login Google gagal. Coba lagi.';
+  static const String errGoogleNotConfigured =
+      'Login Google belum dikonfigurasi (GOOGLE_SERVER_CLIENT_ID kosong).';
+  static const String errGoogleConfig =
+      'Login Google gagal. Periksa pengaturan OAuth Google (SHA-1, package name, dan akun test).';
 }

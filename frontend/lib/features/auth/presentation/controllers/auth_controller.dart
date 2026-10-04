@@ -6,6 +6,7 @@ import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
 
 enum LoginOutcome { success, needsVerification, failed }
+
 final authControllerProvider =
     AsyncNotifierProvider.autoDispose<AuthController, void>(
   AuthController.new,
@@ -39,6 +40,22 @@ class AuthController extends AsyncNotifier<void> {
     } catch (_, stack) {
       _set(AsyncError(const Failure(FailureType.unknown, AppStrings.errUnknown), stack));
       return LoginOutcome.failed;
+    }
+  }
+
+  Future<void> loginWithGoogle() async {
+    final repository = ref.read(authRepositoryProvider);
+    final session = ref.read(sessionProvider.notifier);
+
+    _set(const AsyncLoading());
+    try {
+      final user = await repository.loginWithGoogle();
+      if (user != null) session.setUser(user);
+      _set(const AsyncData(null));
+    } on Failure catch (failure, stack) {
+      _set(AsyncError(failure, stack));
+    } catch (_, stack) {
+      _set(AsyncError(const Failure(FailureType.unknown, AppStrings.errUnknown), stack));
     }
   }
 
@@ -104,7 +121,6 @@ class AuthController extends AsyncNotifier<void> {
     try {
       await repository.resendVerification(email: email);
     } on Failure {
-      // hmm
     }
   }
 

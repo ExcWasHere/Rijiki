@@ -99,6 +99,17 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AppUser?> loginWithGoogle() async {
+    await Future<void>.delayed(_latency);
+    return const AppUser(
+      id: 'mock-google',
+      email: 'google@rijiki.id',
+      role: UserRole.customer,
+      profileCompleted: false,
+    );
+  }
+
+  @override
   Future<void> register({required String email, required String password}) async {
     await Future<void>.delayed(_latency);
     final key = email.trim().toLowerCase();

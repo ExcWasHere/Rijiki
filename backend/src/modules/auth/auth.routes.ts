@@ -4,6 +4,7 @@ import { AppError } from '../../shared/errors';
 import type { AppEnv } from '../../shared/types/env';
 import { parseInput } from '../../shared/utils/validate';
 import {
+  googleLoginSchema,
   loginSchema,
   refreshSchema,
   registerSchema,
@@ -13,6 +14,7 @@ import {
 import * as authService from './auth.service';
 
 export const authRoutes = new Hono<AppEnv>();
+
 authRoutes.post('/register', async (c) => {
   const input = parseInput(registerSchema, await c.req.json().catch(() => null));
   const result = await authService.register(c.env, input);
@@ -36,6 +38,11 @@ authRoutes.post('/resend-verification', async (c) => {
 authRoutes.post('/login', async (c) => {
   const input = parseInput(loginSchema, await c.req.json().catch(() => null));
   return c.json(await authService.login(c.env, input));
+});
+
+authRoutes.post('/google', async (c) => {
+  const input = parseInput(googleLoginSchema, await c.req.json().catch(() => null));
+  return c.json(await authService.loginWithGoogle(c.env, input));
 });
 
 authRoutes.post('/refresh', async (c) => {

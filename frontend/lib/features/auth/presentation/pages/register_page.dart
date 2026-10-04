@@ -7,8 +7,10 @@ import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/validators.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:rijiki/features/auth/presentation/widgets/auth_divider.dart';
 import 'package:rijiki/features/auth/presentation/widgets/auth_error_banner.dart';
 import 'package:rijiki/features/auth/presentation/widgets/auth_header.dart';
+import 'package:rijiki/features/auth/presentation/widgets/google_sign_in_button.dart';
 import 'package:rijiki/shared/widgets/app_button.dart';
 import 'package:rijiki/shared/widgets/app_text_field.dart';
 
@@ -24,6 +26,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+
+  bool _googleBusy = false;
 
   @override
   void dispose() {
@@ -43,6 +47,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         .register(email: email, password: _passwordController.text);
 
     if (ok && mounted) context.go(RoutePaths.verifyEmailFor(email));
+  }
+
+  Future<void> _continueWithGoogle() async {
+    FocusScope.of(context).unfocus();
+    setState(() => _googleBusy = true);
+    await ref.read(authControllerProvider.notifier).loginWithGoogle();
+    if (mounted) setState(() => _googleBusy = false);
   }
 
   @override
@@ -108,8 +119,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   const SizedBox(height: AppSpacing.lg),
                   AppButton(
                     label: AppStrings.registerButton,
-                    isLoading: isLoading,
+                    isLoading: isLoading && !_googleBusy,
                     onPressed: _submit,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  const AuthDivider(),
+                  const SizedBox(height: AppSpacing.md),
+                  GoogleSignInButton(
+                    isLoading: isLoading && _googleBusy,
+                    onPressed: isLoading ? null : _continueWithGoogle,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Row(

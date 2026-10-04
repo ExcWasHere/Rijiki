@@ -19,7 +19,7 @@ export function createApp() {
     await next();
   });
 
-  app.get('/', (c) => c.json({ name: 'sikatbosku-backend', status: 'ok' }));
+  app.get('/', (c) => c.json({ name: 'rijiki-backend', status: 'ok' }));
 
   app.route('/api/auth', authRoutes);
 

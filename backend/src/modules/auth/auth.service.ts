@@ -4,6 +4,7 @@ import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import type { AppPermission, AppUser } from '../../shared/types/user';
 import type {
+  GoogleLoginInput,
   LoginInput,
   RefreshInput,
   RegisterInput,
@@ -109,7 +110,6 @@ export async function register(env: Bindings, input: RegisterInput): Promise<{ e
   });
 
   if (error) throw mapAuthError(error);
-
   if (data.session) {
     throw new AppError(
       500,
@@ -165,6 +165,32 @@ export async function login(env: Bindings, input: LoginInput): Promise<AuthSessi
   });
 
   if (error) throw mapAuthError(error);
+
+  return buildSession(env, data.user.id, data.session.access_token, data.session.refresh_token);
+}
+
+export async function loginWithGoogle(
+  env: Bindings,
+  input: GoogleLoginInput,
+): Promise<AuthSessionPayload> {
+  const anon = getSupabaseAnon(env);
+  const { data, error } = await anon.auth.signInWithIdToken({
+    provider: 'google',
+    token: input.id_token,
+  });
+
+  if (error) {
+    if (error.code === 'provider_disabled') {
+      throw new AppError(500, 'config_error', 'Login Google belum diaktifkan di Supabase');
+    }
+    const mapped = mapAuthError(error);
+    if (mapped.status === 429 || mapped.status === 502) throw mapped;
+    // Token salah / kedaluwarsa / audience (Client ID) tidak terdaftar di Supabase.
+    throw new AppError(401, 'invalid_google_token', 'Login Google gagal. Coba lagi');
+  }
+  if (!data.session || !data.user) {
+    throw new AppError(401, 'invalid_google_token', 'Login Google gagal. Coba lagi');
+  }
 
   return buildSession(env, data.user.id, data.session.access_token, data.session.refresh_token);
 }

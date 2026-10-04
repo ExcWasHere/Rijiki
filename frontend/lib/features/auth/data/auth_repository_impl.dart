@@ -5,13 +5,19 @@ import 'package:rijiki/core/network/api_client.dart';
 import 'package:rijiki/core/network/api_endpoint.dart';
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/storage/token_storage.dart';
+import 'package:rijiki/features/auth/data/google_sign_in_service.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl({required this.api, required this.tokens});
+  AuthRepositoryImpl({
+    required this.api,
+    required this.tokens,
+    required this.googleSignIn,
+  });
 
   final ApiClient api;
   final TokenStorage tokens;
+  final GoogleSignInService googleSignIn;
 
   @override
   Future<AppUser?> restoreSession() async {
@@ -35,6 +41,14 @@ class AuthRepositoryImpl implements AuthRepository {
       ApiEndpoints.login,
       {'email': email, 'password': password},
     );
+  }
+
+  @override
+  Future<AppUser?> loginWithGoogle() async {
+    final idToken = await googleSignIn.signIn();
+    if (idToken == null) return null;
+
+    return _authenticate(ApiEndpoints.google, {'id_token': idToken});
   }
 
   @override
@@ -71,9 +85,9 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await api.post(ApiEndpoints.logout, auth: true);
     } on AppException {
-      // Gagal mencabut sesi di server tidak boleh menahan logout lokal.
     } finally {
       await tokens.clear();
+      await googleSignIn.signOut();
     }
   }
 
@@ -97,6 +111,7 @@ class AuthRepositoryImpl implements AuthRepository {
       case 'email_not_verified':
         return Failure(FailureType.emailNotVerified, e.message, code: e.code);
       case 'invalid_credentials':
+      case 'invalid_google_token':
       case 'unauthorized':
         return Failure(FailureType.unauthorized, e.message, code: e.code);
       case 'invalid_otp':
