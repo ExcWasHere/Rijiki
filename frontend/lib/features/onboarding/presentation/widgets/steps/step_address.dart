@@ -16,21 +16,18 @@ class StepAddress extends ConsumerWidget {
 
     return Stack(
       children: [
-        // 1. Top-Left Cyan Circle flush to screen edge
         const Positioned(
           left: -35,
           top: -35,
           child: CyanCircleDecoration(width: 160, height: 160),
         ),
 
-        // 2. Left Orange Blob flush to physical left edge (left: 0)
         const Positioned(
           left: 0,
           top: 220,
           child: LeftOrangeBlobDecoration(width: 170, height: 270),
         ),
 
-        // 3. Bottom-Right Cyan Circle behind text field
         const Positioned(
           right: -40,
           bottom: 110,

@@ -46,4 +46,24 @@ class AppUser {
       ownerBypass: json['owner_bypass'] as bool? ?? false,
     );
   }
+
+  AppUser copyWith({
+    String? fullName,
+    String? phoneNumber,
+    String? avatarUrl,
+    bool? profileCompleted,
+    Set<AppPermission>? permissions,
+  }) {
+    return AppUser(
+      id: id,
+      email: email,
+      role: role,
+      fullName: fullName ?? this.fullName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      profileCompleted: profileCompleted ?? this.profileCompleted,
+      permissions: permissions ?? this.permissions,
+      ownerBypass: ownerBypass,
+    );
+  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 
-/// Decorative Cyan Circle flush against the screen boundary
 class CyanCircleDecoration extends StatelessWidget {
   final double width;
   final double height;
@@ -27,7 +26,6 @@ class CyanCircleDecoration extends StatelessWidget {
   }
 }
 
-/// Organic Left Orange Blob extending flush from the left edge (left = 0) matching Figma curve
 class LeftOrangeBlobDecoration extends StatelessWidget {
   final double height;
   final double width;
@@ -58,17 +56,13 @@ class _OrangeBlobPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final path = Path();
-    // Start at top-left boundary
     path.moveTo(0, 0);
-
-    // Curve outwards to the right and downwards
     path.cubicTo(
-      size.width * 0.95, size.height * 0.2, // Control point 1 (outward curve)
-      size.width * 1.0, size.height * 0.65, // Control point 2 (belly curve)
-      size.width * 0.35, size.height * 0.95, // End point
+      size.width * 0.95, size.height * 0.2,
+      size.width * 1.0, size.height * 0.65,
+      size.width * 0.35, size.height * 0.95,
     );
 
-    // Curve back smoothly to left edge
     path.cubicTo(
       size.width * 0.1, size.height * 1.0,
       0, size.height * 0.92,

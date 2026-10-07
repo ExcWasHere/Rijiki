@@ -5,6 +5,10 @@ abstract final class RoutePaths {
   static const String verifyEmail = '/verify-email';
   static const String onboarding = '/onboarding';
   static const String customerHome = '/customer';
+  static const String customerOrders = '/customer/orders';
+  static const String customerScan = '/customer/scan';
+  static const String customerEvents = '/customer/events';
+  static const String customerProfile = '/customer/profile';
   static const String workerHome = '/worker';
   static const String ownerHome = '/owner';
 

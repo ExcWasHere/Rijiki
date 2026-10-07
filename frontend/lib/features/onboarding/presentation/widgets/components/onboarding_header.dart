@@ -14,7 +14,6 @@ class OnboardingHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (currentPage == 2) {
-      // Step 3: Halo, user
       final userName = ref.watch(onboardingControllerProvider).name;
       final displayName = userName.trim().isNotEmpty ? userName.trim() : 'user';
 

@@ -8,6 +8,18 @@ class SessionNotifier extends Notifier<AppUser?> {
   void setUser(AppUser? user) => state = user;
 
   void clear() => state = null;
+  void completeProfile({
+    required String fullName,
+    required String phoneNumber,
+  }) {
+    final current = state;
+    if (current == null) return;
+    state = current.copyWith(
+      fullName: fullName,
+      phoneNumber: phoneNumber,
+      profileCompleted: true,
+    );
+  }
 }
 
 final sessionProvider = NotifierProvider<SessionNotifier, AppUser?>(

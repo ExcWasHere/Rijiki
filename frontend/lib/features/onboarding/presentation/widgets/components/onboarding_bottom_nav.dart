@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
+import 'package:rijiki/features/onboarding/presentation/controllers/onboarding_controller.dart';
 
 class OnboardingBottomNav extends StatelessWidget {
   final int currentPage;
@@ -16,6 +17,7 @@ class OnboardingBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFirstPage = currentPage == 0;
+    final isLastPage = currentPage == OnboardingController.lastPage;
 
     if (isFirstPage) {
       return SizedBox(
@@ -82,9 +84,9 @@ class OnboardingBottomNav extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'NEXT',
-                style: TextStyle(
+              child: Text(
+                isLastPage ? 'SELESAI' : 'NEXT',
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,

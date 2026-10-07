@@ -13,12 +13,6 @@ class OnboardingDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Map 5 pages to dot active position if totalDots is 3 or 5
-    // Screen 0 -> Dot 0
-    // Screen 1 -> Dot 1
-    // Screen 2 (Questionnaire) -> Can hide or show Dot 1
-    // Screen 3 -> Dot 1
-    // Screen 4 -> Dot 2
     int activeIndex = currentPage;
     if (totalDots == 3) {
       if (currentPage <= 0) {

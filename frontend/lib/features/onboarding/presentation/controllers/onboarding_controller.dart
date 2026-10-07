@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rijiki/core/session/session_provider.dart';
 
 class OnboardingState {
   final int currentPage;
@@ -44,13 +45,11 @@ class OnboardingController extends Notifier<OnboardingState> {
     return const OnboardingState();
   }
 
-  // Dipanggil PageView hanya jika swipe diizinkan
   void onPageChanged(int index) {
     debugPrint('onPageChanged: $index');
     if (state.currentPage != index) {
       state = state.copyWith(currentPage: index);
     }
-    
   }
 
   void nextPage() => goToPage(state.currentPage + 1);
@@ -87,6 +86,14 @@ class OnboardingController extends Notifier<OnboardingState> {
       current.add(problem);
     }
     state = state.copyWith(selectedProblems: current);
+  }
+  // TODO(backend): kirim name, phone, address (default_address) ke API
+  // onboarding sebelum menandai selesai.
+  Future<void> complete() async {
+    ref.read(sessionProvider.notifier).completeProfile(
+          fullName: state.name.trim(),
+          phoneNumber: state.phone.trim(),
+        );
   }
 }
 

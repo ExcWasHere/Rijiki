@@ -1,4 +1,3 @@
-/// 1:1 dengan enum app_permission di database (PRD Bagian 5.1).
 enum AppPermission {
   manageOrdersAll('manage_orders_all'),
   manageCmsServices('manage_cms_services'),
@@ -14,8 +13,6 @@ enum AppPermission {
   const AppPermission(this.value);
 
   final String value;
-
-  /// Null untuk izin yang belum dikenal app (mis. izin baru dari backend).
   static AppPermission? tryParse(String value) {
     for (final permission in AppPermission.values) {
       if (permission.value == value) return permission;

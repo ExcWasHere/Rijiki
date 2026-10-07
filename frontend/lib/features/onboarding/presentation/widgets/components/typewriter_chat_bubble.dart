@@ -100,7 +100,6 @@ class _TypewriterChatBubbleState extends State<TypewriterChatBubble> {
               ),
             ),
           ),
-          // Rijiki Logo Avatar Badge on top-right of bubble
           Positioned(
             right: -10,
             top: -10,

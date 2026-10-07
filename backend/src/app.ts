@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { validateEnv } from './config/env';
 import { authRoutes } from './modules/auth/auth.routes';
+import { mediaRoutes } from './modules/media/media.routes';
 import { AppError } from './shared/errors';
 import type { AppEnv } from './shared/types/env';
 
@@ -22,6 +23,7 @@ export function createApp() {
   app.get('/', (c) => c.json({ name: 'rijiki-backend', status: 'ok' }));
 
   app.route('/api/auth', authRoutes);
+  app.route('/api/media', mediaRoutes);
 
   app.notFound((c) =>
     c.json({ error: { code: 'not_found', message: 'Endpoint tidak ditemukan' } }, 404),

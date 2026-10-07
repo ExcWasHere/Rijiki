@@ -23,6 +23,7 @@ class OnboardingPage extends ConsumerWidget {
     final keyboardOffset = MediaQuery.viewInsetsOf(context).bottom;
 
     final showTopHeader = state.currentPage == 0 || state.currentPage >= 4;
+    final isLastPage = state.currentPage == OnboardingController.lastPage;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -39,7 +40,6 @@ class OnboardingPage extends ConsumerWidget {
               const SizedBox(height: 12),
             ],
 
-            // PageView spanning full screen width (double.infinity)
             Expanded(
               key: const ValueKey('onboarding_page_view'),
               child: PageView(
@@ -70,7 +70,6 @@ class OnboardingPage extends ConsumerWidget {
               ),
             ),
 
-            // Dot indicator
             if (state.currentPage != 4) ...[
               OnboardingDots(currentPage: state.currentPage),
               const SizedBox(height: 20),
@@ -78,7 +77,6 @@ class OnboardingPage extends ConsumerWidget {
               const SizedBox(height: 12),
             ],
 
-            // Bottom Navigation Bar with padding
             Transform.translate(
               offset: Offset(0, -keyboardOffset),
               child: Padding(
@@ -86,7 +84,7 @@ class OnboardingPage extends ConsumerWidget {
                 child: OnboardingBottomNav(
                   currentPage: state.currentPage,
                   onBack: controller.previousPage,
-                  onNext: controller.nextPage,
+                  onNext: isLastPage ? controller.complete : controller.nextPage,
                 ),
               ),
             ),
