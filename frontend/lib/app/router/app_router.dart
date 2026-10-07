@@ -1,8 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rijiki/app/router/role_redirect.dart';
 import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/app/shells/customer_shell.dart';
+import 'package:rijiki/app/shells/customer_tab_placeholder.dart';
 import 'package:rijiki/app/shells/role_home_placeholder.dart';
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
@@ -10,6 +12,7 @@ import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
+import 'package:rijiki/features/home/presentation/customer/home_page.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/onboarding_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -51,11 +54,73 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.onboarding,
         builder: (context, state) => const OnboardingPage(),
       ),
-      GoRoute(
-        path: RoutePaths.customerHome,
-        builder: (context, state) =>
-            const RoleHomePlaceholder(title: 'Customer'),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            CustomerShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.customerHome,
+                builder: (context, state) => const HomePage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.customerOrders,
+                builder: (context, state) => const CustomerTabPlaceholder(
+                  title: 'Order',
+                  icon: Icons.receipt_long_rounded,
+                  description:
+                      'Riwayat dan status order kamu akan tampil di sini.',
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.customerScan,
+                builder: (context, state) => const CustomerTabPlaceholder(
+                  title: 'Scan Sepatu',
+                  icon: Icons.document_scanner_rounded,
+                  description:
+                      'Foto sepatu, lalu dapat rekomendasi layanan yang pas.',
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.customerEvents,
+                builder: (context, state) => const CustomerTabPlaceholder(
+                  title: 'Event',
+                  icon: Icons.local_activity_rounded,
+                  description:
+                      'Promo, event, dan poin kamu akan tampil di sini.',
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.customerProfile,
+                builder: (context, state) => const CustomerTabPlaceholder(
+                  title: 'Profil',
+                  icon: Icons.person_rounded,
+                  description: 'Data akun dan pengaturan akan tampil di sini.',
+                  showAccount: true,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
+
       GoRoute(
         path: RoutePaths.workerHome,
         builder: (context, state) => const RoleHomePlaceholder(title: 'Worker'),

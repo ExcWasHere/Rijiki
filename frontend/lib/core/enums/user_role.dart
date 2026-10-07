@@ -1,4 +1,3 @@
-/// 1:1 dengan enum user_role di database (PRD Bagian 28).
 enum UserRole {
   customer,
   worker,

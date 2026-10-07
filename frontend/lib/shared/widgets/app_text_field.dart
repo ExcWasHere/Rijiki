@@ -22,8 +22,6 @@ class AppTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
-
-  /// true = field password dengan tombol tampilkan/sembunyikan.
   final bool obscureText;
   final Iterable<String>? autofillHints;
   final ValueChanged<String>? onFieldSubmitted;

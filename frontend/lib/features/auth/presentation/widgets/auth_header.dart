@@ -3,7 +3,6 @@ import 'package:rijiki/core/constants/app_strings.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 
-/// Logo teks + judul + subjudul di atas halaman auth.
 class AuthHeader extends StatelessWidget {
   const AuthHeader({super.key, required this.title, required this.subtitle});
 
