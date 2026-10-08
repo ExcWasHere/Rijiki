@@ -185,7 +185,6 @@ export async function loginWithGoogle(
     }
     const mapped = mapAuthError(error);
     if (mapped.status === 429 || mapped.status === 502) throw mapped;
-    // Token salah / kedaluwarsa / audience (Client ID) tidak terdaftar di Supabase.
     throw new AppError(401, 'invalid_google_token', 'Login Google gagal. Coba lagi');
   }
   if (!data.session || !data.user) {

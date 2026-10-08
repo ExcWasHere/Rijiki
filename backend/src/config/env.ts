@@ -5,6 +5,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  PUBLIC_ASSET_BASE_URL: z.string().url(),
   DUITKU_MERCHANT_CODE: z.string().optional(),
   DUITKU_API_KEY: z.string().optional(),
   ENVIRONMENT: z.string().optional(),

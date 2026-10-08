@@ -8,8 +8,6 @@ abstract final class AppConstants {
   );
   static const bool useMockAuth = bool.fromEnvironment('USE_MOCK_AUTH');
   static const Duration requestTimeout = Duration(seconds: 15);
-
-  // Google Sign-In: isi dengan **Web client ID** (bukan Android client ID).
   static const String googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
   );

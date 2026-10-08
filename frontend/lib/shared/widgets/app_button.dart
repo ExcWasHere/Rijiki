@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 
-/// Tombol utama. Saat [isLoading] tampil spinner dan tap diabaikan
-/// (warna tombol tetap, tidak berubah jadi abu-abu).
 class AppButton extends StatelessWidget {
   const AppButton({
     super.key,
