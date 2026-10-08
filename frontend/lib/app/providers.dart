@@ -14,6 +14,8 @@ import 'package:rijiki/features/order/data/mock_order_repository.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
 import 'package:rijiki/features/rating/data/mock_rating_repository.dart';
 import 'package:rijiki/features/rating/domain/rating_repository.dart';
+import 'package:rijiki/features/scan/data/mock_scan_repository.dart';
+import 'package:rijiki/features/scan/domain/scan_repository.dart';
 import 'package:rijiki/features/service/data/mock_service_repository.dart';
 import 'package:rijiki/features/service/domain/service_repository.dart';
 
@@ -55,4 +57,8 @@ final orderRepositoryProvider = Provider<OrderRepository>(
 
 final ratingRepositoryProvider = Provider<RatingRepository>(
   (ref) => MockRatingRepository(scenario: ref.watch(mockScenarioProvider)),
+);
+
+final scanRepositoryProvider = Provider<ScanRepository>(
+  (ref) => MockScanRepository(scenario: ref.watch(mockScenarioProvider)),
 );

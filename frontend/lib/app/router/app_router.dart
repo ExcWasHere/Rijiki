@@ -14,6 +14,9 @@ import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:rijiki/features/home/presentation/customer/home_page.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
+import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
+import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -82,19 +85,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: RoutePaths.customerScan,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Scan Sepatu',
-                  icon: Icons.document_scanner_rounded,
-                  description:
-                      'Foto sepatu, lalu dapat rekomendasi layanan yang pas.',
-                ),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: RoutePaths.customerEvents,
                 builder: (context, state) => const CustomerTabPlaceholder(
                   title: 'Event',
@@ -119,6 +109,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: RoutePaths.customerScan,
+        builder: (context, state) => const ScanPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.customerScanAnalyzing,
+        builder: (context, state) => const ScanAnalyzingPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.customerScanResult,
+        builder: (context, state) => const ScanResultPage(),
       ),
 
       GoRoute(

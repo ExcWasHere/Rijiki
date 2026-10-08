@@ -47,7 +47,7 @@ class HomePage extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 child: ScanCtaCard(
-                  onScan: () => context.go(RoutePaths.customerScan),
+                  onScan: () => context.push(RoutePaths.customerScan),
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
