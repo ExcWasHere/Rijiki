@@ -14,6 +14,13 @@ import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:rijiki/features/home/presentation/customer/home_page.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_create_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_detail_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_list_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_summary_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_tracking_page.dart';
+import 'package:rijiki/features/payment/presentation/customer/payment_result_page.dart';
+import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
@@ -73,12 +80,51 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerOrders,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Order',
-                  icon: Icons.receipt_long_rounded,
-                  description:
-                      'Riwayat dan status order kamu akan tampil di sini.',
-                ),
+                builder: (context, state) => const OrderListPage(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => OrderCreatePage(
+                      initialServiceId: state.uri.queryParameters['serviceId'],
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'summary',
+                        builder: (context, state) => const OrderSummaryPage(),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: ':orderId',
+                    builder: (context, state) => OrderDetailPage(
+                      orderId: state.pathParameters['orderId']!,
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'tracking',
+                        builder: (context, state) => OrderTrackingPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'pay',
+                        builder: (context, state) => QrisPaymentPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                        routes: [
+                          GoRoute(
+                            path: 'result',
+                            builder: (context, state) => PaymentResultPage(
+                              orderId: state.pathParameters['orderId']!,
+                              status:
+                                  state.uri.queryParameters['status'] ?? 'failed',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
