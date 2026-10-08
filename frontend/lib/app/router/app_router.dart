@@ -21,6 +21,7 @@ import 'package:rijiki/features/order/presentation/customer/order_summary_page.d
 import 'package:rijiki/features/order/presentation/customer/order_tracking_page.dart';
 import 'package:rijiki/features/payment/presentation/customer/payment_result_page.dart';
 import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.dart';
+import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
@@ -54,11 +55,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.verifyEmail,
         redirect: (context, state) =>
             (state.uri.queryParameters['email'] ?? '').isEmpty
-                ? RoutePaths.register
-                : null,
-        builder: (context, state) => VerifyEmailPage(
-          email: state.uri.queryParameters['email'] ?? '',
-        ),
+            ? RoutePaths.register
+            : null,
+        builder: (context, state) =>
+            VerifyEmailPage(email: state.uri.queryParameters['email'] ?? ''),
       ),
       GoRoute(
         path: RoutePaths.onboarding,
@@ -117,7 +117,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                             builder: (context, state) => PaymentResultPage(
                               orderId: state.pathParameters['orderId']!,
                               status:
-                                  state.uri.queryParameters['status'] ?? 'failed',
+                                  state.uri.queryParameters['status'] ??
+                                  'failed',
                             ),
                           ),
                         ],
@@ -145,12 +146,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerProfile,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Profil',
-                  icon: Icons.person_rounded,
-                  description: 'Data akun dan pengaturan akan tampil di sini.',
-                  showAccount: true,
-                ),
+                builder: (context, state) => const ProfilePage(),
               ),
             ],
           ),
