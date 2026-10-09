@@ -25,6 +25,7 @@ import 'package:rijiki/features/profile/presentation/customer/profile_page.dart'
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
+import 'package:rijiki/features/event/presentation/event_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -133,12 +134,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerEvents,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Event',
-                  icon: Icons.local_activity_rounded,
-                  description:
-                      'Promo, event, dan poin kamu akan tampil di sini.',
-                ),
+                builder: (context, state) => const EventPage(),
               ),
             ],
           ),
