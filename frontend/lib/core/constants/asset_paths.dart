@@ -1,4 +1,9 @@
 abstract final class AssetPaths {
-  /// Ikon rumah/tas/sepatu hasil crop dari logo_rijiikicare.png (tanpa teks).
+  static const String rijikiLogo = 'assets/images/logo_rijiki.png';
   static const String rijikiIcon = 'assets/images/logo_rijiki_icon.png';
+  static const String onboardingWelcome = 'assets/images/CEPATU 1.png';
+  static const String onboardingshoeCare = 'assets/images/shoecare.png';
+  static const String onboardingDelivery = 'assets/images/delivery.png';
+  static const String banner1 = 'assets/images/banner1.jpeg';
+  static const String banner2 = 'assets/images/banner2.jpeg';
 }

@@ -4,9 +4,6 @@ import 'package:rijiki/core/constants/app_constants.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 
-/// Input kode OTP 6 kotak. Satu TextField tak terlihat menampung input, jadi
-/// paste, autofill kode dari SMS/email, dan backspace berperilaku normal.
-/// Teks dikelola lewat [controller] (page bisa memanggil `controller.clear()`).
 class OtpInputField extends StatefulWidget {
   const OtpInputField({
     super.key,
@@ -51,7 +48,6 @@ class _OtpInputFieldState extends State<OtpInputField> {
   void _onTextChanged() {
     final text = widget.controller.text;
     setState(() {});
-    // Listener juga terpanggil saat kursor bergeser; hanya lapor kalau teks berubah.
     if (text == _lastText) return;
     _lastText = text;
     if (text.length == widget.length) widget.onCompleted(text);
