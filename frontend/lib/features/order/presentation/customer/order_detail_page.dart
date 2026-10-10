@@ -143,8 +143,7 @@ class _DetailBody extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: () =>
-                  _comingSoon(context, 'Struk digital segera hadir.'),
+              onPressed: () => context.push(RoutePaths.receiptFor(order.id)),
               icon: const Icon(Icons.receipt_outlined, size: 18),
               label: const Text('Lihat struk digital'),
             ),

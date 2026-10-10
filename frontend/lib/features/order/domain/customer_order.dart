@@ -22,6 +22,8 @@ class CustomerOrder {
     this.completedAt,
     this.workerName,
     this.promoCode,
+    this.customerName,
+    this.customerPhone,
     this.statusHistory = const [],
     this.documentation = const [],
     this.isRated = false,
@@ -40,6 +42,8 @@ class CustomerOrder {
   final DateTime? completedAt;
   final String? workerName;
   final String? promoCode;
+  final String? customerName;
+  final String? customerPhone;
   final List<OrderStatusHistory> statusHistory;
   final List<OrderDocumentation> documentation;
   final bool isRated;
@@ -79,6 +83,8 @@ class CustomerOrder {
       completedAt: completedAt,
       workerName: workerName,
       promoCode: promoCode,
+      customerName: customerName,
+      customerPhone: customerPhone,
       statusHistory: statusHistory,
       documentation: documentation,
       isRated: isRated,

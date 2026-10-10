@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/extensions/enum_ui_x.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
@@ -10,6 +12,7 @@ import 'package:rijiki/features/order/presentation/widgets/order_status_stepper.
 import 'package:rijiki/shared/widgets/app_card.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
 import 'package:rijiki/shared/widgets/loading_skeleton.dart';
+
 class OrderTrackingPage extends ConsumerWidget {
   const OrderTrackingPage({super.key, required this.orderId});
 
@@ -104,12 +107,8 @@ class _TrackingBody extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  // TODO(segmen-4): buka peta posisi kurir.
-                  onPressed: () => ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(
-                      const SnackBar(content: Text('Peta kurir segera hadir.')),
-                    ),
+                  onPressed: () =>
+                      context.push(RoutePaths.deliveryMapFor(order.id)),
                   icon: const Icon(Icons.map_outlined, size: 20),
                   label: const Text('Lihat posisi kurir'),
                 ),

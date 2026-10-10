@@ -36,6 +36,10 @@ abstract final class RoutePaths {
       '$customerOrders/$orderId/tracking';
   static String orderPaymentFor(String orderId) =>
       '$customerOrders/$orderId/pay';
+  static String receiptFor(String orderId) =>
+      '$customerOrders/$orderId/receipt';
+  static String deliveryMapFor(String orderId) =>
+      '$customerOrders/$orderId/map';
 
   static String paymentResultFor(String orderId, String status) => Uri(
     path: '$customerOrders/$orderId/pay/result',

@@ -14,18 +14,18 @@ import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:rijiki/features/home/presentation/customer/home_page.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:rijiki/features/order/presentation/customer/delivery_map_page.dart';
 import 'package:rijiki/features/order/presentation/customer/order_create_page.dart';
 import 'package:rijiki/features/order/presentation/customer/order_detail_page.dart';
 import 'package:rijiki/features/order/presentation/customer/order_list_page.dart';
 import 'package:rijiki/features/order/presentation/customer/order_summary_page.dart';
 import 'package:rijiki/features/order/presentation/customer/order_tracking_page.dart';
+import 'package:rijiki/features/order/presentation/customer/receipt_page.dart';
 import 'package:rijiki/features/payment/presentation/customer/payment_result_page.dart';
 import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.dart';
-import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
-import 'package:rijiki/features/event/presentation/event_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -56,15 +56,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.verifyEmail,
         redirect: (context, state) =>
             (state.uri.queryParameters['email'] ?? '').isEmpty
-            ? RoutePaths.register
-            : null,
-        builder: (context, state) =>
-            VerifyEmailPage(email: state.uri.queryParameters['email'] ?? ''),
+                ? RoutePaths.register
+                : null,
+        builder: (context, state) => VerifyEmailPage(
+          email: state.uri.queryParameters['email'] ?? '',
+        ),
       ),
       GoRoute(
         path: RoutePaths.onboarding,
         builder: (context, state) => const OnboardingPage(),
       ),
+
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             CustomerShell(navigationShell: navigationShell),
@@ -108,6 +110,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         ),
                       ),
                       GoRoute(
+                        path: 'receipt',
+                        builder: (context, state) => ReceiptPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'map',
+                        builder: (context, state) => DeliveryMapPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                      GoRoute(
                         path: 'pay',
                         builder: (context, state) => QrisPaymentPage(
                           orderId: state.pathParameters['orderId']!,
@@ -118,8 +132,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                             builder: (context, state) => PaymentResultPage(
                               orderId: state.pathParameters['orderId']!,
                               status:
-                                  state.uri.queryParameters['status'] ??
-                                  'failed',
+                                  state.uri.queryParameters['status'] ?? 'failed',
                             ),
                           ),
                         ],
@@ -134,7 +147,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerEvents,
-                builder: (context, state) => const EventPage(),
+                builder: (context, state) => const CustomerTabPlaceholder(
+                  title: 'Event',
+                  icon: Icons.local_activity_rounded,
+                  description:
+                      'Promo, event, dan poin kamu akan tampil di sini.',
+                ),
               ),
             ],
           ),
@@ -142,7 +160,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerProfile,
-                builder: (context, state) => const ProfilePage(),
+                builder: (context, state) => const CustomerTabPlaceholder(
+                  title: 'Profil',
+                  icon: Icons.person_rounded,
+                  description: 'Data akun dan pengaturan akan tampil di sini.',
+                  showAccount: true,
+                ),
               ),
             ],
           ),

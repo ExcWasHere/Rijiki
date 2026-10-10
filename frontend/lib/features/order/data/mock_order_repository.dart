@@ -118,6 +118,8 @@ class MockOrderRepository implements OrderRepository {
       ],
       price: quote.price,
       promoCode: quote.promoCode,
+      customerName: order.customerName.trim(),
+      customerPhone: order.phone.trim(),
       pickupAddress: order.pickupAddress,
       deliveryAddress: order.deliveryAddress,
       createdAt: now,
@@ -129,7 +131,6 @@ class MockOrderRepository implements OrderRepository {
 
   static const String _homeAddress =
       'Jl. Soekarno Hatta No. 9, Lowokwaru, Kota Malang';
-
   static List<CustomerOrder> _buildOrders() {
     final now = DateTime.now();
 
@@ -207,7 +208,6 @@ class MockOrderRepository implements OrderRepository {
           ),
         ],
       ),
-
       CustomerOrder(
         id: 'ord-3',
         orderNumber: 'RJK-0708-011',
@@ -251,7 +251,6 @@ class MockOrderRepository implements OrderRepository {
           ),
         ],
       ),
-
       CustomerOrder(
         id: 'ord-4',
         orderNumber: 'RJK-0703-004',
@@ -353,7 +352,6 @@ class MockOrderRepository implements OrderRepository {
           OrderDocumentation(id: 'doc-12', type: DocumentationType.proofOfDelivery),
         ],
       ),
-
       CustomerOrder(
         id: 'ord-6',
         orderNumber: 'RJK-0625-007',
