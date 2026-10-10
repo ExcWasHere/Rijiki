@@ -8,6 +8,8 @@ import 'package:rijiki/features/auth/data/auth_repository_impl.dart';
 import 'package:rijiki/features/auth/data/google_sign_in_service.dart';
 import 'package:rijiki/features/auth/data/mock_auth_repo.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
+import 'package:rijiki/features/home/presentation/owner/data/mock_dashboard_repository.dart';
+import 'package:rijiki/features/home/presentation/owner/domain/dashboard_repository.dart';
 import 'package:rijiki/features/event/data/mock_event_repository.dart';
 import 'package:rijiki/features/event/domain/event_repository.dart';
 import 'package:rijiki/features/order/data/mock_order_repository.dart';
@@ -70,4 +72,8 @@ final paymentRepositoryProvider = Provider<PaymentRepository>(
     orders: ref.watch(orderRepositoryProvider),
     scenario: ref.watch(mockScenarioProvider),
   ),
+);
+
+final dashboardRepositoryProvider = Provider<DashboardRepository>(
+  (ref) => MockDashboardRepository(),
 );
