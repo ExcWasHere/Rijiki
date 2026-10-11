@@ -5,15 +5,15 @@ import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/features/dashboard/presentation/controllers/dashboard_controller.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/owner_greeting_header.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/period_selector.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/recent_orders_list.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/repeat_customers_section.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/revenue_hero_card.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/skeleton_block.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/summary_stat_row.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/testimonial_export_shortcut.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/controllers/dashboard_controller.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/owner_greeting_header.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/period_selector.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/recent_orders_list.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/repeat_customers_section.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/revenue_hero_card.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/skeleton_block.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/summary_stat_row.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/testimonial_export_shortcut.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});

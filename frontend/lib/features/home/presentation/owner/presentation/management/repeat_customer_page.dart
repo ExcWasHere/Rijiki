@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/features/dashboard/presentation/controllers/dashboard_controller.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/dashboard_message_card.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/repeat_customer_tile.dart';
-import 'package:rijiki/features/dashboard/presentation/widgets/skeleton_block.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/controllers/dashboard_controller.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/dashboard_message_card.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/repeat_customer_tile.dart';
+import 'package:rijiki/features/home/presentation/owner/presentation/widgets/skeleton_block.dart';
 
 class RepeatCustomerPage extends ConsumerWidget {
   const RepeatCustomerPage({super.key});
