@@ -13,6 +13,7 @@ import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
+import 'package:rijiki/features/event/presentation/event_page.dart';
 import 'package:rijiki/features/home/presentation/owner/presentation/management/dashboard_page.dart';
 import 'package:rijiki/features/home/presentation/owner/presentation/management/repeat_customer_page.dart';
 import 'package:rijiki/features/home/presentation/customer/home_page.dart';
@@ -26,6 +27,7 @@ import 'package:rijiki/features/order/presentation/customer/order_tracking_page.
 import 'package:rijiki/features/order/presentation/customer/receipt_page.dart';
 import 'package:rijiki/features/payment/presentation/customer/payment_result_page.dart';
 import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.dart';
+import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
@@ -150,12 +152,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerEvents,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Event',
-                  icon: Icons.local_activity_rounded,
-                  description:
-                      'Promo, event, dan poin kamu akan tampil di sini.',
-                ),
+                builder: (context, state) => const EventPage(),
               ),
             ],
           ),
@@ -163,12 +160,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerProfile,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Profil',
-                  icon: Icons.person_rounded,
-                  description: 'Data akun dan pengaturan akan tampil di sini.',
-                  showAccount: true,
-                ),
+                builder: (context, state) => const ProfilePage(),
               ),
             ],
           ),
