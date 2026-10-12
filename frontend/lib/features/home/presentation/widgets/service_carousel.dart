@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/currency_formatter.dart';
@@ -101,6 +103,8 @@ class _ServiceCard extends StatelessWidget {
     return SizedBox(
       width: ServiceCarousel._cardWidth,
       child: AppCard(
+        onTap: () =>
+            context.go(RoutePaths.orderCreateFor(serviceId: service.id)),
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

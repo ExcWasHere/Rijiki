@@ -122,8 +122,11 @@ class ScanResultPage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 FilledButton(
-                  // TODO(segmen-3): bawa layanan rekomendasi ke alur buat order.
-                  onPressed: () => context.go(RoutePaths.customerOrders),
+                  onPressed: () => context.go(
+                    RoutePaths.orderCreateFor(
+                      serviceId: result.recommendedService.id,
+                    ),
+                  ),
                   child: const Text('Pesan layanan ini'),
                 ),
                 TextButton(

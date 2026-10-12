@@ -7,6 +7,11 @@ abstract final class DateFormatter {
   static String shortDate(DateTime date) =>
       '${date.day} ${_months[date.month - 1]} ${date.year}';
 
+  static String time(DateTime date) =>
+      '${date.hour.toString().padLeft(2, '0')}.${date.minute.toString().padLeft(2, '0')}';
+
+  static String dateTime(DateTime date) => '${shortDate(date)}, ${time(date)}';
+
   static String greeting(DateTime now) {
     final hour = now.hour;
     if (hour < 11) return 'Selamat pagi';
