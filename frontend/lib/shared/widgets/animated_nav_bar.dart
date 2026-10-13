@@ -14,9 +14,6 @@ class NavBarItem {
   final IconData activeIcon;
 }
 
-/// Bottom navbar dengan efek gabungan: indikator geser di sisi atas dan ikon
-/// yang naik + membesar saat dipilih. Gayanya sama dengan navbar customer,
-/// tetapi tanpa tombol tengah sehingga semua slot setara.
 class AnimatedNavBar extends StatelessWidget {
   const AnimatedNavBar({
     super.key,

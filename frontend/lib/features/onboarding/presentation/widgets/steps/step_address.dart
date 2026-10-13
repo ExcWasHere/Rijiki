@@ -33,8 +33,6 @@ class StepAddress extends ConsumerWidget {
           bottom: 110,
           child: CyanCircleDecoration(width: 170, height: 170),
         ),
-
-        // Main Foreground Content
         SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
           child: Padding(
@@ -43,8 +41,6 @@ class StepAddress extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-
-                // Title
                 const Text(
                   'Atur\nAlamatmu!',
                   textAlign: TextAlign.center,
@@ -56,15 +52,11 @@ class StepAddress extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 42),
-
-                // Typewriter animated chat bubble
                 const TypewriterChatBubble(
                   text:
                       'Boleh minta info alamat lengkapmu untuk lokasi pengantaran nanti?',
                 ),
                 const SizedBox(height: 350),
-
-                // Google Maps Pinpoint Address Input / Search Trigger Field
                 Transform.translate(
                   offset: Offset(0, -keyboardOffset),
                   child: Container(

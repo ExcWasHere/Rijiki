@@ -97,7 +97,6 @@ class OnboardingController extends Notifier<OnboardingState> {
   }
 
   // TODO(backend): kirim name, phone, address (default_address) ke API
-  // onboarding sebelum menandai selesai.
   Future<void> complete() async {
     await ref.read(tokenStorageProvider).setOnboardingCompleted(true);
     ref.read(sessionProvider.notifier).completeProfile(

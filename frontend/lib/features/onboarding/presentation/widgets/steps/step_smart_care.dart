@@ -11,7 +11,6 @@ class StepSmartCare extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Spacer(),
-        // Illustration matching design (Shoe + Phone UI)
         Container(
           height: 220,
           width: double.infinity,
@@ -28,7 +27,6 @@ class StepSmartCare extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
             'Solusi & Perawatan Sepatu Terbaik',
-            // 'Smart Shoe Care\n& Treatment\nRecommendation.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 24,

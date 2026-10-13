@@ -11,7 +11,6 @@ class StepWelcome extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Spacer(),
-        // Illustration placeholder matching design
         Container(
           height: 220,
           width: double.infinity,

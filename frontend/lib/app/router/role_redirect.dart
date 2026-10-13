@@ -32,14 +32,10 @@ abstract final class RoleRedirect {
     final isAuthRoute = _authRoutes.contains(location);
 
     if (user == null) return isAuthRoute ? null : RoutePaths.login;
-
-    // Pengguna sudah login:
-    // Jika berada di halaman login, selalu arahkan langsung ke home role (tidak ke onboarding).
     if (location == RoutePaths.login) {
       return roleHome(user);
     }
 
-    // Onboarding HANYA muncul ketika pengguna selesai membuat akun (register / verify-email).
     if (location == RoutePaths.register || location == RoutePaths.verifyEmail) {
       if (needsOnboarding(user)) {
         return RoutePaths.onboarding;
@@ -47,8 +43,6 @@ abstract final class RoleRedirect {
       return roleHome(user);
     }
 
-    // Jika pengguna berada di rute onboarding:
-    // Jika onboarding sudah selesai atau bukan customer, arahkan ke home role.
     if (location == RoutePaths.onboarding) {
       if (!needsOnboarding(user)) {
         return roleHome(user);

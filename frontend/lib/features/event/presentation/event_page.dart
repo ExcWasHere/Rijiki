@@ -426,7 +426,6 @@ class _PromoEventCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () {
-          // UI prototype dulu.
         },
         child: Container(
           padding: const EdgeInsets.all(14),

@@ -24,6 +24,11 @@ abstract final class RoutePaths {
   static const String ownerManagement = '/owner/management';
   static const String ownerProfile = '/owner/profile';
   static const String ownerRepeatCustomers = '/owner/repeat-customers';
+  static const String ownerFinance = '/owner/management/finance';
+  static const String ownerFinanceTransactions =
+      '/owner/management/finance/transactions';
+  static const String ownerManagementRepeatCustomers =
+      '/owner/management/repeat-customers';
 
   static String verifyEmailFor(String email) {
     return Uri(path: verifyEmail, queryParameters: {'email': email}).toString();

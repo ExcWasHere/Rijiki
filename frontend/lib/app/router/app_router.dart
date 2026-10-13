@@ -14,9 +14,12 @@ import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:rijiki/features/event/presentation/event_page.dart';
-import 'package:rijiki/features/home/presentation/owner/presentation/management/dashboard_page.dart';
-import 'package:rijiki/features/home/presentation/owner/presentation/management/repeat_customer_page.dart';
-import 'package:rijiki/features/home/presentation/customer/home_page.dart';
+import 'package:rijiki/features/finance/presentation/management/finance_page.dart';
+import 'package:rijiki/features/finance/presentation/management/transaction_list_page.dart';
+import 'package:rijiki/features/home/owner/presentation/management/dashboard_page.dart';
+import 'package:rijiki/features/home/owner/presentation/management/repeat_customer_page.dart';
+import 'package:rijiki/features/home/customer/home_page.dart';
+import 'package:rijiki/features/home/owner/presentation/management/presentation/management/management_hub_page.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:rijiki/features/order/presentation/customer/delivery_map_page.dart';
 import 'package:rijiki/features/order/presentation/customer/order_create_page.dart';
@@ -218,12 +221,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.ownerManagement,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Manajemen',
-                  icon: Icons.grid_view_rounded,
-                  description:
-                      'Worker, keuangan, CMS, dan hak akses akan tampil di sini.',
-                ),
+                builder: (context, state) => const ManagementHubPage(),
+                routes: [
+                  GoRoute(
+                    path: 'finance',
+                    builder: (context, state) => const FinancePage(),
+                    routes: [
+                      GoRoute(
+                        path: 'transactions',
+                        builder: (context, state) =>
+                            const TransactionListPage(),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'repeat-customers',
+                    builder: (context, state) => const RepeatCustomerPage(),
+                  ),
+                ],
               ),
             ],
           ),

@@ -215,8 +215,6 @@ class _ProfileHero extends StatelessWidget {
 class _ProfileBanner extends StatelessWidget {
   const _ProfileBanner();
 
-  // Ganti path ini dengan lokasi asset banner profil.
-
   @override
   Widget build(BuildContext context) {
     return Container(

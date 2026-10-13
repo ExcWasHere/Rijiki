@@ -5,9 +5,6 @@ import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/domain/order_item.dart';
 import 'package:rijiki/shared/widgets/network_image_box.dart';
 
-/// Galeri foto sebelum/sesudah per item, plus bukti penerimaan.
-/// Selama [OrderDocumentation.photoUrl] kosong (data mock), tile tampil
-/// sebagai placeholder abu-abu berlabel.
 // TODO(backend): foto privat dimuat lewat endpoint ber-auth, teruskan
 // header Authorization ke NetworkImageBox.
 class BeforeAfterGallery extends StatelessWidget {

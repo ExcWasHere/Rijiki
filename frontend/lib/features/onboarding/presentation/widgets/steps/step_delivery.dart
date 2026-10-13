@@ -11,7 +11,6 @@ class StepDelivery extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Spacer(),
-        // Illustration matching design (Delivery + Map Location Pin + Package Box)
         Container(
           height: 220,
           width: double.infinity,

@@ -1,5 +1,4 @@
 abstract final class RupiahFormatter {
-  /// 1250000 -> "Rp 1.250.000"
   static String full(num value) {
     final negative = value < 0;
     final digits = value.abs().round().toString();
@@ -11,7 +10,6 @@ abstract final class RupiahFormatter {
     return '${negative ? '-' : ''}Rp $buffer';
   }
 
-  /// 1250000 -> "Rp 1,3 jt", 85000 -> "Rp 85 rb"
   static String compact(num value) {
     final negative = value < 0;
     final abs = value.abs().toDouble();

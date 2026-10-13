@@ -115,7 +115,6 @@ class OrderCreateController extends Notifier<OrderCreateState> {
     );
   }
 
-  /// Pilih layanan awal (mis. dari hasil scan atau kartu layanan di Beranda).
   Future<void> preselectService(String serviceId) async {
     try {
       final services = await ref.read(allServicesProvider.future);
@@ -127,7 +126,6 @@ class OrderCreateController extends Notifier<OrderCreateState> {
         items: [first.copyWith(service: service), ...state.items.skip(1)],
       );
     } catch (_) {
-      // Daftar layanan gagal dimuat: customer tetap bisa memilih manual.
     }
   }
 
@@ -216,7 +214,6 @@ class OrderCreateController extends Notifier<OrderCreateState> {
 
   void clearPromo() => state = state.copyWith(promo: const PromoUiState());
 
-  /// Kirim order. Mengembalikan order baru, atau null bila gagal.
   Future<CustomerOrder?> submit(PriceQuote quote) async {
     if (state.isSubmitting || !state.isValid) return null;
     state = state.copyWith(isSubmitting: true);
@@ -234,7 +231,6 @@ class OrderCreateController extends Notifier<OrderCreateState> {
             ),
             quote,
           );
-      // Daftar order dan Beranda ikut diperbarui.
       ref.invalidate(ordersProvider);
       return order;
     } catch (_) {
@@ -249,8 +245,6 @@ final orderCreateControllerProvider =
       OrderCreateController.new,
     );
 
-/// Harga untuk draft saat ini (subtotal, promo, ongkir).
-/// Dihitung ulang hanya bila subtotal atau promo yang terpasang berubah.
 final orderQuoteProvider = FutureProvider.autoDispose<PriceQuote>((ref) {
   final key = ref.watch(
     orderCreateControllerProvider.select(

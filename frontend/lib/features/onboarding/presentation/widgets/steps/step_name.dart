@@ -16,28 +16,21 @@ class StepName extends ConsumerWidget {
 
     return Stack(
       children: [
-        // 1. Top-Left Cyan Circle cut off at top-left corner
         const Positioned(
           left: -35,
           top: -35,
           child: CyanCircleDecoration(width: 160, height: 160),
         ),
-
-        // 2. Left Orange Blob flush to physical left edge (left: 0)
         const Positioned(
           left: 0,
           top: 220,
           child: LeftOrangeBlobDecoration(width: 170, height: 270),
         ),
-
-        // 3. Bottom-Right Cyan Circle behind text field flush to right edge
         const Positioned(
           right: -40,
           bottom: 110,
           child: CyanCircleDecoration(width: 170, height: 170),
         ),
-
-        // Main Foreground Content Layout
         SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
           child: Padding(
@@ -46,8 +39,6 @@ class StepName extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-
-                // Title
                 const Text(
                   'Kenalan\ndulu yuk!',
                   textAlign: TextAlign.center,
@@ -59,8 +50,6 @@ class StepName extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // Subtitle
                 const Text(
                   'Agar Rijiki bisa bantu kamu lebih baik.',
                   textAlign: TextAlign.center,
@@ -71,14 +60,10 @@ class StepName extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 42),
-
-                // Typewriter animated chat bubble
                 const TypewriterChatBubble(
                   text: 'Hai sobat rijiki, kamu biasa dipanggil siapa?',
                 ),
                 const SizedBox(height: 320),
-
-                // Rounded Pill Name Input Field
                 Transform.translate(
                   offset: Offset(0, -keyboardOffset),
                   child: Container(
