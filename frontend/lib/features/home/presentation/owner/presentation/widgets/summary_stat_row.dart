@@ -21,35 +21,37 @@ class SummaryStatRow extends StatelessWidget {
 
     return Column(
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: _StatTile(
-                icon: Icons.south_west_rounded,
-                color: AppColors.rijikiOrange,
-                label: 'Pengeluaran',
-                value: AnimatedRupiah(
-                  value: summary.expense,
-                  compact: true,
-                  style: _valueStyle(context),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _StatTile(
+                  icon: Icons.south_west_rounded,
+                  color: AppColors.rijikiOrange,
+                  label: 'Pengeluaran',
+                  value: AnimatedRupiah(
+                    value: summary.expense,
+                    compact: true,
+                    style: _valueStyle(context),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm + 4),
-            Expanded(
-              child: _StatTile(
-                icon: Icons.account_balance_wallet_outlined,
-                color: profitColor,
-                label: 'Laba',
-                value: AnimatedRupiah(
-                  value: profit,
-                  compact: true,
-                  style: _valueStyle(context).copyWith(color: profitColor),
+              const SizedBox(width: AppSpacing.sm + 4),
+              Expanded(
+                child: _StatTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  color: profitColor,
+                  label: 'Laba',
+                  value: AnimatedRupiah(
+                    value: profit,
+                    compact: true,
+                    style: _valueStyle(context).copyWith(color: profitColor),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.sm + 4),
         _ActiveOrdersTile(
