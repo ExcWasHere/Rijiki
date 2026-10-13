@@ -1,30 +1,69 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:frontend/main.dart';
+import 'package:rijiki/app/router/role_redirect.dart';
+import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/enums/user_role.dart';
+import 'package:rijiki/core/session/app_user.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  const customerNotCompleted = AppUser(
+    id: 'user-1',
+    email: 'new@rijiki.id',
+    role: UserRole.customer,
+    profileCompleted: false,
+  );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  const customerCompleted = AppUser(
+    id: 'user-2',
+    email: 'old@rijiki.id',
+    role: UserRole.customer,
+    profileCompleted: true,
+  );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  group('RoleRedirect', () {
+    test('Unauthenticated user is redirected to login for protected routes', () {
+      expect(RoleRedirect.guard(user: null, location: RoutePaths.customerHome), RoutePaths.login);
+      expect(RoleRedirect.guard(user: null, location: RoutePaths.onboarding), RoutePaths.login);
+      expect(RoleRedirect.guard(user: null, location: RoutePaths.login), isNull);
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('Logged in user on login page is redirected to customer home (never onboarding)', () {
+      expect(
+        RoleRedirect.guard(user: customerNotCompleted, location: RoutePaths.login),
+        RoutePaths.customerHome,
+      );
+      expect(
+        RoleRedirect.guard(user: customerCompleted, location: RoutePaths.login),
+        RoutePaths.customerHome,
+      );
+    });
+
+    test('Onboarding only triggers when finishing account creation (register / verify-email)', () {
+      expect(
+        RoleRedirect.guard(user: customerNotCompleted, location: RoutePaths.register),
+        RoutePaths.onboarding,
+      );
+      expect(
+        RoleRedirect.guard(user: customerNotCompleted, location: RoutePaths.verifyEmail),
+        RoutePaths.onboarding,
+      );
+    });
+
+    test('If profile is completed, accessing onboarding redirects to customer home', () {
+      expect(
+        RoleRedirect.guard(user: customerCompleted, location: RoutePaths.onboarding),
+        RoutePaths.customerHome,
+      );
+    });
+
+    test('Logged in user stays on customer home without being redirected to onboarding', () {
+      expect(
+        RoleRedirect.guard(user: customerNotCompleted, location: RoutePaths.customerHome),
+        isNull,
+      );
+      expect(
+        RoleRedirect.guard(user: customerCompleted, location: RoutePaths.customerHome),
+        isNull,
+      );
+    });
   });
 }

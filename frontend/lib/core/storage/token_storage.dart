@@ -6,6 +6,7 @@ class TokenStorage {
 
   static const String _accessKey = 'access_token';
   static const String _refreshKey = 'refresh_token';
+  static const String _onboardingKey = 'onboarding_completed';
 
   final FlutterSecureStorage _storage;
 
@@ -14,6 +15,12 @@ class TokenStorage {
   Future<String?> readRefreshToken() => _storage.read(key: _refreshKey);
 
   Future<bool> hasSession() async => (await readRefreshToken()) != null;
+
+  Future<bool> isOnboardingCompleted() async =>
+      (await _storage.read(key: _onboardingKey)) == 'true';
+
+  Future<void> setOnboardingCompleted(bool completed) =>
+      _storage.write(key: _onboardingKey, value: completed.toString());
 
   Future<void> save({
     required String accessToken,

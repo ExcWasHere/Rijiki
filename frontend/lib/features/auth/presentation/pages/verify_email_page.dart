@@ -56,7 +56,11 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     final ok = await ref
         .read(authControllerProvider.notifier)
         .verifyEmail(email: widget.email, code: _codeController.text);
-    if (!ok && mounted) _codeController.clear();
+    if (!ok && mounted) {
+      _codeController.clear();
+    } else if (ok && mounted) {
+      context.go(RoutePaths.onboarding);
+    }
   }
 
   Future<void> _resend() async {

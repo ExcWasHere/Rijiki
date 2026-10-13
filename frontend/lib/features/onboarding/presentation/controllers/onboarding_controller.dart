@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rijiki/app/providers.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 
 class OnboardingState {
@@ -66,6 +67,13 @@ class OnboardingController extends Notifier<OnboardingState> {
     debugPrint('goToPage: ${state.currentPage} -> $page');
   }
 
+  void reset() {
+    state = const OnboardingState();
+    if (pageController.hasClients) {
+      pageController.jumpToPage(0);
+    }
+  }
+
   void updateName(String val) {
     state = state.copyWith(name: val);
   }
@@ -87,17 +95,20 @@ class OnboardingController extends Notifier<OnboardingState> {
     }
     state = state.copyWith(selectedProblems: current);
   }
+
   // TODO(backend): kirim name, phone, address (default_address) ke API
   // onboarding sebelum menandai selesai.
   Future<void> complete() async {
+    await ref.read(tokenStorageProvider).setOnboardingCompleted(true);
     ref.read(sessionProvider.notifier).completeProfile(
           fullName: state.name.trim(),
           phoneNumber: state.phone.trim(),
         );
+    reset();
   }
 }
 
 final onboardingControllerProvider =
-    NotifierProvider<OnboardingController, OnboardingState>(
+    NotifierProvider.autoDispose<OnboardingController, OnboardingState>(
       OnboardingController.new,
     );

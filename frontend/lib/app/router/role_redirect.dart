@@ -13,14 +13,17 @@ abstract final class RoleRedirect {
     return user.role == UserRole.customer && !user.profileCompleted;
   }
 
-  static String entryRoute(AppUser? user) {
-    if (user == null) return RoutePaths.login;
-    if (needsOnboarding(user)) return RoutePaths.onboarding;
+  static String roleHome(AppUser user) {
     return switch (user.role) {
       UserRole.customer => RoutePaths.customerHome,
       UserRole.worker => RoutePaths.workerHome,
       UserRole.owner => RoutePaths.ownerHome,
     };
+  }
+
+  static String entryRoute(AppUser? user) {
+    if (user == null) return RoutePaths.login;
+    return roleHome(user);
   }
 
   static String? guard({required AppUser? user, required String location}) {
@@ -29,13 +32,30 @@ abstract final class RoleRedirect {
     final isAuthRoute = _authRoutes.contains(location);
 
     if (user == null) return isAuthRoute ? null : RoutePaths.login;
-    if (isAuthRoute) return entryRoute(user);
 
-    final onboarding = needsOnboarding(user);
-    if (location == RoutePaths.onboarding && !onboarding) return entryRoute(user);
-    if (onboarding && location != RoutePaths.onboarding) {
-      return RoutePaths.onboarding;
+    // Pengguna sudah login:
+    // Jika berada di halaman login, selalu arahkan langsung ke home role (tidak ke onboarding).
+    if (location == RoutePaths.login) {
+      return roleHome(user);
     }
+
+    // Onboarding HANYA muncul ketika pengguna selesai membuat akun (register / verify-email).
+    if (location == RoutePaths.register || location == RoutePaths.verifyEmail) {
+      if (needsOnboarding(user)) {
+        return RoutePaths.onboarding;
+      }
+      return roleHome(user);
+    }
+
+    // Jika pengguna berada di rute onboarding:
+    // Jika onboarding sudah selesai atau bukan customer, arahkan ke home role.
+    if (location == RoutePaths.onboarding) {
+      if (!needsOnboarding(user)) {
+        return roleHome(user);
+      }
+      return null;
+    }
+
     return null;
   }
 }
