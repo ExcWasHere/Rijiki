@@ -6,7 +6,10 @@ import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/app/shells/customer_shell.dart';
 import 'package:rijiki/app/shells/customer_tab_placeholder.dart';
 import 'package:rijiki/app/shells/owner_shell.dart';
-import 'package:rijiki/app/shells/role_home_placeholder.dart';
+import 'package:rijiki/app/shells/worker_shell.dart';
+import 'package:rijiki/features/home/worker/presentation/dashboard/worker_dashboard_page.dart';
+import 'package:rijiki/features/home/worker/presentation/dashboard/worker_orders_page.dart';
+
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
@@ -182,9 +185,53 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ScanResultPage(),
       ),
 
-      GoRoute(
-        path: RoutePaths.workerHome,
-        builder: (context, state) => const RoleHomePlaceholder(title: 'Worker'),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            WorkerShell(navigationShell: navigationShell),
+        branches: [
+          // 0. Beranda
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.workerHome,
+                builder: (context, state) =>
+                    const WorkerDashboardPage(),
+              ),
+            ],
+          ),
+
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.workerOrders,
+                builder: (context, state) =>
+                    const WorkerOrdersPage(),
+              ),
+            ],
+          ),
+
+          // // 2. Manajemen
+          // StatefulShellBranch(
+          //   routes: [
+          //     GoRoute(
+          //       path: RoutePaths.workerManagement,
+          //       builder: (context, state) =>
+          //           const WorkerManagementPage(),
+          //     ),
+          //   ],
+          // ),
+
+          // 3. Profil
+          // StatefulShellBranch(
+          //   routes: [
+          //     GoRoute(
+          //       path: RoutePaths.workerProfile,
+          //       builder: (context, state) =>
+          //           const WorkerProfilePage(),
+          //     ),
+          //   ],
+          // ),
+        ],
       ),
 
       StatefulShellRoute.indexedStack(

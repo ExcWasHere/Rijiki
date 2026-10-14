@@ -53,10 +53,10 @@ class _CustomerBottomBar extends StatelessWidget {
 
   static const List<_TabItem> _slots = [
     _TabItem('Beranda', Icons.home_outlined, Icons.home_rounded),
-    _TabItem('Order', Icons.receipt_long_outlined, Icons.receipt_long_rounded),
-    _TabItem('Scan', Icons.photo_camera_outlined, Icons.photo_camera_rounded),
+    _TabItem('Pesan', Icons.receipt_long_outlined, Icons.receipt_long_rounded),
+    _TabItem('Pindai', Icons.photo_camera_outlined, Icons.photo_camera_rounded),
     _TabItem(
-      'Event',
+      'Promo',
       Icons.local_activity_outlined,
       Icons.local_activity_rounded,
     ),

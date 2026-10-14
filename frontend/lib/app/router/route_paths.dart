@@ -17,7 +17,10 @@ abstract final class RoutePaths {
   static const String orderCreate = '/customer/orders/new';
   static const String orderSummary = '/customer/orders/new/summary';
 
-  static const String workerHome = '/worker';
+static const workerHome = '/worker';
+static const workerOrders = '/worker/orders';
+static const workerManagement = '/worker/management';
+static const workerProfile = '/worker/profile';
 
   static const String ownerHome = '/owner';
   static const String ownerOrders = '/owner/orders';

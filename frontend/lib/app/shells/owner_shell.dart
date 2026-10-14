@@ -10,12 +10,12 @@ class OwnerShell extends StatelessWidget {
 
   static const List<NavBarItem> _items = [
     NavBarItem(
-      label: 'Dashboard',
+      label: 'Beranda',
       icon: Icons.space_dashboard_outlined,
       activeIcon: Icons.space_dashboard_rounded,
     ),
     NavBarItem(
-      label: 'Order',
+      label: 'Pesan',
       icon: Icons.receipt_long_outlined,
       activeIcon: Icons.receipt_long_rounded,
     ),

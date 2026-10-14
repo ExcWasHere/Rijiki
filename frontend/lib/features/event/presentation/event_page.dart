@@ -16,7 +16,7 @@ class _EventPageState extends State<EventPage> {
 
   final List<String> _filters = [
     'Semua',
-    'Event',
+    'Acara',
     'Promo',
     'Merch',
   ];
@@ -30,14 +30,14 @@ class _EventPageState extends State<EventPage> {
     icon: Icons.local_offer_outlined,
   ),
   const _EventItem(
-    type: 'Event',
+    type: 'Acara',
     title: 'Sneaker Care Day',
     description: 'Belajar cara merawat sepatu dengan benar bersama Rijiki.',
     date: '09.00 - 16.00 WIB',
     icon: Icons.event_outlined,
   ),
   const _EventItem(
-    type: 'Event',
+    type: 'Acara',
     title: 'Rijiki x Komunitas Sepatu Malang',
     description: 'Cuci bareng dan ngobrol soal cara merawat sneakers.',
     date: '25 Okt 2026',
@@ -89,7 +89,7 @@ class _EventPageState extends State<EventPage> {
   Widget build(BuildContext context) {
     final showEvents =
         _selectedFilter == 'Semua' ||
-        _selectedFilter == 'Event' ||
+        _selectedFilter == 'Acara' ||
         _selectedFilter == 'Promo';
 
     final showMerch =
@@ -131,14 +131,14 @@ class _EventPageState extends State<EventPage> {
               const SizedBox(height: AppSpacing.xl),
 
               const _SectionTitle(
-                title: 'Promo & event',
+                title: 'Promo & acara',
               ),
 
               const SizedBox(height: AppSpacing.sm),
 
               if (_filteredEvents.isEmpty)
                 const _EmptyState(
-                  message: 'Belum ada promo atau event.',
+                  message: 'Belum ada promo atau acara.',
                 )
               else
                 ..._filteredEvents.map(
@@ -209,7 +209,7 @@ class _EventHeader extends StatelessWidget {
 
         Expanded(
           child: Text(
-            'Event & Promo',
+            'Acara & Promo',
             style: Theme.of(context)
                 .textTheme
                 .titleLarge
