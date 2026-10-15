@@ -10,7 +10,6 @@ import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_addre
 import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_delivery.dart';
 import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_name.dart';
 import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_phone.dart';
-import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_problems.dart';
 import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_smart_care.dart';
 import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_welcome.dart';
 
@@ -49,10 +48,6 @@ class OnboardingPage extends ConsumerWidget {
                   StepAddress(),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: StepProblems(),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                     child: StepSmartCare(),
                   ),
                   Padding(
@@ -63,12 +58,8 @@ class OnboardingPage extends ConsumerWidget {
               ),
             ),
 
-            if (state.currentPage != 4) ...[
-              OnboardingDots(currentPage: state.currentPage),
-              const SizedBox(height: 20),
-            ] else ...[
-              const SizedBox(height: 12),
-            ],
+            OnboardingDots(currentPage: state.currentPage),
+            const SizedBox(height: 20),
 
             Transform.translate(
               offset: Offset(0, -keyboardOffset),

@@ -9,6 +9,7 @@ import 'package:rijiki/app/shells/owner_shell.dart';
 import 'package:rijiki/app/shells/worker_shell.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_dashboard_page.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_orders_page.dart';
+import 'package:rijiki/features/home/worker/presentation/management/worker_management_hub_page.dart';
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
@@ -207,6 +208,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: RoutePaths.workerOrders,
                 builder: (context, state) =>
                     const WorkerOrdersPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.workerManagement,
+                builder: (context, state) =>
+                    const WorkerManagementHubPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.workerProfile,
+                builder: (context, state) => const CustomerTabPlaceholder(
+                  title: 'Profil',
+                  icon: Icons.person_rounded,
+                  description: 'Data akun dan pengaturan akan tampil di sini.',
+                  showAccount: true,
+                ),
               ),
             ],
           ),

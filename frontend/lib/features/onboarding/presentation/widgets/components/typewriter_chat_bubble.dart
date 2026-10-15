@@ -122,7 +122,7 @@ class _TypewriterChatBubbleState extends State<TypewriterChatBubble> {
                 ],
               ),
               child: Image.asset(
-                AssetPaths.rijikiLogo,
+                AssetPaths.rijikiIcon,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => const Icon(
                   Icons.dry_cleaning_rounded,

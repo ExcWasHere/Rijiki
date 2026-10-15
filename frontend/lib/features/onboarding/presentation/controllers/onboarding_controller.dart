@@ -8,14 +8,12 @@ class OnboardingState {
   final String name;
   final String phone;
   final String address;
-  final Set<String> selectedProblems;
 
   const OnboardingState({
     this.currentPage = 0,
     this.name = '',
     this.phone = '',
     this.address = '',
-    this.selectedProblems = const {},
   });
 
   OnboardingState copyWith({
@@ -23,21 +21,19 @@ class OnboardingState {
     String? name,
     String? phone,
     String? address,
-    Set<String>? selectedProblems,
   }) {
     return OnboardingState(
       currentPage: currentPage ?? this.currentPage,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       address: address ?? this.address,
-      selectedProblems: selectedProblems ?? this.selectedProblems,
     );
   }
 }
 
 class OnboardingController extends Notifier<OnboardingState> {
   late final PageController pageController;
-  static const int lastPage = 6;
+  static const int lastPage = 5;
 
   @override
   OnboardingState build() {
@@ -84,16 +80,6 @@ class OnboardingController extends Notifier<OnboardingState> {
 
   void updateAddress(String val) {
     state = state.copyWith(address: val);
-  }
-
-  void toggleProblem(String problem) {
-    final current = Set<String>.from(state.selectedProblems);
-    if (current.contains(problem)) {
-      current.remove(problem);
-    } else {
-      current.add(problem);
-    }
-    state = state.copyWith(selectedProblems: current);
   }
 
   // TODO(backend): kirim name, phone, address (default_address) ke API
