@@ -2,6 +2,7 @@ import 'package:rijiki/core/enums/expense_type.dart';
 import 'package:rijiki/features/finance/data/mock_expense_parser.dart';
 import 'package:rijiki/features/finance/domain/expense_draft.dart';
 import 'package:rijiki/features/finance/domain/expense_draft_item.dart';
+import 'package:rijiki/features/finance/domain/finance_export.dart';
 import 'package:rijiki/features/finance/domain/finance_repository.dart';
 import 'package:rijiki/features/finance/domain/finance_summary.dart';
 import 'package:rijiki/features/finance/domain/financial_transaction.dart';
@@ -9,6 +10,13 @@ import 'package:rijiki/features/finance/domain/transaction_filter.dart';
 import 'package:rijiki/features/home/owner/domain/dashboard_repository.dart';
 import 'package:rijiki/features/home/owner/domain/dashboard_summary.dart';
 
+/// Mock keuangan.
+///
+/// Ringkasan nyambung ke mock dashboard (pemasukan, pengeluaran, dan grafik
+/// omzet diambil dari [DashboardRepository]; pengeluaran dipecah ke 4 tipe
+/// dengan rasio tetap). Daftar transaksi berdiri sendiri dan bisa bertambah
+/// lewat input AI dan pemasukan manual selama aplikasi berjalan, tetapi
+/// tidak mengubah angka ringkasan.
 class MockFinanceRepository implements FinanceRepository {
   MockFinanceRepository({required DashboardRepository dashboard})
     : _dashboard = dashboard;
@@ -202,6 +210,33 @@ class MockFinanceRepository implements FinanceRepository {
     return transaction;
   }
 
+  @override
+  Future<FinanceExportResult> exportTransactions(
+    FinanceExportQuery query,
+  ) async {
+    final rows = await fetchTransactions(
+      TransactionFilter(
+        type: query.expenseType == null
+            ? TransactionTypeFilter.all
+            : TransactionTypeFilter.expense,
+        expenseType: query.expenseType,
+        start: query.start,
+        end: query.end,
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+
+    final type = query.expenseType == null ? '' : '_${query.expenseType!.value}';
+    return FinanceExportResult(
+      fileName:
+          'keuangan-rijiki_${_ymd(query.start)}_${_ymd(query.end)}$type.xlsx',
+      transactionCount: rows.length,
+    );
+  }
+
+  static String _ymd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   DashboardPeriod _toDashboard(FinancePeriod period) => switch (period) {
     FinancePeriod.today => DashboardPeriod.today,
     FinancePeriod.week => DashboardPeriod.week,
@@ -223,6 +258,9 @@ class MockFinanceRepository implements FinanceRepository {
   }
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  // ---------------------------------------------------------------- seed
+
   static List<FinancialTransaction> _seed() {
     final now = DateTime.now();
 

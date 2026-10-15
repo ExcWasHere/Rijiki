@@ -36,15 +36,25 @@ const List<ManagementModule> _allModules = [
   ManagementModule(
     id: 'cms',
     title: 'CMS',
-    subtitle: 'Layanan, event, promo, merchandise',
+    subtitle: 'Layanan, event, promo, merchandise, testimoni',
     icon: Icons.dashboard_customize_rounded,
     color: AppColors.accent,
+    route: RoutePaths.ownerCms,
     permissions: {
       AppPermission.manageCmsServices,
       AppPermission.manageCmsEvents,
       AppPermission.manageCmsPromos,
       AppPermission.manageCmsMerchandise,
+      AppPermission.manageTestimonials,
     },
+  ),
+  ManagementModule(
+    id: 'points',
+    title: 'Poin',
+    subtitle: 'Aturan poin dan penukaran',
+    icon: Icons.stars_rounded,
+    color: AppColors.success,
+    permissions: {AppPermission.managePoints},
   ),
 ];
 

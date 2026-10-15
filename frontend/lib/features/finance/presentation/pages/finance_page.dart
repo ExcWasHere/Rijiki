@@ -6,6 +6,7 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/finance/presentation/controllers/finance_controller.dart';
 import 'package:rijiki/features/finance/presentation/widgets/expense_type_breakdown_chart.dart';
+import 'package:rijiki/features/finance/presentation/widgets/export_range_sheet.dart';
 import 'package:rijiki/features/finance/presentation/widgets/finance_period_selector.dart';
 import 'package:rijiki/features/finance/presentation/widgets/finance_state_card.dart';
 import 'package:rijiki/features/finance/presentation/widgets/finance_summary_card.dart';
@@ -30,7 +31,7 @@ class FinancePage extends ConsumerWidget {
           IconButton(
             tooltip: 'Export Excel',
             icon: const Icon(Icons.file_download_outlined),
-            onPressed: () => _comingSoon(context, 'Export Excel'),
+            onPressed: () => showExportRangeSheet(context),
           ),
         ],
       ),
@@ -89,12 +90,6 @@ class FinancePage extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  static void _comingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$feature segera hadir.')));
   }
 }
 
