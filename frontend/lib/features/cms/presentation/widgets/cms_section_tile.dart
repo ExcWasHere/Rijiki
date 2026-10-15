@@ -7,20 +7,22 @@ class CmsSectionTile extends StatelessWidget {
   const CmsSectionTile({
     super.key,
     required this.section,
+    required this.available,
     required this.onTap,
     this.summary,
     this.summaryLoading = false,
   });
 
   final CmsSection section;
+  final bool available;
   final VoidCallback onTap;
+
   final String? summary;
   final bool summaryLoading;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final available = section.isAvailable;
 
     return Material(
       color: AppColors.surface,
@@ -71,10 +73,7 @@ class CmsSectionTile extends StatelessWidget {
                     ),
                     if (summaryLoading || summary != null) ...[
                       const SizedBox(height: AppSpacing.sm),
-                      _SummaryPill(
-                        text: summary,
-                        color: section.color,
-                      ),
+                      _SummaryPill(text: summary, color: section.color),
                     ],
                   ],
                 ),

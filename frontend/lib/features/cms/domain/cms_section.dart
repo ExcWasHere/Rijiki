@@ -4,6 +4,10 @@ import 'package:rijiki/core/enums/user_role.dart';
 import 'package:rijiki/core/session/app_user.dart';
 
 enum CmsSectionId { services, events, promos, merchandise, testimonials }
+
+/// Satu bagian di hub CMS (PRD Bagian 17). Tiap bagian punya izin sendiri.
+/// Rute tujuan sengaja tidak disimpan di sini karena berbeda per shell
+/// (Owner dan worker punya halaman sendiri).
 @immutable
 class CmsSection {
   const CmsSection({
@@ -13,7 +17,6 @@ class CmsSection {
     required this.icon,
     required this.color,
     required this.permission,
-    this.route,
   });
 
   final CmsSectionId id;
@@ -22,9 +25,6 @@ class CmsSection {
   final IconData icon;
   final Color color;
   final AppPermission permission;
-  final String? route;
-
-  bool get isAvailable => route != null;
   bool isVisibleFor(AppUser user) {
     return switch (user.role) {
       UserRole.owner => true,

@@ -17,6 +17,8 @@ import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/cms_hub_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/service_form_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/service_manage_page.dart';
 import 'package:rijiki/features/event/presentation/event_page.dart';
 import 'package:rijiki/features/finance/presentation/pages/expense_ai_input_page.dart';
 import 'package:rijiki/features/finance/presentation/pages/expense_draft_review_page.dart';
@@ -307,6 +309,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'cms',
                     builder: (context, state) => const CmsHubPage(),
+                    routes: [
+                      GoRoute(
+                        path: 'services',
+                        builder: (context, state) => const ServiceManagePage(),
+                        routes: [
+                          GoRoute(
+                            path: 'new',
+                            builder: (context, state) =>
+                                const ServiceFormPage(),
+                          ),
+                          GoRoute(
+                            path: ':id/edit',
+                            builder: (context, state) => ServiceFormPage(
+                              serviceId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),

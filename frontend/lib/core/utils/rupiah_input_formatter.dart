@@ -32,7 +32,6 @@ class RupiahInputFormatter extends TextInputFormatter {
 
 double parseRupiahInput(String text) =>
     double.tryParse(text.replaceAll('.', '')) ?? 0;
-
 String rupiahInputText(double value) {
   if (value <= 0) return '';
   final digits = value.round().toString();

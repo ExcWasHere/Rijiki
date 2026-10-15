@@ -4,7 +4,7 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/finance/domain/expense_draft_item.dart';
 import 'package:rijiki/features/finance/presentation/utils/finance_format.dart';
-import 'package:rijiki/features/finance/presentation/utils/rupiah_input_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_input_formatter.dart';
 import 'package:rijiki/features/finance/presentation/widgets/expense_type_selector.dart';
 
 class ExpenseDraftItemCard extends StatefulWidget {

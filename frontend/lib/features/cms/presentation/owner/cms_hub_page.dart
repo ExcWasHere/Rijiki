@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/cms/domain/cms_section.dart';
@@ -10,6 +11,10 @@ import 'package:rijiki/shared/widgets/empty_state.dart';
 
 class CmsHubPage extends ConsumerWidget {
   const CmsHubPage({super.key});
+
+  static const Map<CmsSectionId, String> _routes = {
+    CmsSectionId.services: RoutePaths.ownerCmsServices,
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,7 +51,7 @@ class CmsHubPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   for (final section in sections) ...[
-                    _SectionRow(section: section),
+                    _SectionRow(section: section, route: _routes[section.id]),
                     const SizedBox(height: AppSpacing.sm + 4),
                   ],
                 ],
@@ -57,9 +62,10 @@ class CmsHubPage extends ConsumerWidget {
 }
 
 class _SectionRow extends ConsumerWidget {
-  const _SectionRow({required this.section});
+  const _SectionRow({required this.section, required this.route});
 
   final CmsSection section;
+  final String? route;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,11 +73,12 @@ class _SectionRow extends ConsumerWidget {
 
     return CmsSectionTile(
       section: section,
+      available: route != null,
       summary: summary.value,
       summaryLoading: summary.isLoading,
       onTap: () {
-        final route = section.route;
-        if (route == null) {
+        final target = route;
+        if (target == null) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
@@ -79,7 +86,7 @@ class _SectionRow extends ConsumerWidget {
             );
           return;
         }
-        context.push(route);
+        context.push(target);
       },
     );
   }

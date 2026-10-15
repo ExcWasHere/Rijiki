@@ -27,6 +27,7 @@ class CareService {
     required this.basePrice,
     this.description,
     this.estimatedDurationMinutes,
+    this.isActive = true,
   });
 
   final String id;
@@ -35,6 +36,7 @@ class CareService {
   final int basePrice;
   final String? description;
   final int? estimatedDurationMinutes;
+  final bool isActive;
 
   factory CareService.fromJson(Map<String, dynamic> json) {
     return CareService(
@@ -44,6 +46,19 @@ class CareService {
       basePrice: (json['base_price'] as num).round(),
       description: json['description'] as String?,
       estimatedDurationMinutes: json['estimated_duration_minutes'] as int?,
+      isActive: json['is_active'] as bool? ?? true,
+    );
+  }
+
+  CareService copyWith({bool? isActive}) {
+    return CareService(
+      id: id,
+      name: name,
+      category: category,
+      basePrice: basePrice,
+      description: description,
+      estimatedDurationMinutes: estimatedDurationMinutes,
+      isActive: isActive ?? this.isActive,
     );
   }
 }

@@ -49,6 +49,8 @@ const List<CmsSection> _allSections = [
   ),
 ];
 
+/// Bagian CMS yang boleh dilihat user saat ini: Owner semua; worker hanya
+/// bagian yang sesuai izin delegasinya.
 final cmsSectionsProvider = Provider<List<CmsSection>>((ref) {
   final user = ref.watch(sessionProvider);
   if (user == null) return const [];
@@ -58,25 +60,32 @@ final cmsSectionsProvider = Provider<List<CmsSection>>((ref) {
   ];
 });
 
-final cmsServiceCountProvider = FutureProvider.autoDispose<int>((ref) async {
-  final services = await ref.watch(serviceRepositoryProvider).fetchServices();
-  return services.length;
+/// Ringkasan baris Layanan, mis. "10 layanan aktif · 2 nonaktif".
+final cmsServiceSummaryProvider = FutureProvider.autoDispose<String>((
+  ref,
+) async {
+  final services = await ref.watch(serviceRepositoryProvider).fetchAllServices();
+  final active = services.where((s) => s.isActive).length;
+  final inactive = services.length - active;
+  return inactive == 0
+      ? '$active layanan aktif'
+      : '$active layanan aktif · $inactive nonaktif';
 });
 
 final cmsSectionSummaryProvider = Provider.autoDispose
     .family<AsyncValue<String?>, CmsSectionId>((ref, id) {
       return switch (id) {
         CmsSectionId.services => ref
-            .watch(cmsServiceCountProvider)
-            .whenData<String?>((count) => '$count layanan'),
+            .watch(cmsServiceSummaryProvider)
+            .whenData<String?>((text) => text),
         _ => const AsyncData<String?>(null),
       };
     });
 
 Future<void> refreshCmsHub(WidgetRef ref) async {
-  ref.invalidate(cmsServiceCountProvider);
+  ref.invalidate(cmsServiceSummaryProvider);
   try {
-    await ref.read(cmsServiceCountProvider.future);
+    await ref.read(cmsServiceSummaryProvider.future);
   } catch (_) {
   }
 }

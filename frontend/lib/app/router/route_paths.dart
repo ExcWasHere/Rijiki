@@ -40,6 +40,11 @@ static const workerProfile = '/worker/profile';
   static const String ownerManagementRepeatCustomers =
       '/owner/management/repeat-customers';
   static const String ownerCms = '/owner/management/cms';
+  static const String ownerCmsServices = '/owner/management/cms/services';
+  static const String ownerCmsServiceNew = '/owner/management/cms/services/new';
+
+  static String ownerCmsServiceEditFor(String serviceId) =>
+      '$ownerCmsServices/$serviceId/edit';
 
   static String verifyEmailFor(String email) {
     return Uri(path: verifyEmail, queryParameters: {'email': email}).toString();
