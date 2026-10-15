@@ -27,9 +27,16 @@ static const workerProfile = '/worker/profile';
   static const String ownerManagement = '/owner/management';
   static const String ownerProfile = '/owner/profile';
   static const String ownerRepeatCustomers = '/owner/repeat-customers';
+
   static const String ownerFinance = '/owner/management/finance';
   static const String ownerFinanceTransactions =
       '/owner/management/finance/transactions';
+  static const String ownerFinanceExpenseAi =
+      '/owner/management/finance/expenses/ai';
+  static const String ownerFinanceExpenseReview =
+      '/owner/management/finance/expenses/ai/review';
+  static const String ownerFinanceIncomeNew =
+      '/owner/management/finance/income/new';
   static const String ownerManagementRepeatCustomers =
       '/owner/management/repeat-customers';
 

@@ -7,10 +7,11 @@ import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/finance/presentation/controllers/finance_controller.dart';
 import 'package:rijiki/features/finance/presentation/widgets/expense_type_breakdown_chart.dart';
 import 'package:rijiki/features/finance/presentation/widgets/finance_period_selector.dart';
+import 'package:rijiki/features/finance/presentation/widgets/finance_state_card.dart';
 import 'package:rijiki/features/finance/presentation/widgets/finance_summary_card.dart';
 import 'package:rijiki/features/finance/presentation/widgets/revenue_chart.dart';
-import 'package:rijiki/features/home/owner/presentation/widgets/dashboard_message_card.dart';
-import 'package:rijiki/features/home/owner/presentation/widgets/skeleton_block.dart';
+import 'package:rijiki/shared/widgets/error_state.dart';
+import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 
 class FinancePage extends ConsumerWidget {
   const FinancePage({super.key});
@@ -59,12 +60,7 @@ class FinancePage extends ConsumerWidget {
                   children: [
                     FinanceSummaryCard(summary: summary),
                     const SizedBox(height: AppSpacing.md),
-                    _QuickActions(
-                      onAddExpense: () =>
-                          _comingSoon(context, 'Catat pengeluaran'),
-                      onTransactions: () =>
-                          context.push(RoutePaths.ownerFinanceTransactions),
-                    ),
+                    const _QuickActions(),
                     const SizedBox(height: AppSpacing.md),
                     RevenueChart(
                       key: ValueKey(summary.period),
@@ -79,18 +75,14 @@ class FinancePage extends ConsumerWidget {
                 ),
               )
             else if (async.hasError) ...[
-              DashboardMessageCard(
-                icon: Icons.cloud_off_rounded,
-                message: 'Gagal memuat data keuangan.',
-                actionLabel: 'Coba lagi',
-                onAction: () => ref.invalidate(financeSummaryProvider),
+              FinanceStateCard(
+                child: ErrorState(
+                  message: 'Gagal memuat data keuangan.',
+                  onRetry: () => ref.invalidate(financeSummaryProvider),
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
-              _QuickActions(
-                onAddExpense: () => _comingSoon(context, 'Catat pengeluaran'),
-                onTransactions: () =>
-                    context.push(RoutePaths.ownerFinanceTransactions),
-              ),
+              const _QuickActions(),
             ] else
               const _FinanceSkeleton(),
           ],
@@ -107,41 +99,67 @@ class FinancePage extends ConsumerWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.onAddExpense,
-    required this.onTransactions,
-  });
-
-  final VoidCallback onAddExpense;
-  final VoidCallback onTransactions;
+  const _QuickActions();
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _ActionTile(
-              icon: Icons.add_card_rounded,
-              color: AppColors.rijikiOrange,
-              title: 'Catat pengeluaran',
-              subtitle: 'Input AI atau manual',
-              onTap: onAddExpense,
-            ),
+    return Column(
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _ActionTile(
+                  icon: Icons.add_card_rounded,
+                  color: AppColors.rijikiOrange,
+                  title: 'Catat pengeluaran',
+                  subtitle: 'Ceritakan, AI yang catat',
+                  onTap: () => context.push(RoutePaths.ownerFinanceExpenseAi),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm + 4),
+              Expanded(
+                child: _ActionTile(
+                  icon: Icons.savings_rounded,
+                  color: AppColors.success,
+                  title: 'Catat pemasukan',
+                  subtitle: 'Di luar order, mis. hibah',
+                  onTap: () => context.push(RoutePaths.ownerFinanceIncomeNew),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.sm + 4),
-          Expanded(
-            child: _ActionTile(
-              icon: Icons.receipt_long_rounded,
-              color: AppColors.rijikiBlue,
-              title: 'Rekap transaksi',
-              subtitle: 'Pemasukan dan pengeluaran',
-              onTap: onTransactions,
-            ),
-          ),
-        ],
+        ),
+        const SizedBox(height: AppSpacing.sm + 4),
+        _WideActionTile(
+          icon: Icons.receipt_long_rounded,
+          color: AppColors.rijikiBlue,
+          title: 'Rekap transaksi',
+          subtitle: 'Semua pemasukan dan pengeluaran',
+          onTap: () => context.push(RoutePaths.ownerFinanceTransactions),
+        ),
+      ],
+    );
+  }
+}
+
+class _IconBadge extends StatelessWidget {
+  const _IconBadge({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd - 2),
       ),
+      child: Icon(icon, size: AppSpacing.iconSm + 2, color: color),
     );
   }
 }
@@ -180,15 +198,7 @@ class _ActionTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd - 2),
-                ),
-                child: Icon(icon, size: AppSpacing.iconSm + 2, color: color),
-              ),
+              _IconBadge(icon: icon, color: color),
               const SizedBox(height: AppSpacing.sm + 4),
               Text(title, style: textTheme.titleSmall),
               const SizedBox(height: 2),
@@ -206,20 +216,84 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
+class _WideActionTile extends StatelessWidget {
+  const _WideActionTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: Border.all(color: AppColors.outline.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              _IconBadge(icon: icon, color: color),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: textTheme.titleSmall),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FinanceSkeleton extends StatelessWidget {
   const _FinanceSkeleton();
 
   @override
   Widget build(BuildContext context) {
+    const radius = AppSpacing.radiusLg;
     return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SkeletonBlock(height: 210),
+        LoadingSkeleton(height: 210, radius: radius),
         SizedBox(height: AppSpacing.md),
-        SkeletonBlock(height: 110),
+        LoadingSkeleton(height: 170, radius: radius),
         SizedBox(height: AppSpacing.md),
-        SkeletonBlock(height: 290),
+        LoadingSkeleton(height: 290, radius: radius),
         SizedBox(height: AppSpacing.md),
-        SkeletonBlock(height: 380),
+        LoadingSkeleton(height: 380, radius: radius),
       ],
     );
   }

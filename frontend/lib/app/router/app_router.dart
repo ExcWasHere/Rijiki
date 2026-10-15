@@ -9,7 +9,6 @@ import 'package:rijiki/app/shells/owner_shell.dart';
 import 'package:rijiki/app/shells/worker_shell.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_dashboard_page.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_orders_page.dart';
-
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
@@ -17,7 +16,10 @@ import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:rijiki/features/event/presentation/event_page.dart';
+import 'package:rijiki/features/finance/presentation/management/expense_ai_input_page.dart';
+import 'package:rijiki/features/finance/presentation/management/expense_draft_review_page.dart';
 import 'package:rijiki/features/finance/presentation/management/finance_page.dart';
+import 'package:rijiki/features/finance/presentation/management/income_form_page.dart';
 import 'package:rijiki/features/finance/presentation/management/transaction_list_page.dart';
 import 'package:rijiki/features/home/owner/presentation/management/dashboard_page.dart';
 import 'package:rijiki/features/home/owner/presentation/management/repeat_customer_page.dart';
@@ -189,7 +191,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             WorkerShell(navigationShell: navigationShell),
         branches: [
-          // 0. Beranda
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -209,28 +210,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-
-          // // 2. Manajemen
-          // StatefulShellBranch(
-          //   routes: [
-          //     GoRoute(
-          //       path: RoutePaths.workerManagement,
-          //       builder: (context, state) =>
-          //           const WorkerManagementPage(),
-          //     ),
-          //   ],
-          // ),
-
-          // 3. Profil
-          // StatefulShellBranch(
-          //   routes: [
-          //     GoRoute(
-          //       path: RoutePaths.workerProfile,
-          //       builder: (context, state) =>
-          //           const WorkerProfilePage(),
-          //     ),
-          //   ],
-          // ),
         ],
       ),
 
@@ -278,6 +257,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'transactions',
                         builder: (context, state) =>
                             const TransactionListPage(),
+                      ),
+                      GoRoute(
+                        path: 'expenses/ai',
+                        builder: (context, state) =>
+                            const ExpenseAiInputPage(),
+                        routes: [
+                          GoRoute(
+                            path: 'review',
+                            builder: (context, state) =>
+                                const ExpenseDraftReviewPage(),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'income/new',
+                        builder: (context, state) => const IncomeFormPage(),
                       ),
                     ],
                   ),

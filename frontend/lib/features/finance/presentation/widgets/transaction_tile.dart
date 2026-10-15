@@ -34,7 +34,10 @@ class TransactionTile extends StatelessWidget {
 
     final subtitleParts = <String>[
       if (t.isIncome)
-        (t.description ?? 'Pemasukan order')
+        (t.description ??
+            (t.category == 'order_payment'
+                ? 'Pembayaran order'
+                : 'Pemasukan manual'))
       else ...[
         if (type != null) type.label,
         if (t.vendorName != null) t.vendorName!,

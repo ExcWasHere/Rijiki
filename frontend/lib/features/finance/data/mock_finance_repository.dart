@@ -1,4 +1,7 @@
 import 'package:rijiki/core/enums/expense_type.dart';
+import 'package:rijiki/features/finance/data/mock_expense_parser.dart';
+import 'package:rijiki/features/finance/domain/expense_draft.dart';
+import 'package:rijiki/features/finance/domain/expense_draft_item.dart';
 import 'package:rijiki/features/finance/domain/finance_repository.dart';
 import 'package:rijiki/features/finance/domain/finance_summary.dart';
 import 'package:rijiki/features/finance/domain/financial_transaction.dart';
@@ -11,9 +14,15 @@ class MockFinanceRepository implements FinanceRepository {
     : _dashboard = dashboard;
 
   static const Duration _latency = Duration(milliseconds: 350);
+  static const Duration _aiLatency = Duration(milliseconds: 900);
+  static const Duration _writeLatency = Duration(milliseconds: 500);
+  static const String _unclassifiedNote =
+      'Belum diklasifikasikan (AI bermasalah)';
 
   final DashboardRepository _dashboard;
   late final List<FinancialTransaction> _transactions = _seed();
+  final Map<String, _DraftMeta> _drafts = {};
+  int _seq = 100;
 
   @override
   Future<FinanceSummary> fetchSummary(FinancePeriod period) async {
@@ -63,6 +72,136 @@ class MockFinanceRepository implements FinanceRepository {
     return result;
   }
 
+  @override
+  Future<ExpenseDraft> parseExpense({
+    String? text,
+    String? receiptPath,
+    required DateTime date,
+  }) async {
+    await Future<void>.delayed(_aiLatency);
+
+    final id = 'draft-${++_seq}';
+    final input = text?.trim() ?? '';
+    final hasReceipt = receiptPath != null;
+
+    if (input.isNotEmpty && MockExpenseParser.shouldFail(input)) {
+      _drafts[id] = _DraftMeta(hasReceipt: hasReceipt, failed: true);
+      final cleaned = input
+          .replaceAll(RegExp(MockExpenseParser.failTrigger, caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      return ExpenseDraft(
+        inputId: id,
+        status: ExpenseDraftStatus.failed,
+        warnings: const [ExpenseDraftWarning.aiUnavailable],
+        items: [
+          ExpenseDraftItem(
+            id: 'ai-$id-0',
+            expenseType: ExpenseType.other,
+            itemName: cleaned.isEmpty ? 'Pengeluaran' : cleaned,
+            amount: 0,
+            transactionDate: date,
+            confidence: 0,
+          ),
+        ],
+      );
+    }
+
+    var items = input.isEmpty
+        ? MockExpenseParser.receiptSample(date)
+        : MockExpenseParser.parse(input, date);
+
+    if (items.isEmpty) {
+      items = [
+        ExpenseDraftItem(
+          id: 'ai-$id-0',
+          expenseType: ExpenseType.other,
+          itemName: input,
+          amount: 0,
+          transactionDate: date,
+          confidence: 0.2,
+          needsReview: true,
+        ),
+      ];
+    }
+
+    _drafts[id] = _DraftMeta(hasReceipt: hasReceipt, failed: false);
+    return ExpenseDraft(
+      inputId: id,
+      status: ExpenseDraftStatus.draft,
+      items: items,
+    );
+  }
+
+  @override
+  Future<List<FinancialTransaction>> confirmExpenseDraft(
+    String inputId,
+    List<ExpenseDraftItem> items,
+  ) async {
+    await Future<void>.delayed(_writeLatency);
+
+    final meta = _drafts.remove(inputId);
+    final now = DateTime.now();
+
+    final created = [
+      for (final item in items)
+        FinancialTransaction(
+          id: 'trx-${++_seq}',
+          type: TransactionType.expense,
+          expenseType: item.expenseType,
+          itemName: item.itemName.trim().isEmpty ? null : item.itemName.trim(),
+          quantity: item.quantity,
+          unit: item.unit,
+          vendorName: item.vendorName,
+          description: (meta?.failed ?? false) ? _unclassifiedNote : null,
+          amount: item.amount,
+          inputSource: InputSource.ai,
+          receiptImageUrl: (meta?.hasReceipt ?? false)
+              ? 'receipts/$inputId.jpg'
+              : null,
+          transactionDate: DateTime(
+            item.transactionDate.year,
+            item.transactionDate.month,
+            item.transactionDate.day,
+            now.hour,
+            now.minute,
+          ),
+        ),
+    ];
+
+    _transactions.addAll(created);
+    return created;
+  }
+
+  @override
+  Future<void> cancelExpenseDraft(String inputId) async {
+    _drafts.remove(inputId);
+  }
+
+  @override
+  Future<FinancialTransaction> addIncome({
+    required String name,
+    required double amount,
+    required DateTime date,
+    String? description,
+  }) async {
+    await Future<void>.delayed(_writeLatency);
+
+    final now = DateTime.now();
+    final trimmedDescription = description?.trim() ?? '';
+    final transaction = FinancialTransaction(
+      id: 'trx-${++_seq}',
+      type: TransactionType.income,
+      category: 'manual',
+      itemName: name.trim(),
+      description: trimmedDescription.isEmpty ? null : trimmedDescription,
+      amount: amount,
+      transactionDate: DateTime(date.year, date.month, date.day, now.hour, now.minute),
+    );
+    _transactions.add(transaction);
+    return transaction;
+  }
+
   DashboardPeriod _toDashboard(FinancePeriod period) => switch (period) {
     FinancePeriod.today => DashboardPeriod.today,
     FinancePeriod.week => DashboardPeriod.week,
@@ -84,7 +223,6 @@ class MockFinanceRepository implements FinanceRepository {
   }
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
   static List<FinancialTransaction> _seed() {
     final now = DateTime.now();
 
@@ -286,4 +424,11 @@ class MockFinanceRepository implements FinanceRepository {
       ),
     ];
   }
+}
+
+class _DraftMeta {
+  const _DraftMeta({required this.hasReceipt, required this.failed});
+
+  final bool hasReceipt;
+  final bool failed;
 }

@@ -38,7 +38,6 @@ class WorkerDashboardPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
-            // HEADER
             Row(
               children: [
                 Container(

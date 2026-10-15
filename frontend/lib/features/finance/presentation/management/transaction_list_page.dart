@@ -5,12 +5,14 @@ import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/finance/domain/financial_transaction.dart';
 import 'package:rijiki/features/finance/presentation/controllers/finance_controller.dart';
 import 'package:rijiki/features/finance/presentation/utils/finance_format.dart';
+import 'package:rijiki/features/finance/presentation/widgets/finance_state_card.dart';
 import 'package:rijiki/features/finance/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:rijiki/features/finance/presentation/widgets/transaction_filter_bar.dart';
 import 'package:rijiki/features/finance/presentation/widgets/transaction_summary_strip.dart';
 import 'package:rijiki/features/finance/presentation/widgets/transaction_tile.dart';
-import 'package:rijiki/features/home/owner/presentation/widgets/dashboard_message_card.dart';
-import 'package:rijiki/features/home/owner/presentation/widgets/skeleton_block.dart';
+import 'package:rijiki/shared/widgets/empty_state.dart';
+import 'package:rijiki/shared/widgets/error_state.dart';
+import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 
 class TransactionListPage extends ConsumerWidget {
   const TransactionListPage({super.key});
@@ -56,11 +58,11 @@ class TransactionListPage extends ConsumerWidget {
                 ),
               )
             else if (async.hasError)
-              DashboardMessageCard(
-                icon: Icons.cloud_off_rounded,
-                message: 'Gagal memuat transaksi.',
-                actionLabel: 'Coba lagi',
-                onAction: () => ref.invalidate(financeTransactionsProvider),
+              FinanceStateCard(
+                child: ErrorState(
+                  message: 'Gagal memuat transaksi.',
+                  onRetry: () => ref.invalidate(financeTransactionsProvider),
+                ),
               )
             else
               const _ListSkeleton(),
@@ -106,13 +108,15 @@ class _Content extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (transactions.isEmpty) {
-      return DashboardMessageCard(
-        icon: Icons.receipt_long_outlined,
-        message: isDefaultFilter
-            ? 'Belum ada transaksi.'
-            : 'Tidak ada transaksi untuk filter ini.',
-        actionLabel: isDefaultFilter ? null : 'Reset filter',
-        onAction: onReset,
+      return FinanceStateCard(
+        child: EmptyState(
+          icon: Icons.receipt_long_outlined,
+          title: isDefaultFilter
+              ? 'Belum ada transaksi'
+              : 'Tidak ada transaksi untuk filter ini',
+          actionLabel: isDefaultFilter ? null : 'Reset filter',
+          onAction: onReset,
+        ),
       );
     }
 
@@ -207,13 +211,15 @@ class _ListSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const radius = AppSpacing.radiusLg;
     return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SkeletonBlock(height: 76),
+        LoadingSkeleton(height: 76, radius: radius),
         SizedBox(height: AppSpacing.md),
-        SkeletonBlock(height: 200),
+        LoadingSkeleton(height: 200, radius: radius),
         SizedBox(height: AppSpacing.md),
-        SkeletonBlock(height: 260),
+        LoadingSkeleton(height: 260, radius: radius),
       ],
     );
   }
