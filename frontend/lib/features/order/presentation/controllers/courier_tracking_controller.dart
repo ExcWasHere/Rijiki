@@ -1,0 +1,51 @@
+import 'dart:math' as math;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:rijiki/features/order/domain/courier_tracking.dart';
+
+// TODO(backend): ganti stream simulasi ini dengan polling/WebSocket ke
+// GET /api/orders/:id/tracking (PRD bagian 11). Tujuan & rute juga dari backend.
+final courierTrackingProvider = StreamProvider.autoDispose
+    .family<CourierTracking, String>((ref, orderId) async* {
+  const corners = [
+    LatLng(-7.2905, 112.7340),
+    LatLng(-7.2905, 112.7400),
+    LatLng(-7.2860, 112.7400),
+    LatLng(-7.2860, 112.7470),
+    LatLng(-7.2820, 112.7470),
+  ];
+
+  final route = <LatLng>[];
+  for (var i = 0; i < corners.length - 1; i++) {
+    for (var s = 0; s < 20; s++) {
+      final t = s / 20;
+      route.add(LatLng(
+        corners[i].latitude + (corners[i + 1].latitude - corners[i].latitude) * t,
+        corners[i].longitude + (corners[i + 1].longitude - corners[i].longitude) * t,
+      ));
+    }
+  }
+  route.add(corners.last);
+
+  for (var i = 4; i < route.length; i++) {
+    final next = route[math.min(i + 1, route.length - 1)];
+    yield CourierTracking(
+      position: route[i],
+      heading: _bearing(route[i], next),
+      destination: corners.last,
+      route: route,
+      etaMinutes: math.max(1, ((route.length - i) / 6).ceil()),
+    );
+    await Future<void>.delayed(const Duration(seconds: 1));
+  }
+});
+
+double _bearing(LatLng a, LatLng b) {
+  final dLng = (b.longitude - a.longitude) * math.pi / 180;
+  final lat1 = a.latitude * math.pi / 180;
+  final lat2 = b.latitude * math.pi / 180;
+  final y = math.sin(dLng) * math.cos(lat2);
+  final x = math.cos(lat1) * math.sin(lat2) -
+      math.sin(lat1) * math.cos(lat2) * math.cos(dLng);
+  return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
+}
