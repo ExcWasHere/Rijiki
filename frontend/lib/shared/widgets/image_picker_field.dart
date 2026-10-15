@@ -136,6 +136,16 @@ class _Attached extends StatelessWidget {
   final VoidCallback? onChange;
   final VoidCallback? onRemove;
 
+  Widget _brokenImage() => Container(
+    width: 48,
+    height: 48,
+    color: AppColors.outline.withValues(alpha: 0.15),
+    child: const Icon(
+      Icons.image_not_supported_outlined,
+      color: AppColors.onSurfaceVariant,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -152,21 +162,21 @@ class _Attached extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-            child: Image.file(
-              File(path),
-              width: 48,
-              height: 48,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                width: 48,
-                height: 48,
-                color: AppColors.outline.withValues(alpha: 0.15),
-                child: const Icon(
-                  Icons.image_not_supported_outlined,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-            ),
+            child: path.startsWith('http')
+                ? Image.network(
+                    path,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => _brokenImage(),
+                  )
+                : Image.file(
+                    File(path),
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => _brokenImage(),
+                  ),
           ),
           const SizedBox(width: AppSpacing.sm + 4),
           Expanded(child: Text(label, style: textTheme.titleSmall)),

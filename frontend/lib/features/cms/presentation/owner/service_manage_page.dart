@@ -6,7 +6,7 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/cms/presentation/controllers/service_manage_controller.dart';
 import 'package:rijiki/features/cms/presentation/widgets/cms_state_card.dart';
-import 'package:rijiki/features/cms/presentation/widgets/service_filter_bar.dart';
+import 'package:rijiki/features/cms/presentation/widgets/cms_filter_bar.dart';
 import 'package:rijiki/features/cms/presentation/widgets/service_manage_tile.dart';
 import 'package:rijiki/features/service/domain/care_service.dart';
 import 'package:rijiki/shared/widgets/empty_state.dart';
@@ -108,8 +108,9 @@ class _ServiceManagePageState extends ConsumerState<ServiceManagePage> {
             96,
           ),
           children: [
-            ServiceFilterBar(
+            CmsFilterBar(
               controller: _search,
+              hint: 'Cari layanan',
               status: filter.status,
               counts: counts,
               onQueryChanged: notifier.setQuery,

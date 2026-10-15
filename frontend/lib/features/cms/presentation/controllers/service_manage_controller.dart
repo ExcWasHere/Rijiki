@@ -1,53 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
+import 'package:rijiki/features/cms/domain/cms_status_filter.dart';
 import 'package:rijiki/features/cms/presentation/controllers/cms_hub_controller.dart';
+import 'package:rijiki/features/cms/presentation/controllers/cms_list_filter.dart';
 import 'package:rijiki/features/service/domain/care_service.dart';
 import 'package:rijiki/features/service/domain/care_service_input.dart';
 
-enum ServiceStatusFilter {
-  all('Semua'),
-  active('Aktif'),
-  inactive('Nonaktif');
-
-  const ServiceStatusFilter(this.label);
-
-  final String label;
-}
-
-@immutable
-class ServiceManageFilter {
-  const ServiceManageFilter({
-    this.query = '',
-    this.status = ServiceStatusFilter.all,
-  });
-
-  final String query;
-  final ServiceStatusFilter status;
-
-  ServiceManageFilter copyWith({String? query, ServiceStatusFilter? status}) {
-    return ServiceManageFilter(
-      query: query ?? this.query,
-      status: status ?? this.status,
-    );
-  }
-}
-
-class ServiceManageFilterNotifier extends Notifier<ServiceManageFilter> {
-  @override
-  ServiceManageFilter build() => const ServiceManageFilter();
-
-  void setQuery(String query) => state = state.copyWith(query: query);
-
-  void setStatus(ServiceStatusFilter status) =>
-      state = state.copyWith(status: status);
-
-  void reset() => state = const ServiceManageFilter();
-}
-
 final serviceManageFilterProvider =
-    NotifierProvider.autoDispose<ServiceManageFilterNotifier, ServiceManageFilter>(
-      ServiceManageFilterNotifier.new,
+    NotifierProvider.autoDispose<CmsListFilterNotifier, CmsListFilter>(
+      CmsListFilterNotifier.new,
     );
 
 final cmsServicesProvider = FutureProvider.autoDispose<List<CareService>>((
@@ -56,33 +18,9 @@ final cmsServicesProvider = FutureProvider.autoDispose<List<CareService>>((
   return ref.watch(serviceRepositoryProvider).fetchAllServices();
 });
 
-@immutable
-class ServiceCounts {
-  const ServiceCounts({
-    required this.all,
-    required this.active,
-    required this.inactive,
-  });
-
-  final int all;
-  final int active;
-  final int inactive;
-
-  int forStatus(ServiceStatusFilter status) => switch (status) {
-    ServiceStatusFilter.all => all,
-    ServiceStatusFilter.active => active,
-    ServiceStatusFilter.inactive => inactive,
-  };
-}
-
-final cmsServiceCountsProvider = Provider.autoDispose<ServiceCounts>((ref) {
+final cmsServiceCountsProvider = Provider.autoDispose<CmsCounts>((ref) {
   final services = ref.watch(cmsServicesProvider).value ?? const [];
-  final active = services.where((s) => s.isActive).length;
-  return ServiceCounts(
-    all: services.length,
-    active: active,
-    inactive: services.length - active,
-  );
+  return CmsCounts.of(services.map((s) => s.isActive));
 });
 
 final filteredCmsServicesProvider = Provider.autoDispose<List<CareService>>((
@@ -90,22 +28,14 @@ final filteredCmsServicesProvider = Provider.autoDispose<List<CareService>>((
 ) {
   final services = ref.watch(cmsServicesProvider).value ?? const [];
   final filter = ref.watch(serviceManageFilterProvider);
-  final query = filter.query.trim().toLowerCase();
-
-  bool matchesStatus(CareService service) => switch (filter.status) {
-    ServiceStatusFilter.all => true,
-    ServiceStatusFilter.active => service.isActive,
-    ServiceStatusFilter.inactive => !service.isActive,
-  };
-
-  bool matchesQuery(CareService service) =>
-      query.isEmpty ||
-      service.name.toLowerCase().contains(query) ||
-      (service.description ?? '').toLowerCase().contains(query);
 
   return [
     for (final service in services)
-      if (matchesStatus(service) && matchesQuery(service)) service,
+      if (filter.matches(
+        isActive: service.isActive,
+        texts: [service.name, service.description],
+      ))
+        service,
   ];
 });
 
@@ -117,6 +47,7 @@ class ServiceManageState {
     this.saving = false,
     this.errorMessage,
   });
+
   final String? busyId;
   final bool? busyValue;
   final bool saving;

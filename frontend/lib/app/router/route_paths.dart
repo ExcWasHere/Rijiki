@@ -46,6 +46,20 @@ static const workerProfile = '/worker/profile';
   static String ownerCmsServiceEditFor(String serviceId) =>
       '$ownerCmsServices/$serviceId/edit';
 
+  static const String ownerCmsEvents = '/owner/management/cms/events';
+  static const String ownerCmsEventNew = '/owner/management/cms/events/new';
+
+  static String ownerCmsEventEditFor(String eventId) =>
+      '$ownerCmsEvents/$eventId/edit';
+
+  static const String ownerCmsMerchandise =
+      '/owner/management/cms/merchandise';
+  static const String ownerCmsMerchandiseNew =
+      '/owner/management/cms/merchandise/new';
+
+  static String ownerCmsMerchandiseEditFor(String merchandiseId) =>
+      '$ownerCmsMerchandise/$merchandiseId/edit';
+
   static String verifyEmailFor(String email) {
     return Uri(path: verifyEmail, queryParameters: {'email': email}).toString();
   }

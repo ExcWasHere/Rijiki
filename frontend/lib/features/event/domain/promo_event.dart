@@ -11,6 +11,7 @@ class PromoEvent {
     this.bannerImageUrl,
     this.startDate,
     this.endDate,
+    this.isPublished = true,
   });
 
   final String id;
@@ -20,6 +21,7 @@ class PromoEvent {
   final String? bannerImageUrl;
   final DateTime? startDate;
   final DateTime? endDate;
+  final bool isPublished;
 
   factory PromoEvent.fromJson(Map<String, dynamic> json) {
     DateTime? parseDate(Object? raw) =>
@@ -33,6 +35,20 @@ class PromoEvent {
       bannerImageUrl: json['banner_image_url'] as String?,
       startDate: parseDate(json['start_date']),
       endDate: parseDate(json['end_date']),
+      isPublished: json['is_published'] as bool? ?? true,
+    );
+  }
+
+  PromoEvent copyWith({bool? isPublished}) {
+    return PromoEvent(
+      id: id,
+      title: title,
+      type: type,
+      description: description,
+      bannerImageUrl: bannerImageUrl,
+      startDate: startDate,
+      endDate: endDate,
+      isPublished: isPublished ?? this.isPublished,
     );
   }
 }

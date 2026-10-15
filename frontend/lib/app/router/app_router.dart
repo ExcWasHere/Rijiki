@@ -9,7 +9,6 @@ import 'package:rijiki/app/shells/owner_shell.dart';
 import 'package:rijiki/app/shells/worker_shell.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_dashboard_page.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_orders_page.dart';
-import 'package:rijiki/features/home/worker/presentation/management/worker_management_hub_page.dart';
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
@@ -17,6 +16,10 @@ import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/cms_hub_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/event_form_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/event_manage_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/merchandise_form_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/merchandise_manage_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_manage_page.dart';
 import 'package:rijiki/features/event/presentation/event_page.dart';
@@ -214,28 +217,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.workerManagement,
-                builder: (context, state) =>
-                    const WorkerManagementHubPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.workerProfile,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Profil',
-                  icon: Icons.person_rounded,
-                  description: 'Data akun dan pengaturan akan tampil di sini.',
-                  showAccount: true,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
 
@@ -323,6 +304,40 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                             path: ':id/edit',
                             builder: (context, state) => ServiceFormPage(
                               serviceId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'events',
+                        builder: (context, state) => const EventManagePage(),
+                        routes: [
+                          GoRoute(
+                            path: 'new',
+                            builder: (context, state) => const EventFormPage(),
+                          ),
+                          GoRoute(
+                            path: ':id/edit',
+                            builder: (context, state) => EventFormPage(
+                              eventId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'merchandise',
+                        builder: (context, state) =>
+                            const MerchandiseManagePage(),
+                        routes: [
+                          GoRoute(
+                            path: 'new',
+                            builder: (context, state) =>
+                                const MerchandiseFormPage(),
+                          ),
+                          GoRoute(
+                            path: ':id/edit',
+                            builder: (context, state) => MerchandiseFormPage(
+                              merchandiseId: state.pathParameters['id']!,
                             ),
                           ),
                         ],

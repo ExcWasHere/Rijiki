@@ -11,9 +11,10 @@ import 'package:rijiki/shared/widgets/empty_state.dart';
 
 class CmsHubPage extends ConsumerWidget {
   const CmsHubPage({super.key});
-
   static const Map<CmsSectionId, String> _routes = {
     CmsSectionId.services: RoutePaths.ownerCmsServices,
+    CmsSectionId.events: RoutePaths.ownerCmsEvents,
+    CmsSectionId.merchandise: RoutePaths.ownerCmsMerchandise,
   };
 
   @override

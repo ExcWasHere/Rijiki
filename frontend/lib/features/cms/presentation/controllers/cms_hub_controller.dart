@@ -49,8 +49,6 @@ const List<CmsSection> _allSections = [
   ),
 ];
 
-/// Bagian CMS yang boleh dilihat user saat ini: Owner semua; worker hanya
-/// bagian yang sesuai izin delegasinya.
 final cmsSectionsProvider = Provider<List<CmsSection>>((ref) {
   final user = ref.watch(sessionProvider);
   if (user == null) return const [];
@@ -60,7 +58,6 @@ final cmsSectionsProvider = Provider<List<CmsSection>>((ref) {
   ];
 });
 
-/// Ringkasan baris Layanan, mis. "10 layanan aktif · 2 nonaktif".
 final cmsServiceSummaryProvider = FutureProvider.autoDispose<String>((
   ref,
 ) async {
@@ -72,11 +69,39 @@ final cmsServiceSummaryProvider = FutureProvider.autoDispose<String>((
       : '$active layanan aktif · $inactive nonaktif';
 });
 
+final cmsEventSummaryProvider = FutureProvider.autoDispose<String>((ref) async {
+  final events = await ref.watch(eventRepositoryProvider).fetchAllEvents();
+  final published = events.where((e) => e.isPublished).length;
+  final hidden = events.length - published;
+  return hidden == 0
+      ? '$published event tayang'
+      : '$published event tayang · $hidden disembunyikan';
+});
+
+final cmsMerchandiseSummaryProvider = FutureProvider.autoDispose<String>((
+  ref,
+) async {
+  final items = await ref
+      .watch(merchandiseRepositoryProvider)
+      .fetchAllMerchandise();
+  final active = items.where((m) => m.isActive).toList();
+  final soldOut = active.where((m) => m.isOutOfStock).length;
+  return soldOut == 0
+      ? '${active.length} merchandise aktif'
+      : '${active.length} merchandise aktif · $soldOut stok habis';
+});
+
 final cmsSectionSummaryProvider = Provider.autoDispose
     .family<AsyncValue<String?>, CmsSectionId>((ref, id) {
       return switch (id) {
         CmsSectionId.services => ref
             .watch(cmsServiceSummaryProvider)
+            .whenData<String?>((text) => text),
+        CmsSectionId.events => ref
+            .watch(cmsEventSummaryProvider)
+            .whenData<String?>((text) => text),
+        CmsSectionId.merchandise => ref
+            .watch(cmsMerchandiseSummaryProvider)
             .whenData<String?>((text) => text),
         _ => const AsyncData<String?>(null),
       };
@@ -84,8 +109,14 @@ final cmsSectionSummaryProvider = Provider.autoDispose
 
 Future<void> refreshCmsHub(WidgetRef ref) async {
   ref.invalidate(cmsServiceSummaryProvider);
+  ref.invalidate(cmsEventSummaryProvider);
+  ref.invalidate(cmsMerchandiseSummaryProvider);
   try {
-    await ref.read(cmsServiceSummaryProvider.future);
+    await Future.wait<Object?>([
+      ref.read(cmsServiceSummaryProvider.future),
+      ref.read(cmsEventSummaryProvider.future),
+      ref.read(cmsMerchandiseSummaryProvider.future),
+    ]);
   } catch (_) {
   }
 }
