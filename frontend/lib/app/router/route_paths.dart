@@ -39,6 +39,7 @@ static const workerProfile = '/worker/profile';
       '/owner/management/finance/income/new';
   static const String ownerManagementRepeatCustomers =
       '/owner/management/repeat-customers';
+  static const String ownerCms = '/owner/management/cms';
 
   static String verifyEmailFor(String email) {
     return Uri(path: verifyEmail, queryParameters: {'email': email}).toString();

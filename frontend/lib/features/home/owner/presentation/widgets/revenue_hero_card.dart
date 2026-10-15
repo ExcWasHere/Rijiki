@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/home/owner/domain/dashboard_summary.dart';
-import 'package:rijiki/features/home/owner/presentation/widgets/animated_rupiah.dart';
+import 'package:rijiki/shared/widgets/animated_rupiah.dart';
 import 'package:rijiki/features/home/owner/presentation/widgets/revenue_mini_chart.dart';
 
 class RevenueHeroCard extends StatelessWidget {

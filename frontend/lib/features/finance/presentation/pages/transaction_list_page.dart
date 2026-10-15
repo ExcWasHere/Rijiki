@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/finance/domain/financial_transaction.dart';
+import 'package:rijiki/features/finance/domain/transaction_filter.dart';
 import 'package:rijiki/features/finance/presentation/controllers/finance_controller.dart';
 import 'package:rijiki/features/finance/presentation/utils/finance_format.dart';
+import 'package:rijiki/features/finance/presentation/widgets/export_range_sheet.dart';
 import 'package:rijiki/features/finance/presentation/widgets/finance_state_card.dart';
 import 'package:rijiki/features/finance/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:rijiki/features/finance/presentation/widgets/transaction_filter_bar.dart';
@@ -26,7 +28,25 @@ class TransactionListPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Rekap transaksi')),
+      appBar: AppBar(
+        title: const Text('Rekap transaksi'),
+        actions: [
+          IconButton(
+            tooltip: 'Ekspor Excel',
+            icon: const Icon(Icons.file_download_outlined),
+            onPressed: () => showExportRangeSheet(
+              context,
+              initialRange: filter.hasRange
+                  ? DateTimeRange(start: filter.start!, end: filter.end!)
+                  : null,
+              initialExpenseType:
+                  filter.type == TransactionTypeFilter.expense
+                  ? filter.expenseType
+                  : null,
+            ),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         color: AppColors.primaryDark,
         onRefresh: () => refreshTransactions(ref),

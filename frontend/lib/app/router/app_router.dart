@@ -16,16 +16,17 @@ import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/cms_hub_page.dart';
 import 'package:rijiki/features/event/presentation/event_page.dart';
-import 'package:rijiki/features/finance/presentation/management/expense_ai_input_page.dart';
-import 'package:rijiki/features/finance/presentation/management/expense_draft_review_page.dart';
-import 'package:rijiki/features/finance/presentation/management/finance_page.dart';
-import 'package:rijiki/features/finance/presentation/management/income_form_page.dart';
-import 'package:rijiki/features/finance/presentation/management/transaction_list_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/expense_ai_input_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/expense_draft_review_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/finance_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/income_form_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/transaction_list_page.dart';
 import 'package:rijiki/features/home/owner/presentation/management/dashboard_page.dart';
 import 'package:rijiki/features/home/owner/presentation/management/repeat_customer_page.dart';
 import 'package:rijiki/features/home/customer/home_page.dart';
-import 'package:rijiki/features/home/owner/presentation/management/presentation/management/management_hub_page.dart';
+import 'package:rijiki/features/home/owner/presentation/management/presentation/pages/management_hub_page.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:rijiki/features/order/presentation/customer/delivery_map_page.dart';
 import 'package:rijiki/features/order/presentation/customer/order_create_page.dart';
@@ -302,6 +303,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'repeat-customers',
                     builder: (context, state) => const RepeatCustomerPage(),
+                  ),
+                  GoRoute(
+                    path: 'cms',
+                    builder: (context, state) => const CmsHubPage(),
                   ),
                 ],
               ),
