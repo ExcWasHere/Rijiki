@@ -3,7 +3,7 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/finance/domain/finance_summary.dart';
 import 'package:rijiki/features/finance/presentation/utils/finance_format.dart';
-import 'package:rijiki/features/home/owner/presentation/widgets/animated_rupiah.dart';
+import 'package:rijiki/shared/widgets/animated_rupiah.dart';
 
 class FinanceSummaryCard extends StatelessWidget {
   const FinanceSummaryCard({super.key, required this.summary});
