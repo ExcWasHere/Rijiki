@@ -7,11 +7,8 @@ import 'package:rijiki/features/onboarding/presentation/controllers/onboarding_c
 import 'package:rijiki/features/onboarding/presentation/widgets/components/onboarding_bottom_nav.dart';
 import 'package:rijiki/features/onboarding/presentation/widgets/components/onboarding_dots.dart';
 import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_address.dart';
-import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_delivery.dart';
 import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_name.dart';
 import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_phone.dart';
-import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_smart_care.dart';
-import 'package:rijiki/features/onboarding/presentation/widgets/steps/step_welcome.dart';
 
 class OnboardingPage extends ConsumerWidget {
   const OnboardingPage({super.key});
@@ -39,21 +36,9 @@ class OnboardingPage extends ConsumerWidget {
                 onPageChanged: controller.onPageChanged,
                 physics: const NeverScrollableScrollPhysics(),
                 children: const [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: StepWelcome(),
-                  ),
                   StepName(),
                   StepPhone(),
                   StepAddress(),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: StepSmartCare(),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: StepDelivery(),
-                  ),
                 ],
               ),
             ),

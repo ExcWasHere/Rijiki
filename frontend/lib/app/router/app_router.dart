@@ -46,6 +46,7 @@ import 'package:rijiki/features/profile/presentation/customer/profile_page.dart'
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
+import 'package:rijiki/features/landing/presentation/pages/landing_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -65,6 +66,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashPage(),
       ),
       GoRoute(
+        path: RoutePaths.landing,
+        builder: (context, state) => const LandingPage(),
+      ),
+      GoRoute(
         path: RoutePaths.login,
         builder: (context, state) => const LoginPage(),
       ),
@@ -76,11 +81,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.verifyEmail,
         redirect: (context, state) =>
             (state.uri.queryParameters['email'] ?? '').isEmpty
-                ? RoutePaths.register
-                : null,
-        builder: (context, state) => VerifyEmailPage(
-          email: state.uri.queryParameters['email'] ?? '',
-        ),
+            ? RoutePaths.register
+            : null,
+        builder: (context, state) =>
+            VerifyEmailPage(email: state.uri.queryParameters['email'] ?? ''),
       ),
       GoRoute(
         path: RoutePaths.onboarding,
@@ -152,7 +156,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                             builder: (context, state) => PaymentResultPage(
                               orderId: state.pathParameters['orderId']!,
                               status:
-                                  state.uri.queryParameters['status'] ?? 'failed',
+                                  state.uri.queryParameters['status'] ??
+                                  'failed',
                             ),
                           ),
                         ],
@@ -202,8 +207,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.workerHome,
-                builder: (context, state) =>
-                    const WorkerDashboardPage(),
+                builder: (context, state) => const WorkerDashboardPage(),
               ),
             ],
           ),
@@ -212,8 +216,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.workerOrders,
-                builder: (context, state) =>
-                    const WorkerOrdersPage(),
+                builder: (context, state) => const WorkerOrdersPage(),
               ),
             ],
           ),
@@ -267,8 +270,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       ),
                       GoRoute(
                         path: 'expenses/ai',
-                        builder: (context, state) =>
-                            const ExpenseAiInputPage(),
+                        builder: (context, state) => const ExpenseAiInputPage(),
                         routes: [
                           GoRoute(
                             path: 'review',

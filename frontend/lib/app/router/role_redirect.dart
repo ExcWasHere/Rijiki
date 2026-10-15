@@ -9,6 +9,12 @@ abstract final class RoleRedirect {
     RoutePaths.verifyEmail,
   };
 
+  // Rute yang boleh dibuka tanpa session
+  static const Set<String> _publicRoutes = {
+    RoutePaths.landing,
+    ..._authRoutes,
+  };
+
   static bool needsOnboarding(AppUser user) {
     return user.role == UserRole.customer && !user.profileCompleted;
   }
@@ -21,17 +27,26 @@ abstract final class RoleRedirect {
     };
   }
 
-  static String entryRoute(AppUser? user) {
-    if (user == null) return RoutePaths.login;
+  /// [landingSeen] default true supaya pemanggil lama tetap jalan.
+  static String entryRoute(AppUser? user, {bool landingSeen = true}) {
+    if (user == null) {
+      return landingSeen ? RoutePaths.login : RoutePaths.landing;
+    }
     return roleHome(user);
   }
 
   static String? guard({required AppUser? user, required String location}) {
     if (location == RoutePaths.splash) return null;
 
-    final isAuthRoute = _authRoutes.contains(location);
+    if (user == null) {
+      return _publicRoutes.contains(location) ? null : RoutePaths.login;
+    }
 
-    if (user == null) return isAuthRoute ? null : RoutePaths.login;
+    // User sudah login: landing tidak relevan lagi
+    if (location == RoutePaths.landing) {
+      return needsOnboarding(user) ? RoutePaths.onboarding : roleHome(user);
+    }
+
     if (location == RoutePaths.login) {
       return roleHome(user);
     }

@@ -33,7 +33,7 @@ class OnboardingState {
 
 class OnboardingController extends Notifier<OnboardingState> {
   late final PageController pageController;
-  static const int lastPage = 5;
+  static const int lastPage = 2;
 
   @override
   OnboardingState build() {

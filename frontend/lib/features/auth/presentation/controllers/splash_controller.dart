@@ -17,11 +17,14 @@ class SplashController extends AsyncNotifier<String> {
   @override
   Future<String> build() async {
     final repository = ref.read(authRepositoryProvider);
+    final tokenStorage = ref.read(tokenStorageProvider);
     final minDuration = Future<void>.delayed(AppConstants.splashMinDuration);
 
     final AppUser? user;
+    final bool landingSeen;
     try {
       user = await repository.restoreSession();
+      landingSeen = await tokenStorage.isLandingSeen();
     } catch (_) {
       await Future<void>.delayed(_minFailureDuration);
       rethrow;
@@ -29,7 +32,7 @@ class SplashController extends AsyncNotifier<String> {
     await minDuration;
 
     ref.read(sessionProvider.notifier).setUser(user);
-    return RoleRedirect.entryRoute(user);
+    return RoleRedirect.entryRoute(user, landingSeen: landingSeen);
   }
 
   void retry() => ref.invalidateSelf();
