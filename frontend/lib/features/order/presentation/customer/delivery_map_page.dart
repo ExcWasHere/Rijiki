@@ -1,18 +1,18 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
+import 'package:rijiki/features/order/domain/courier_tracking.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/presentation/controllers/courier_tracking_controller.dart';
 import 'package:rijiki/features/order/presentation/controllers/order_detail_controller.dart';
 import 'package:rijiki/shared/widgets/app_card.dart';
 import 'package:rijiki/shared/widgets/empty_state.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
 import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 
-// TODO(backend): ganti dengan google_maps_flutter dan titik terbaru dari
-// GET /api/orders/:id/tracking (PRD bagian 11).
 class DeliveryMapPage extends ConsumerWidget {
   const DeliveryMapPage({super.key, required this.orderId});
 
@@ -51,243 +51,264 @@ class DeliveryMapPage extends ConsumerWidget {
   }
 }
 
-class _MapBody extends StatefulWidget {
+class _MapBody extends ConsumerStatefulWidget {
   const _MapBody({required this.order});
 
   final CustomerOrder order;
 
   @override
-  State<_MapBody> createState() => _MapBodyState();
+  ConsumerState<_MapBody> createState() => _MapBodyState();
 }
 
-class _MapBodyState extends State<_MapBody>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 8),
-  )..forward();
+class _MapBodyState extends ConsumerState<_MapBody> {
+  static const _sheetHeight = 230.0;
 
-  late final Animation<double> _progress = Tween<double>(
-    begin: 0.2,
-    end: 0.7,
-  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  GoogleMapController? _map;
+  bool _follow = true;
+  bool _fitted = false;
 
   @override
   void dispose() {
-    _controller.dispose();
+    _map?.dispose();
     super.dispose();
+  }
+
+  Future<void> _onUpdate(CourierTracking t) async {
+    final map = _map;
+    if (map == null) return;
+    if (!_fitted) {
+      _fitted = true;
+      await map.animateCamera(
+        CameraUpdate.newLatLngBounds(_boundsOf(t.position, t.destination), 90),
+      );
+    } else if (_follow) {
+      await map.animateCamera(CameraUpdate.newLatLng(t.position));
+    }
+  }
+
+  LatLngBounds _boundsOf(LatLng a, LatLng b) => LatLngBounds(
+        southwest: LatLng(
+          a.latitude < b.latitude ? a.latitude : b.latitude,
+          a.longitude < b.longitude ? a.longitude : b.longitude,
+        ),
+        northeast: LatLng(
+          a.latitude > b.latitude ? a.latitude : b.latitude,
+          a.longitude > b.longitude ? a.longitude : b.longitude,
+        ),
+      );
+
+  Future<void> _recenter(CourierTracking t) async {
+    setState(() => _follow = true);
+    await _map?.animateCamera(
+      CameraUpdate.newLatLngBounds(_boundsOf(t.position, t.destination), 90),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final order = widget.order;
+    final id = widget.order.id;
+    final tracking = ref.watch(courierTrackingProvider(id));
+    ref.listen(courierTrackingProvider(id), (_, next) {
+      next.whenData(_onUpdate);
+    });
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => CustomPaint(
-              painter: _MapPainter(
-                progress: _progress.value,
-                pulse: (_controller.value * 4) % 1,
-              ),
-            ),
-          ),
+    return tracking.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(AppSpacing.lg),
+        child: LoadingSkeleton(height: 420),
+      ),
+      error: (_, _) => Center(
+        child: ErrorState(
+          message: 'Posisi kurir gagal dimuat. Coba lagi ya.',
+          onRetry: () => ref.invalidate(courierTrackingProvider(id)),
         ),
-        Positioned(
-          top: AppSpacing.md,
-          left: AppSpacing.lg,
-          right: AppSpacing.lg,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.onSurface.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                'Pratinjau tampilan · peta langsung menyusul',
-                style: textTheme.labelMedium?.copyWith(color: Colors.white),
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          left: AppSpacing.lg,
-          right: AppSpacing.lg,
-          bottom: AppSpacing.lg,
-          child: AppCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.two_wheeler_rounded,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            order.workerName ?? 'Kurir Rijiki',
-                            style: textTheme.titleSmall,
-                          ),
-                          Text(
-                            'Sedang mengantar · ${order.orderNumber}',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+      ),
+      data: (t) => Stack(
+        children: [
+          Positioned.fill(
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(target: t.position, zoom: 15),
+              padding: const EdgeInsets.only(bottom: _sheetHeight),
+              onMapCreated: (c) {
+                _map = c;
+                _onUpdate(t);
+              },
+              onCameraMoveStarted: () {
+                // Berhenti follow kalau user menggeser peta sendiri.
+              },
+              onCameraMove: (_) {},
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              compassEnabled: false,
+              polylines: {
+                Polyline(
+                  polylineId: const PolylineId('route'),
+                  points: t.route,
+                  color: AppColors.primaryDark,
+                  width: 5,
+                  startCap: Cap.roundCap,
+                  endCap: Cap.roundCap,
+                  jointType: JointType.round,
                 ),
-                const SizedBox(height: 12),
-                const Divider(),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.location_on_rounded,
-                      size: 18,
-                      color: AppColors.rijikiOrange,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Tujuan pengantaran',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                          Text(
-                            order.deliveryAddress,
-                            style: textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              },
+              markers: {
+                Marker(
+                  markerId: const MarkerId('destination'),
+                  position: t.destination,
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueOrange,
+                  ),
                 ),
-              ],
+                Marker(
+                  markerId: const MarkerId('courier'),
+                  position: t.position,
+                  rotation: t.heading,
+                  flat: true,
+                  anchor: const Offset(0.5, 0.5),
+                  zIndexInt: 2,
+                  // TODO: ganti dengan ikon motor kustom, mis.
+                  // await BitmapDescriptor.asset(
+                  //   const ImageConfiguration(size: Size(48, 48)),
+                  //   'assets/images/courier_marker.png',
+                  // )
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueAzure,
+                  ),
+                ),
+              },
             ),
           ),
-        ),
-      ],
+          // Deteksi geser user: bungkus gesture di atas peta tanpa menghalangi.
+          Positioned.fill(
+            bottom: _sheetHeight,
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerMove: (_) {
+                if (_follow) setState(() => _follow = false);
+              },
+            ),
+          ),
+          Positioned(
+            right: AppSpacing.lg,
+            bottom: _sheetHeight + AppSpacing.md,
+            child: FloatingActionButton.small(
+              heroTag: 'recenter',
+              backgroundColor: Colors.white,
+              onPressed: () => _recenter(t),
+              child: Icon(
+                Icons.my_location_rounded,
+                color: _follow ? AppColors.rijikiBlue : AppColors.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Positioned(
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            bottom: AppSpacing.lg,
+            child: _CourierCard(order: widget.order, tracking: t),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _MapPainter extends CustomPainter {
-  const _MapPainter({required this.progress, required this.pulse});
-  final double progress;
-  final double pulse;
+class _CourierCard extends StatelessWidget {
+  const _CourierCard({required this.order, required this.tracking});
+
+  final CustomerOrder order;
+  final CourierTracking tracking;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final arrived = tracking.position == tracking.destination;
 
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = const Color(0xFFEAF1EE),
-    );
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.58, h * 0.06, w * 0.34, h * 0.16),
-        const Radius.circular(18),
-      ),
-      Paint()..color = const Color(0xFFCFE6CC),
-    );
-    final river = Path()
-      ..moveTo(-10, h * 0.12)
-      ..quadraticBezierTo(w * 0.25, h * 0.2, w * 0.4, h * 0.08)
-      ..quadraticBezierTo(w * 0.5, 0, w * 0.55, -10);
-    canvas.drawPath(
-      river,
-      Paint()
-        ..color = const Color(0xFFBFDDF0)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 18
-        ..strokeCap = StrokeCap.round,
-    );
-
-    final road = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 12
-      ..strokeCap = StrokeCap.round;
-    for (final fx in [0.15, 0.5, 0.82]) {
-      canvas.drawLine(Offset(w * fx, 0), Offset(w * fx, h), road);
-    }
-    for (final fy in [0.3, 0.55, 0.82]) {
-      canvas.drawLine(Offset(0, h * fy), Offset(w, h * fy), road);
-    }
-
-    final start = Offset(w * 0.15, h * 0.82);
-    final route = Path()
-      ..moveTo(start.dx, start.dy)
-      ..lineTo(w * 0.15, h * 0.55)
-      ..lineTo(w * 0.5, h * 0.55)
-      ..lineTo(w * 0.5, h * 0.3)
-      ..lineTo(w * 0.82, h * 0.3);
-    canvas.drawPath(
-      route,
-      Paint()
-        ..color = AppColors.primaryDark
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-
-    final destination = Offset(w * 0.82, h * 0.3);
-    canvas.drawCircle(destination, 13, Paint()..color = Colors.white);
-    canvas.drawCircle(destination, 9, Paint()..color = AppColors.rijikiOrange);
-    final metric = route.computeMetrics().first;
-    final tangent = metric.getTangentForOffset(metric.length * progress);
-    if (tangent != null) {
-      final position = tangent.position;
-      canvas.drawCircle(
-        position,
-        14 + 14 * pulse,
-        Paint()
-          ..color = AppColors.rijikiBlue.withValues(
-            alpha: 0.35 * (1 - pulse),
+    return AppCard(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            arrived ? 'Kurir sudah tiba' : 'Tiba sekitar ${tracking.etaMinutes} menit lagi',
+            style: textTheme.titleMedium,
           ),
-      );
-      canvas.drawCircle(position, 12, Paint()..color = Colors.white);
-      canvas.drawCircle(position, 8, Paint()..color = AppColors.rijikiBlue);
-      final heading = tangent.angle;
-      canvas.drawCircle(
-        position + Offset(math.cos(heading), math.sin(heading)) * 4,
-        2,
-        Paint()..color = Colors.white,
-      );
-    }
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.two_wheeler_rounded,
+                  color: AppColors.primaryDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.workerName ?? 'Kurir Rijiki',
+                      style: textTheme.titleSmall,
+                    ),
+                    Text(
+                      'Sedang mengantar · ${order.orderNumber}',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // TODO(backend): sambungkan ke nomor kurir / chat.
+              IconButton.filledTonal(
+                onPressed: () {},
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+              ),
+              const SizedBox(width: 4),
+              IconButton.filledTonal(
+                onPressed: () {},
+                icon: const Icon(Icons.call_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_on_rounded,
+                size: 18,
+                color: AppColors.rijikiOrange,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tujuan pengantaran',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(order.deliveryAddress, style: textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(_MapPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.pulse != pulse;
 }

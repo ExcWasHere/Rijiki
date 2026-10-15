@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/extensions/enum_ui_x.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
+import 'package:rijiki/features/order/domain/courier_tracking.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/presentation/controllers/courier_tracking_controller.dart';
 import 'package:rijiki/features/order/presentation/controllers/order_detail_controller.dart';
 import 'package:rijiki/features/order/presentation/widgets/order_status_stepper.dart';
 import 'package:rijiki/shared/widgets/app_card.dart';
@@ -106,6 +109,11 @@ class _TrackingBody extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
+                _MiniMap(
+                  orderId: order.id,
+                  onTap: () => context.push(RoutePaths.deliveryMapFor(order.id)),
+                ),
+                const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: () =>
                       context.push(RoutePaths.deliveryMapFor(order.id)),
@@ -121,6 +129,88 @@ class _TrackingBody extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         OrderStatusStepper(order: order),
       ],
+    );
+  }
+}
+
+class _MiniMap extends ConsumerStatefulWidget {
+  const _MiniMap({required this.orderId, required this.onTap});
+
+  final String orderId;
+  final VoidCallback onTap;
+
+  @override
+  ConsumerState<_MiniMap> createState() => _MiniMapState();
+}
+
+class _MiniMapState extends ConsumerState<_MiniMap> {
+  GoogleMapController? _map;
+
+  @override
+  void dispose() {
+    _map?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tracking = ref.watch(courierTrackingProvider(widget.orderId));
+    ref.listen(courierTrackingProvider(widget.orderId), (_, next) {
+      next.whenData(
+        (t) => _map?.animateCamera(CameraUpdate.newLatLng(t.position)),
+      );
+    });
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: SizedBox(
+        height: 180,
+        child: tracking.when(
+          loading: () => const LoadingSkeleton(height: 180),
+          error: (_, _) => const Center(child: Text('Peta gagal dimuat')),
+          data: (t) => GestureDetector(
+            onTap: widget.onTap,
+            child: AbsorbPointer(
+              child: GoogleMap(
+                initialCameraPosition:
+                    CameraPosition(target: t.position, zoom: 15),
+                onMapCreated: (c) => _map = c,
+                zoomControlsEnabled: false,
+                myLocationButtonEnabled: false,
+                mapToolbarEnabled: false,
+                compassEnabled: false,
+                polylines: {
+                  Polyline(
+                    polylineId: const PolylineId('route'),
+                    points: t.route,
+                    color: AppColors.primaryDark,
+                    width: 4,
+                  ),
+                },
+                markers: {
+                  Marker(
+                    markerId: const MarkerId('destination'),
+                    position: t.destination,
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueOrange,
+                    ),
+                  ),
+                  Marker(
+                    markerId: const MarkerId('courier'),
+                    position: t.position,
+                    rotation: t.heading,
+                    flat: true,
+                    anchor: const Offset(0.5, 0.5),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueAzure,
+                    ),
+                  ),
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
