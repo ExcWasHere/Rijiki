@@ -24,7 +24,7 @@ import 'package:rijiki/features/finance/presentation/management/transaction_list
 import 'package:rijiki/features/home/owner/presentation/management/dashboard_page.dart';
 import 'package:rijiki/features/home/owner/presentation/management/repeat_customer_page.dart';
 import 'package:rijiki/features/home/customer/home_page.dart';
-import 'package:rijiki/features/home/owner/presentation/management/presentation/management/management_hub_page.dart';
+import 'package:rijiki/features/home/owner/presentation/management/presentation/pages/management_hub_page.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:rijiki/features/order/presentation/customer/delivery_map_page.dart';
 import 'package:rijiki/features/order/presentation/customer/order_create_page.dart';
