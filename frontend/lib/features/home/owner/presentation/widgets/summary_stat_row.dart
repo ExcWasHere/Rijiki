@@ -152,7 +152,7 @@ class _ActiveOrdersTile extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '$count order sedang diproses',
+                      '$count pesanan sedang diproses',
                       style: textTheme.titleMedium,
                     ),
                   ],

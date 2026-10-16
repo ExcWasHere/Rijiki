@@ -209,7 +209,7 @@ class _MerchandiseFormState extends ConsumerState<_MerchandiseForm> {
                     labelText: 'Harga referensi',
                     prefixText: 'Rp ',
                     helperText:
-                        'Hanya informasi; merchandise tidak dijual lewat order.',
+                        'Hanya informasi; merchandise tidak dijual lewat pemesanan.',
                     helperMaxLines: 2,
                   ),
                   validator: (value) => parseRupiahInput(value ?? '') <= 0

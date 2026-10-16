@@ -59,7 +59,7 @@ class WorkerDashboardPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Halo, Worker!',
+                        'Halo, Karyawan!',
                         style: Theme.of(context)
                             .textTheme
                             .titleMedium

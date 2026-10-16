@@ -257,7 +257,7 @@ class _ServiceFormState extends ConsumerState<_ServiceForm> {
                     labelText: 'Harga dasar',
                     prefixText: 'Rp ',
                     helperText: _isEdit
-                        ? 'Perubahan harga berlaku untuk order baru; order '
+                        ? 'Perubahan harga berlaku untuk pemesanan baru; pemesanan '
                               'yang sudah dibuat memakai harga saat dipesan.'
                         : null,
                     helperMaxLines: 3,

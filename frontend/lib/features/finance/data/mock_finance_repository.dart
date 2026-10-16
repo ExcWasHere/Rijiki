@@ -434,7 +434,7 @@ class MockFinanceRepository implements FinanceRepository {
         21,
         8,
         ExpenseType.other,
-        'Gaji worker',
+        'Gaji karyawan',
         1500000,
         description: 'Gaji bulanan',
       ),
