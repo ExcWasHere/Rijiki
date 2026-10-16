@@ -7,11 +7,6 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
 
-/// Profil untuk role WORKER.
-/// Perbedaan dengan customer:
-/// - tanpa "Alamat saya" dan section Reward
-/// - section Aktivitas diganti CTA CMS
-/// - tanpa akses keuangan (khusus owner)
 class WorkerProfilePage extends ConsumerWidget {
   const WorkerProfilePage({super.key});
 
@@ -132,7 +127,6 @@ class WorkerProfilePage extends ConsumerWidget {
   }
 }
 
-/// CTA pengganti section "Aktivitas".
 class _CmsCtaCard extends StatelessWidget {
   const _CmsCtaCard({required this.onTap});
 
@@ -184,8 +178,6 @@ class _CmsCtaCard extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           FilledButton(
             style: FilledButton.styleFrom(
-              // Theme global memakai Size.fromHeight(52) (lebar tak hingga),
-              // override agar aman di dalam Row.
               minimumSize: const Size(0, 40),
               backgroundColor: AppColors.onPrimary,
               foregroundColor: Colors.white,

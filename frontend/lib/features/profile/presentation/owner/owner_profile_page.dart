@@ -7,10 +7,6 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
 
-/// Profil untuk role OWNER.
-/// Perbedaan:
-/// - dengan customer: tanpa "Alamat saya" dan Reward, Aktivitas diganti CTA CMS
-/// - dengan worker: ada section Keuangan (khusus owner)
 class OwnerProfilePage extends ConsumerWidget {
   const OwnerProfilePage({super.key});
 
@@ -47,8 +43,6 @@ class OwnerProfilePage extends ConsumerWidget {
                     onTap: () => _showComingSoon(context, 'CMS'),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  // Hanya owner. Route keuangan juga harus diproteksi
-                  // dengan redirect berbasis role di GoRouter.
                   _MenuSection(
                     title: 'Keuangan',
                     items: [
@@ -159,7 +153,6 @@ class OwnerProfilePage extends ConsumerWidget {
   }
 }
 
-/// CTA pengganti section "Aktivitas".
 class _CmsCtaCard extends StatelessWidget {
   const _CmsCtaCard({required this.onTap});
 
@@ -208,8 +201,6 @@ class _CmsCtaCard extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           FilledButton(
             style: FilledButton.styleFrom(
-              // Theme global memakai Size.fromHeight(52) (lebar tak hingga),
-              // override agar aman di dalam Row.
               minimumSize: const Size(0, 40),
               backgroundColor: AppColors.onPrimary,
               foregroundColor: Colors.white,
@@ -394,7 +385,6 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
-/// Chip owner memakai warna brand oranye agar beda dari worker (biru).
 class _RoleChip extends StatelessWidget {
   const _RoleChip({required this.label});
 
