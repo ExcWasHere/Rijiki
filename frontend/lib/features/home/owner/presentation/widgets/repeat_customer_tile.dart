@@ -82,7 +82,7 @@ class RepeatCustomerTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${customer.completedOrders} order selesai',
+                  '${customer.completedOrders} pesanan selesai',
                   style: textTheme.bodySmall?.copyWith(
                     color: AppColors.onSurfaceVariant,
                   ),

@@ -53,7 +53,7 @@ class OrderListPage extends ConsumerWidget {
                   FilledButton.icon(
                     onPressed: () => context.push(RoutePaths.orderCreateFor()),
                     icon: const Icon(Icons.add_rounded, size: 20),
-                    label: const Text('Buat order'),
+                    label: const Text('Buat pesanan'),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 40),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -134,15 +134,15 @@ class OrderListPage extends ConsumerWidget {
       return EmptyState(
         icon: Icons.receipt_long_outlined,
         title: 'Belum ada order',
-        message: 'Mulai dengan membuat order pertamamu.',
-        actionLabel: 'Buat order',
+        message: 'Mulai dengan membuat pesanan pertamamu.',
+        actionLabel: 'Buat pesanan',
         onAction: () => context.push(RoutePaths.orderCreateFor()),
       );
     }
     final message = switch (filter) {
-      OrderFilter.inProgress => 'Tidak ada order yang sedang berjalan.',
-      OrderFilter.completed => 'Belum ada order yang selesai.',
-      OrderFilter.cancelled => 'Tidak ada order yang dibatalkan.',
+      OrderFilter.inProgress => 'Tidak ada pesanan yang sedang berjalan.',
+      OrderFilter.completed => 'Belum ada pesanan yang selesai.',
+      OrderFilter.cancelled => 'Tidak ada pesanan yang dibatalkan.',
       OrderFilter.all => '',
     };
     return EmptyState(

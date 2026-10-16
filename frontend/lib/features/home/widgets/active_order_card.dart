@@ -31,7 +31,7 @@ class ActiveOrderSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
-            title: 'Order aktif',
+            title: 'Pesanan aktif',
             onAction: () => context.go(RoutePaths.customerOrders),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -47,9 +47,9 @@ class ActiveOrderSection extends ConsumerWidget {
                 return StateCard(
                   child: EmptyState(
                     icon: Icons.inventory_2_outlined,
-                    title: 'Belum ada order aktif',
-                    message: 'Order yang sedang berjalan akan muncul di sini.',
-                    actionLabel: 'Mulai order',
+                    title: 'Belum ada pesanan aktif',
+                    message: 'Pesanan yang sedang berjalan akan muncul di sini.',
+                    actionLabel: 'Mulai pesan',
                     onAction: () => context.go(RoutePaths.customerOrders),
                   ),
                 );

@@ -35,7 +35,7 @@ class PromoEventBanner extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           child: SectionHeader(
-            title: 'Promo & event',
+            title: 'Promo & acara',
             onAction: () => context.go(RoutePaths.customerEvents),
           ),
         ),
@@ -68,7 +68,7 @@ class PromoEventBanner extends ConsumerWidget {
                 child: StateCard(
                   child: EmptyState(
                     icon: Icons.local_activity_outlined,
-                    title: 'Belum ada promo atau event',
+                    title: 'Belum ada promo atau acara',
                     message: 'Info terbaru dari Rijiki akan muncul di sini.',
                   ),
                 ),

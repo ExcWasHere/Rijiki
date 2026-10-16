@@ -5,7 +5,7 @@ import 'package:rijiki/core/theme/app_colors.dart';
 
 extension OrderStatusUi on OrderStatus {
   String get label => switch (this) {
-        OrderStatus.order => 'Order diterima',
+        OrderStatus.order => 'Pesanan diterima',
         OrderStatus.pickup => 'Penjemputan',
         OrderStatus.waiting => 'Menunggu antrean',
         OrderStatus.cleaning => 'Dikerjakan',

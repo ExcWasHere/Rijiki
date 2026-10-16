@@ -88,7 +88,7 @@ class _LandingPageState extends ConsumerState<LandingPage> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _next,
-                  child: Text(isLast ? 'MULAI' : 'NEXT'),
+                  child: Text(isLast ? 'MULAI' : 'LANJUT'),
                 ),
               ),
             ),

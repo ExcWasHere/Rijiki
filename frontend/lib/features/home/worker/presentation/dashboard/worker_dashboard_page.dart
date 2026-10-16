@@ -70,7 +70,7 @@ class WorkerDashboardPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Siap memproses order hari ini?',
+                        'Siap memproses pesanan hari ini?',
                         style: Theme.of(context)
                             .textTheme
                             .bodySmall
@@ -117,7 +117,7 @@ class WorkerDashboardPage extends StatelessWidget {
               childAspectRatio: 1.25,
               children: [
                 _WorkerStatCard(
-                  title: 'Order Hari Ini',
+                  title: 'Pesanan Hari Ini',
                   value: totalOrders,
                   icon: Icons.receipt_long_outlined,
                   color: AppColors.primary,
@@ -149,7 +149,7 @@ class WorkerDashboardPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Order yang Perlu Ditangani',
+                    'Pesanan yang Perlu Ditangani',
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium

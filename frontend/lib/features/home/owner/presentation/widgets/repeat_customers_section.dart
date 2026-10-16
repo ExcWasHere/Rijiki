@@ -31,7 +31,7 @@ class RepeatCustomersSection extends ConsumerWidget {
               ? const DashboardMessageCard(
                   icon: Icons.favorite_border_rounded,
                   message:
-                      'Belum ada pelanggan dengan lebih dari satu order selesai.',
+                      'Belum ada pelanggan dengan lebih dari satu pesanan selesai.',
                 )
               : Container(
                   decoration: BoxDecoration(

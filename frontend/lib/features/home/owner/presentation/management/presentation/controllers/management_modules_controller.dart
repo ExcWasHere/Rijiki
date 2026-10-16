@@ -18,7 +18,7 @@ const List<ManagementModule> _allModules = [
   ),
   ManagementModule(
     id: 'repeat_customers',
-    title: 'Repeat customer',
+    title: 'Pelanggan Setia',
     subtitle: 'Pelanggan yang kembali order',
     icon: Icons.favorite_rounded,
     color: AppColors.rijikiOrange,
@@ -27,8 +27,8 @@ const List<ManagementModule> _allModules = [
   ),
   ManagementModule(
     id: 'workers',
-    title: 'Worker',
-    subtitle: 'Data worker dan KPI',
+    title: 'Karyawan',
+    subtitle: 'Data karyawan dan KPI',
     icon: Icons.groups_rounded,
     color: AppColors.primaryDark,
     permissions: {AppPermission.manageWorkers},
@@ -36,7 +36,7 @@ const List<ManagementModule> _allModules = [
   ManagementModule(
     id: 'cms',
     title: 'CMS',
-    subtitle: 'Layanan, event, promo, merchandise, testimoni',
+    subtitle: 'Layanan, acara, promo, souvenir, testimoni',
     icon: Icons.dashboard_customize_rounded,
     color: AppColors.accent,
     route: RoutePaths.ownerCms,

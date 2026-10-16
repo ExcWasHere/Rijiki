@@ -71,7 +71,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Buat order')),
+      appBar: AppBar(title: const Text('Buat pesanan')),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [

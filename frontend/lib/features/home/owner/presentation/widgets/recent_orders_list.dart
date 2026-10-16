@@ -24,7 +24,7 @@ class RecentOrdersSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DashboardSectionHeader(
-          title: 'Order terbaru',
+          title: 'Pesanan terbaru',
           actionLabel: 'Lihat semua',
           onAction: onSeeAll,
         ),
@@ -33,13 +33,13 @@ class RecentOrdersSection extends ConsumerWidget {
           data: (orders) => orders.isEmpty
               ? const DashboardMessageCard(
                   icon: Icons.receipt_long_outlined,
-                  message: 'Belum ada order masuk.',
+                  message: 'Belum ada pesanan masuk.',
                 )
               : _OrderCard(orders: orders),
           loading: () => const SkeletonBlock(height: 300),
           error: (error, stackTrace) => DashboardMessageCard(
             icon: Icons.cloud_off_rounded,
-            message: 'Gagal memuat order terbaru.',
+            message: 'Gagal memuat pesanan terbaru.',
             actionLabel: 'Coba lagi',
             onAction: () => ref.invalidate(dashboardRecentOrdersProvider),
           ),

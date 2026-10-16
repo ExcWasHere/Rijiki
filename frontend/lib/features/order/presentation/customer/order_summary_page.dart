@@ -173,7 +173,7 @@ class OrderSummaryPage extends ConsumerWidget {
                       color: AppColors.onPrimary,
                     ),
                   )
-                : const Text('Buat order & bayar'),
+                : const Text('Buat pesanan & bayar'),
           ),
         ),
       ),
