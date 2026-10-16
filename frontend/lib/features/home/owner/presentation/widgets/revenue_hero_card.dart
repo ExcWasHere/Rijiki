@@ -18,65 +18,49 @@ class RevenueHeroCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       child: DecoratedBox(
         decoration: const BoxDecoration(color: AppColors.onPrimary),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -50,
-              right: -40,
-              child: Container(
-                width: 170,
-                height: 170,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.rijikiBlue.withValues(alpha: 0.16),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.md,
-                AppSpacing.md,
-                AppSpacing.sm,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Pemasukan',
-                        style: textTheme.labelLarge?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.7),
-                        ),
-                      ),
-                      const Spacer(),
-                      _DeltaChip(pct: summary.incomeChangePct),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  AnimatedRupiah(
-                    value: summary.income,
-                    style: textTheme.headlineMedium?.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
                   Text(
-                    summary.period.compareLabel,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.55),
+                    'Pemasukan',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.7),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  RevenueMiniChart(
-                    key: ValueKey(summary.period),
-                    series: summary.series,
-                  ),
+                  const Spacer(),
+                  _DeltaChip(pct: summary.incomeChangePct),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.xs),
+              AnimatedRupiah(
+                value: summary.income,
+                style: textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                summary.period.compareLabel,
+                style: textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.55),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              RevenueMiniChart(
+                key: ValueKey(summary.period),
+                series: summary.series,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -95,7 +79,8 @@ class _DeltaChip extends StatelessWidget {
 
     final up = value >= 0;
     final color = up ? const Color(0xFF7FE3A2) : const Color(0xFFFF8A80);
-    final text = '${up ? '+' : '-'}${value.abs().toStringAsFixed(1).replaceAll('.', ',')}%';
+    final text =
+        '${up ? '+' : '-'}${value.abs().toStringAsFixed(1).replaceAll('.', ',')}%';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
