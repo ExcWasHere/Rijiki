@@ -16,7 +16,6 @@ class StepPhone extends ConsumerWidget {
 
     return Stack(
       children: [
-        // 1. Top-Right Cyan Circle flush to screen edge
         const Positioned(
           right: -30,
           top: -20,
@@ -25,8 +24,6 @@ class StepPhone extends ConsumerWidget {
             height: 140,
           ),
         ),
-
-        // 2. Left Orange Blob flush to physical left edge (left: 0)
         const Positioned(
           left: 0,
           top: 220,
@@ -35,8 +32,6 @@ class StepPhone extends ConsumerWidget {
             height: 270,
           ),
         ),
-
-        // 3. Decorative Cyan Triangles on bottom right
         Positioned(
           right: 20,
           bottom: 30,
@@ -60,8 +55,6 @@ class StepPhone extends ConsumerWidget {
             ],
           ),
         ),
-
-        // Main Foreground Content
         SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
           child: Padding(
@@ -69,43 +62,7 @@ class StepPhone extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 50),
-
-                // Inline Header Branding
-                RichText(
-                  textAlign: TextAlign.center,
-                  text: const TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Rijiki ',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'x ',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.rijikiOrange,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'TaTuTi',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Title
+                const SizedBox(height: 40),
                 const Text(
                   'Titip Kontak\nDulu, Ya!',
                   textAlign: TextAlign.center,
@@ -117,15 +74,11 @@ class StepPhone extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 42),
-
-                // Typewriter animated chat bubble
                 const TypewriterChatBubble(
                   text:
                       'Boleh dong tau nomor HP-mu, biar Rijiki gampang nyapa atau ngabarin kamu nanti!',
                 ),
                 const SizedBox(height: 350),
-
-                // Phone Input field with +62 badge
                 Transform.translate(
                   offset: Offset(0, -keyboardOffset),
                   child: Container(
@@ -142,7 +95,6 @@ class StepPhone extends ConsumerWidget {
                     ),
                   child: Row(
                     children: [
-                      // +62 Country Code Badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -174,7 +126,6 @@ class StepPhone extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      // Text input
                       Expanded(
                         child: TextFormField(
                           initialValue: state.phone,

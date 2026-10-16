@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/role_redirect.dart';
 import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/constants/app_strings.dart';
 import 'package:rijiki/core/error/failure.dart';
+import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/validators.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
@@ -47,6 +49,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!mounted) return;
     if (outcome == LoginOutcome.needsVerification) {
       context.go(RoutePaths.verifyEmailFor(email));
+    } else if (outcome == LoginOutcome.success) {
+      final user = ref.read(sessionProvider);
+      if (user != null) {
+        context.go(RoleRedirect.roleHome(user));
+      }
     }
   }
 
@@ -54,7 +61,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     FocusScope.of(context).unfocus();
     setState(() => _googleBusy = true);
     await ref.read(authControllerProvider.notifier).loginWithGoogle();
-    if (mounted) setState(() => _googleBusy = false);
+    if (mounted) {
+      setState(() => _googleBusy = false);
+      final user = ref.read(sessionProvider);
+      if (user != null) {
+        context.go(RoleRedirect.roleHome(user));
+      }
+    }
   }
 
   @override

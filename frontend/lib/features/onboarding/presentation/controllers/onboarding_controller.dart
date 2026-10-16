@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rijiki/app/providers.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 
 class OnboardingState {
@@ -7,14 +8,12 @@ class OnboardingState {
   final String name;
   final String phone;
   final String address;
-  final Set<String> selectedProblems;
 
   const OnboardingState({
     this.currentPage = 0,
     this.name = '',
     this.phone = '',
     this.address = '',
-    this.selectedProblems = const {},
   });
 
   OnboardingState copyWith({
@@ -22,21 +21,19 @@ class OnboardingState {
     String? name,
     String? phone,
     String? address,
-    Set<String>? selectedProblems,
   }) {
     return OnboardingState(
       currentPage: currentPage ?? this.currentPage,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       address: address ?? this.address,
-      selectedProblems: selectedProblems ?? this.selectedProblems,
     );
   }
 }
 
 class OnboardingController extends Notifier<OnboardingState> {
   late final PageController pageController;
-  static const int lastPage = 6;
+  static const int lastPage = 2;
 
   @override
   OnboardingState build() {
@@ -66,6 +63,13 @@ class OnboardingController extends Notifier<OnboardingState> {
     debugPrint('goToPage: ${state.currentPage} -> $page');
   }
 
+  void reset() {
+    state = const OnboardingState();
+    if (pageController.hasClients) {
+      pageController.jumpToPage(0);
+    }
+  }
+
   void updateName(String val) {
     state = state.copyWith(name: val);
   }
@@ -78,26 +82,18 @@ class OnboardingController extends Notifier<OnboardingState> {
     state = state.copyWith(address: val);
   }
 
-  void toggleProblem(String problem) {
-    final current = Set<String>.from(state.selectedProblems);
-    if (current.contains(problem)) {
-      current.remove(problem);
-    } else {
-      current.add(problem);
-    }
-    state = state.copyWith(selectedProblems: current);
-  }
   // TODO(backend): kirim name, phone, address (default_address) ke API
-  // onboarding sebelum menandai selesai.
   Future<void> complete() async {
+    await ref.read(tokenStorageProvider).setOnboardingCompleted(true);
     ref.read(sessionProvider.notifier).completeProfile(
           fullName: state.name.trim(),
           phoneNumber: state.phone.trim(),
         );
+    reset();
   }
 }
 
 final onboardingControllerProvider =
-    NotifierProvider<OnboardingController, OnboardingState>(
+    NotifierProvider.autoDispose<OnboardingController, OnboardingState>(
       OnboardingController.new,
     );

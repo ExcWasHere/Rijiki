@@ -4,6 +4,7 @@ import 'package:rijiki/core/constants/app_strings.dart';
 import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
+import 'package:rijiki/features/onboarding/presentation/controllers/onboarding_controller.dart';
 
 enum LoginOutcome { success, needsVerification, failed }
 
@@ -98,6 +99,7 @@ class AuthController extends AsyncNotifier<void> {
       await repository.logout();
     } finally {
       session.clear();
+      ref.invalidate(onboardingControllerProvider);
     }
     _set(const AsyncData(null));
   }

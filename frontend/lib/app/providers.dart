@@ -8,12 +8,22 @@ import 'package:rijiki/features/auth/data/auth_repository_impl.dart';
 import 'package:rijiki/features/auth/data/google_sign_in_service.dart';
 import 'package:rijiki/features/auth/data/mock_auth_repo.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
+import 'package:rijiki/features/finance/data/mock_finance_repository.dart';
+import 'package:rijiki/features/finance/domain/finance_repository.dart';
+import 'package:rijiki/features/home/owner/data/mock_dashboard_repository.dart';
+import 'package:rijiki/features/home/owner/domain/dashboard_repository.dart';
 import 'package:rijiki/features/event/data/mock_event_repository.dart';
 import 'package:rijiki/features/event/domain/event_repository.dart';
+import 'package:rijiki/features/merchandise/data/mock_merchandise_repository.dart';
+import 'package:rijiki/features/merchandise/domain/merchandise_repository.dart';
 import 'package:rijiki/features/order/data/mock_order_repository.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
+import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
+import 'package:rijiki/features/payment/domain/payment_repository.dart';
 import 'package:rijiki/features/rating/data/mock_rating_repository.dart';
 import 'package:rijiki/features/rating/domain/rating_repository.dart';
+import 'package:rijiki/features/scan/data/mock_scan_repository.dart';
+import 'package:rijiki/features/scan/domain/scan_repository.dart';
 import 'package:rijiki/features/service/data/mock_service_repository.dart';
 import 'package:rijiki/features/service/domain/service_repository.dart';
 
@@ -49,10 +59,35 @@ final eventRepositoryProvider = Provider<EventRepository>(
   (ref) => MockEventRepository(scenario: ref.watch(mockScenarioProvider)),
 );
 
+final merchandiseRepositoryProvider = Provider<MerchandiseRepository>(
+  (ref) => MockMerchandiseRepository(scenario: ref.watch(mockScenarioProvider)),
+);
+
 final orderRepositoryProvider = Provider<OrderRepository>(
   (ref) => MockOrderRepository(scenario: ref.watch(mockScenarioProvider)),
 );
 
 final ratingRepositoryProvider = Provider<RatingRepository>(
   (ref) => MockRatingRepository(scenario: ref.watch(mockScenarioProvider)),
+);
+
+final scanRepositoryProvider = Provider<ScanRepository>(
+  (ref) => MockScanRepository(scenario: ref.watch(mockScenarioProvider)),
+);
+
+final paymentRepositoryProvider = Provider<PaymentRepository>(
+  (ref) => MockPaymentRepository(
+    orders: ref.watch(orderRepositoryProvider),
+    scenario: ref.watch(mockScenarioProvider),
+  ),
+);
+
+final dashboardRepositoryProvider = Provider<DashboardRepository>(
+  (ref) => MockDashboardRepository(),
+);
+
+final financeRepositoryProvider = Provider<FinanceRepository>(
+  (ref) => MockFinanceRepository(
+    dashboard: ref.watch(dashboardRepositoryProvider),
+  ),
 );

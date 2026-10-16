@@ -4,16 +4,51 @@ import 'package:go_router/go_router.dart';
 import 'package:rijiki/app/router/role_redirect.dart';
 import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/app/shells/customer_shell.dart';
-import 'package:rijiki/app/shells/customer_tab_placeholder.dart';
-import 'package:rijiki/app/shells/role_home_placeholder.dart';
+import 'package:rijiki/app/shells/owner_shell.dart';
+import 'package:rijiki/app/shells/worker_shell.dart';
+import 'package:rijiki/features/home/worker/presentation/dashboard/worker_dashboard_page.dart';
+import 'package:rijiki/features/home/worker/presentation/dashboard/worker_orders_page.dart';
+import 'package:rijiki/features/home/worker/presentation/management/worker_management_hub_page.dart';
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/verify_email_page.dart';
-import 'package:rijiki/features/home/presentation/customer/home_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/cms_hub_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/event_form_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/event_manage_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/merchandise_form_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/merchandise_manage_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/service_form_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/service_manage_page.dart';
+import 'package:rijiki/features/event/presentation/event_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/expense_ai_input_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/expense_draft_review_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/finance_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/income_form_page.dart';
+import 'package:rijiki/features/finance/presentation/pages/transaction_list_page.dart';
+import 'package:rijiki/features/home/owner/presentation/management/dashboard_page.dart';
+import 'package:rijiki/features/home/owner/presentation/management/repeat_customer_page.dart';
+import 'package:rijiki/features/home/customer/home_page.dart';
+import 'package:rijiki/features/home/owner/presentation/management/presentation/pages/management_hub_page.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:rijiki/features/order/presentation/customer/delivery_map_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_create_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_detail_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_list_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_summary_page.dart';
+import 'package:rijiki/features/order/presentation/customer/order_tracking_page.dart';
+import 'package:rijiki/features/order/presentation/customer/receipt_page.dart';
+import 'package:rijiki/features/payment/presentation/customer/payment_result_page.dart';
+import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.dart';
+import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
+import 'package:rijiki/features/profile/presentation/owner/owner_profile_page.dart';
+import 'package:rijiki/features/profile/presentation/worker/worker_profile_page.dart';
+import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
+import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
+import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
+import 'package:rijiki/features/landing/presentation/pages/landing_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -33,6 +68,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashPage(),
       ),
       GoRoute(
+        path: RoutePaths.landing,
+        builder: (context, state) => const LandingPage(),
+      ),
+      GoRoute(
         path: RoutePaths.login,
         builder: (context, state) => const LoginPage(),
       ),
@@ -44,16 +83,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.verifyEmail,
         redirect: (context, state) =>
             (state.uri.queryParameters['email'] ?? '').isEmpty
-                ? RoutePaths.register
-                : null,
-        builder: (context, state) => VerifyEmailPage(
-          email: state.uri.queryParameters['email'] ?? '',
-        ),
+            ? RoutePaths.register
+            : null,
+        builder: (context, state) =>
+            VerifyEmailPage(email: state.uri.queryParameters['email'] ?? ''),
       ),
       GoRoute(
         path: RoutePaths.onboarding,
         builder: (context, state) => const OnboardingPage(),
       ),
+
+      // Cust
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             CustomerShell(navigationShell: navigationShell),
@@ -70,25 +110,64 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerOrders,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Order',
-                  icon: Icons.receipt_long_rounded,
-                  description:
-                      'Riwayat dan status order kamu akan tampil di sini.',
-                ),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.customerScan,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Scan Sepatu',
-                  icon: Icons.document_scanner_rounded,
-                  description:
-                      'Foto sepatu, lalu dapat rekomendasi layanan yang pas.',
-                ),
+                builder: (context, state) => const OrderListPage(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => OrderCreatePage(
+                      initialServiceId: state.uri.queryParameters['serviceId'],
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'summary',
+                        builder: (context, state) => const OrderSummaryPage(),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: ':orderId',
+                    builder: (context, state) => OrderDetailPage(
+                      orderId: state.pathParameters['orderId']!,
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'tracking',
+                        builder: (context, state) => OrderTrackingPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'receipt',
+                        builder: (context, state) => ReceiptPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'map',
+                        builder: (context, state) => DeliveryMapPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'pay',
+                        builder: (context, state) => QrisPaymentPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                        routes: [
+                          GoRoute(
+                            path: 'result',
+                            builder: (context, state) => PaymentResultPage(
+                              orderId: state.pathParameters['orderId']!,
+                              status:
+                                  state.uri.queryParameters['status'] ??
+                                  'failed',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -96,12 +175,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerEvents,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Event',
-                  icon: Icons.local_activity_rounded,
-                  description:
-                      'Promo, event, dan poin kamu akan tampil di sini.',
-                ),
+                builder: (context, state) => const EventPage(),
               ),
             ],
           ),
@@ -109,25 +183,198 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.customerProfile,
-                builder: (context, state) => const CustomerTabPlaceholder(
-                  title: 'Profil',
-                  icon: Icons.person_rounded,
-                  description: 'Data akun dan pengaturan akan tampil di sini.',
-                  showAccount: true,
-                ),
+                builder: (context, state) => const ProfilePage(),
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: RoutePaths.customerScan,
+        builder: (context, state) => const ScanPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.customerScanAnalyzing,
+        builder: (context, state) => const ScanAnalyzingPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.customerScanResult,
+        builder: (context, state) => const ScanResultPage(),
+      ),
+
+      // Worker
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            WorkerShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.workerHome,
+                builder: (context, state) => const WorkerDashboardPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.workerOrders,
+                builder: (context, state) => const WorkerOrdersPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.workerManagement,
+                builder: (context, state) => const WorkerManagementHubPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.workerProfile,
+                builder: (context, state) => const WorkerProfilePage(),
               ),
             ],
           ),
         ],
       ),
 
-      GoRoute(
-        path: RoutePaths.workerHome,
-        builder: (context, state) => const RoleHomePlaceholder(title: 'Worker'),
-      ),
-      GoRoute(
-        path: RoutePaths.ownerHome,
-        builder: (context, state) => const RoleHomePlaceholder(title: 'Owner'),
+      // Owner
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            OwnerShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.ownerHome,
+                builder: (context, state) => const DashboardPage(),
+                routes: [
+                  GoRoute(
+                    path: 'repeat-customers',
+                    builder: (context, state) => const RepeatCustomerPage(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.ownerOrders,
+                builder: (context, state) => const WorkerOrdersPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.ownerManagement,
+                builder: (context, state) => const ManagementHubPage(),
+                routes: [
+                  GoRoute(
+                    path: 'finance',
+                    builder: (context, state) => const FinancePage(),
+                    routes: [
+                      GoRoute(
+                        path: 'transactions',
+                        builder: (context, state) =>
+                            const TransactionListPage(),
+                      ),
+                      GoRoute(
+                        path: 'expenses/ai',
+                        builder: (context, state) => const ExpenseAiInputPage(),
+                        routes: [
+                          GoRoute(
+                            path: 'review',
+                            builder: (context, state) =>
+                                const ExpenseDraftReviewPage(),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'income/new',
+                        builder: (context, state) => const IncomeFormPage(),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'repeat-customers',
+                    builder: (context, state) => const RepeatCustomerPage(),
+                  ),
+                  GoRoute(
+                    path: 'cms',
+                    builder: (context, state) => const CmsHubPage(),
+                    routes: [
+                      GoRoute(
+                        path: 'services',
+                        builder: (context, state) => const ServiceManagePage(),
+                        routes: [
+                          GoRoute(
+                            path: 'new',
+                            builder: (context, state) =>
+                                const ServiceFormPage(),
+                          ),
+                          GoRoute(
+                            path: ':id/edit',
+                            builder: (context, state) => ServiceFormPage(
+                              serviceId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'events',
+                        builder: (context, state) => const EventManagePage(),
+                        routes: [
+                          GoRoute(
+                            path: 'new',
+                            builder: (context, state) => const EventFormPage(),
+                          ),
+                          GoRoute(
+                            path: ':id/edit',
+                            builder: (context, state) => EventFormPage(
+                              eventId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'merchandise',
+                        builder: (context, state) =>
+                            const MerchandiseManagePage(),
+                        routes: [
+                          GoRoute(
+                            path: 'new',
+                            builder: (context, state) =>
+                                const MerchandiseFormPage(),
+                          ),
+                          GoRoute(
+                            path: ':id/edit',
+                            builder: (context, state) => MerchandiseFormPage(
+                              merchandiseId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RoutePaths.ownerProfile,
+                builder: (context, state) => const OwnerProfilePage(),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );

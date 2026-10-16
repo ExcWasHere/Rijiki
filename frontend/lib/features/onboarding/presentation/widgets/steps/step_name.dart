@@ -16,28 +16,21 @@ class StepName extends ConsumerWidget {
 
     return Stack(
       children: [
-        // 1. Top-Left Cyan Circle cut off at top-left corner
         const Positioned(
           left: -35,
           top: -35,
           child: CyanCircleDecoration(width: 160, height: 160),
         ),
-
-        // 2. Left Orange Blob flush to physical left edge (left: 0)
         const Positioned(
           left: 0,
           top: 220,
           child: LeftOrangeBlobDecoration(width: 170, height: 270),
         ),
-
-        // 3. Bottom-Right Cyan Circle behind text field flush to right edge
         const Positioned(
           right: -40,
           bottom: 110,
           child: CyanCircleDecoration(width: 170, height: 170),
         ),
-
-        // Main Foreground Content Layout
         SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
           child: Padding(
@@ -45,43 +38,7 @@ class StepName extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 50),
-
-                // Inline Header Branding matching Figma
-                RichText(
-                  textAlign: TextAlign.center,
-                  text: const TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Rijiki ',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'x ',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.rijikiOrange,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'TaTuTi',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Title
+                const SizedBox(height: 40),
                 const Text(
                   'Kenalan\ndulu yuk!',
                   textAlign: TextAlign.center,
@@ -93,8 +50,6 @@ class StepName extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // Subtitle
                 const Text(
                   'Agar Rijiki bisa bantu kamu lebih baik.',
                   textAlign: TextAlign.center,
@@ -105,14 +60,10 @@ class StepName extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 42),
-
-                // Typewriter animated chat bubble
                 const TypewriterChatBubble(
                   text: 'Hai sobat rijiki, kamu biasa dipanggil siapa?',
                 ),
                 const SizedBox(height: 320),
-
-                // Rounded Pill Name Input Field
                 Transform.translate(
                   offset: Offset(0, -keyboardOffset),
                   child: Container(

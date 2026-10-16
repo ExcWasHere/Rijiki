@@ -4,4 +4,6 @@ abstract final class AssetPaths {
   static const String onboardingWelcome = 'assets/images/CEPATU 1.png';
   static const String onboardingshoeCare = 'assets/images/shoecare.png';
   static const String onboardingDelivery = 'assets/images/delivery.png';
+  static const String banner1 = 'assets/images/banner1.jpeg';
+  static const String banner2 = 'assets/images/banner2.jpeg';
 }

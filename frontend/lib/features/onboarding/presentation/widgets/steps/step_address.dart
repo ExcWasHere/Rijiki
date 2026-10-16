@@ -33,8 +33,6 @@ class StepAddress extends ConsumerWidget {
           bottom: 110,
           child: CyanCircleDecoration(width: 170, height: 170),
         ),
-
-        // Main Foreground Content
         SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
           child: Padding(
@@ -42,43 +40,7 @@ class StepAddress extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 50),
-
-                // Inline Header Branding
-                RichText(
-                  textAlign: TextAlign.center,
-                  text: const TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Rijiki ',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'x ',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.rijikiOrange,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'TatuTi',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Title
+                const SizedBox(height: 40),
                 const Text(
                   'Atur\nAlamatmu!',
                   textAlign: TextAlign.center,
@@ -90,15 +52,11 @@ class StepAddress extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 42),
-
-                // Typewriter animated chat bubble
                 const TypewriterChatBubble(
                   text:
                       'Boleh minta info alamat lengkapmu untuk lokasi pengantaran nanti?',
                 ),
                 const SizedBox(height: 350),
-
-                // Google Maps Pinpoint Address Input / Search Trigger Field
                 Transform.translate(
                   offset: Offset(0, -keyboardOffset),
                   child: Container(

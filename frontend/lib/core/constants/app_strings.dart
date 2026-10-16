@@ -7,6 +7,9 @@ abstract final class AppStrings {
 
   static const String splashErrorTitle = 'Gagal memuat sesi';
   static const String retry = 'Coba lagi';
+  static const String retrying = 'Menghubungkan ulang...';
+  static const String retryingShort = 'Menghubungkan...';
+  static const String retryingHint = 'Mencoba terhubung ke server, mohon tunggu.';
 
   // Auth: general
   static const String emailLabel = 'Email';
@@ -62,6 +65,18 @@ abstract final class AppStrings {
   static const String errInvalidCredentials = 'Email atau password salah';
   static const String errInvalidOtp = 'Kode salah atau sudah kedaluwarsa';
   static const String errEmailTaken = 'Email sudah terdaftar. Silakan masuk';
+
+  // Error jaringan
+  static const String errOffline =
+      'Periksa Wi-Fi atau data seluler kamu, lalu coba lagi.';
+  static const String errTimeout =
+      'Koneksi terlalu lambat atau server sedang sibuk. Coba lagi sebentar lagi.';
+  static const String errServer =
+      'Ada gangguan di sisi server. Coba lagi beberapa saat lagi.';
+  static const String errOfflineTitle = 'Tidak ada koneksi internet';
+  static const String errTimeoutTitle = 'Server tidak merespons';
+  static const String errUnreachableTitle = 'Server tidak dapat dijangkau';
+  static const String errServerTitle = 'Server sedang bermasalah';
 
   // Google Sign-In
   static const String errGoogleFailed = 'Login Google gagal. Coba lagi.';
