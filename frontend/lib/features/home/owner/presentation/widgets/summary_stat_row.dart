@@ -146,7 +146,7 @@ class _ActiveOrdersTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Order aktif',
+                      'Pesanan aktif',
                       style: textTheme.bodySmall?.copyWith(
                         color: AppColors.onSurfaceVariant,
                       ),

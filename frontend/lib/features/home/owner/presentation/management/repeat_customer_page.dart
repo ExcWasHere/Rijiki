@@ -17,7 +17,7 @@ class RepeatCustomerPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Repeat customer')),
+      appBar: AppBar(title: const Text('Pelanggan Setia')),
       body: RefreshIndicator(
         color: AppColors.primaryDark,
         onRefresh: () async {
@@ -81,7 +81,7 @@ class RepeatCustomerPage extends ConsumerWidget {
               loading: () => const SkeletonBlock(height: 420),
               error: (error, stackTrace) => DashboardMessageCard(
                 icon: Icons.cloud_off_rounded,
-                message: 'Gagal memuat daftar repeat customer.',
+                message: 'Gagal memuat daftar pelanggan setia.',
                 actionLabel: 'Coba lagi',
                 onAction: () => ref.invalidate(allRepeatCustomersProvider),
               ),

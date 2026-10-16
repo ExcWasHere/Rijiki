@@ -21,7 +21,7 @@ class RepeatCustomersSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DashboardSectionHeader(
-          title: 'Repeat customer',
+          title: 'Pelanggan Setia',
           actionLabel: 'Lihat semua',
           onAction: () => context.push(RoutePaths.ownerRepeatCustomers),
         ),
@@ -62,7 +62,7 @@ class RepeatCustomersSection extends ConsumerWidget {
           loading: () => const SkeletonBlock(height: 210),
           error: (error, stackTrace) => DashboardMessageCard(
             icon: Icons.cloud_off_rounded,
-            message: 'Gagal memuat repeat customer.',
+            message: 'Gagal memuat daftar pelanggan setia.',
             actionLabel: 'Coba lagi',
             onAction: () => ref.invalidate(dashboardRepeatCustomersProvider),
           ),
