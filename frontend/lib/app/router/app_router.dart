@@ -11,6 +11,7 @@ import 'package:rijiki/features/home/worker/presentation/dashboard/worker_orders
 import 'package:rijiki/features/home/worker/presentation/management/worker_management_hub_page.dart';
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
+import 'package:rijiki/features/access_control/presentation/owner/worker_permission_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/login_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/register_page.dart';
 import 'package:rijiki/features/auth/presentation/pages/splash_page.dart';
@@ -49,6 +50,12 @@ import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.d
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
 import 'package:rijiki/features/landing/presentation/pages/landing_page.dart';
+import 'package:rijiki/features/worker_management/domain/kpi.dart';
+import 'package:rijiki/features/worker_management/presentation/owner/kpi_assessment_page.dart';
+import 'package:rijiki/features/worker_management/presentation/owner/kpi_overview_page.dart';
+import 'package:rijiki/features/worker_management/presentation/owner/worker_detail_page.dart';
+import 'package:rijiki/features/worker_management/presentation/owner/worker_form_page.dart';
+import 'package:rijiki/features/worker_management/presentation/owner/worker_list_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -304,6 +311,64 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'repeat-customers',
                     builder: (context, state) => const RepeatCustomerPage(),
+                  ),
+                  GoRoute(
+                    path: 'workers',
+                    builder: (context, state) => const WorkerListPage(),
+                    routes: [
+                      // 'new' dan 'kpi' harus sebelum ':id' agar tidak dianggap id.
+                      GoRoute(
+                        path: 'new',
+                        builder: (context, state) => const WorkerFormPage(),
+                      ),
+                      GoRoute(
+                        path: 'kpi',
+                        builder: (context, state) => const KpiOverviewPage(),
+                      ),
+                      GoRoute(
+                        path: ':id',
+                        builder: (context, state) => WorkerDetailPage(
+                          workerId: state.pathParameters['id']!,
+                        ),
+                        routes: [
+                          GoRoute(
+                            path: 'edit',
+                            builder: (context, state) => WorkerFormPage(
+                              workerId: state.pathParameters['id']!,
+                            ),
+                          ),
+                          GoRoute(
+                            path: 'kpi',
+                            builder: (context, state) {
+                              final now = KpiPeriod.current();
+                              final month =
+                                  int.tryParse(
+                                    state.uri.queryParameters['month'] ?? '',
+                                  ) ??
+                                  now.month;
+                              final year =
+                                  int.tryParse(
+                                    state.uri.queryParameters['year'] ?? '',
+                                  ) ??
+                                  now.year;
+                              return KpiAssessmentPage(
+                                workerId: state.pathParameters['id']!,
+                                period: KpiPeriod(
+                                  month.clamp(1, 12).toInt(),
+                                  year,
+                                ),
+                              );
+                            },
+                          ),
+                          GoRoute(
+                            path: 'access',
+                            builder: (context, state) => WorkerPermissionPage(
+                              workerId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'cms',

@@ -27,7 +27,6 @@ abstract final class RoleRedirect {
     };
   }
 
-  /// [landingSeen] default true supaya pemanggil lama tetap jalan.
   static String entryRoute(AppUser? user, {bool landingSeen = true}) {
     if (user == null) {
       return landingSeen ? RoutePaths.login : RoutePaths.landing;

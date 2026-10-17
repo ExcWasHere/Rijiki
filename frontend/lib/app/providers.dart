@@ -4,6 +4,8 @@ import 'package:rijiki/core/mock/mock_scenario.dart';
 import 'package:rijiki/core/network/api_client.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/storage/token_storage.dart';
+import 'package:rijiki/features/access_control/data/mock_permission_repository.dart';
+import 'package:rijiki/features/access_control/domain/permission_repository.dart';
 import 'package:rijiki/features/auth/data/auth_repository_impl.dart';
 import 'package:rijiki/features/auth/data/google_sign_in_service.dart';
 import 'package:rijiki/features/auth/data/mock_auth_repo.dart';
@@ -26,6 +28,8 @@ import 'package:rijiki/features/scan/data/mock_scan_repository.dart';
 import 'package:rijiki/features/scan/domain/scan_repository.dart';
 import 'package:rijiki/features/service/data/mock_service_repository.dart';
 import 'package:rijiki/features/service/domain/service_repository.dart';
+import 'package:rijiki/features/worker_management/data/mock_worker_repository.dart';
+import 'package:rijiki/features/worker_management/domain/worker_repository.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -90,4 +94,12 @@ final financeRepositoryProvider = Provider<FinanceRepository>(
   (ref) => MockFinanceRepository(
     dashboard: ref.watch(dashboardRepositoryProvider),
   ),
+);
+
+final workerRepositoryProvider = Provider<WorkerRepository>(
+  (ref) => MockWorkerRepository(scenario: ref.watch(mockScenarioProvider)),
+);
+
+final permissionRepositoryProvider = Provider<PermissionRepository>(
+  (ref) => MockPermissionRepository(scenario: ref.watch(mockScenarioProvider)),
 );
