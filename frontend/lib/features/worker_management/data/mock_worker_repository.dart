@@ -51,7 +51,6 @@ class MockWorkerRepository implements WorkerRepository {
     await _write();
     final index = _workers.indexWhere((w) => w.id == id);
     if (index == -1) throw const MockException('Worker tidak ditemukan');
-    // Email akun tidak diubah dari sini.
     final updated = _fromInput(id, input, email: _workers[index].email);
     _workers[index] = updated;
     return updated;
@@ -102,8 +101,6 @@ class MockWorkerRepository implements WorkerRepository {
     return _kpiFor(workerId, period);
   }
 
-  // ------------------------------------------------------------ helpers
-
   Future<void> _write() async {
     await Future<void>.delayed(_writeLatency);
     if (scenario == MockScenario.error) throw const MockException();
@@ -152,8 +149,6 @@ class MockWorkerRepository implements WorkerRepository {
       assessment: _assessments[_key(workerId, period)],
     );
   }
-
-  // --------------------------------------------------------------- seed
 
   static List<WorkerProfile> _seedWorkers() {
     return [

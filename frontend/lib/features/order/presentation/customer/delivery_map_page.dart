@@ -134,7 +134,6 @@ class _MapBodyState extends ConsumerState<_MapBody> {
                 _onUpdate(t);
               },
               onCameraMoveStarted: () {
-                // Berhenti follow kalau user menggeser peta sendiri.
               },
               onCameraMove: (_) {},
               myLocationButtonEnabled: false,
@@ -179,7 +178,6 @@ class _MapBodyState extends ConsumerState<_MapBody> {
               },
             ),
           ),
-          // Deteksi geser user: bungkus gesture di atas peta tanpa menghalangi.
           Positioned.fill(
             bottom: _sheetHeight,
             child: Listener(

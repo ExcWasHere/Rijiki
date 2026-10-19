@@ -262,7 +262,6 @@ class _WorkerOrdersPageState extends State<WorkerOrdersPage> {
     );
   }
 
-  // Filter kapsul, mengikuti tampilan EventPage.
   Widget _buildFilters() {
     const filters = [
       'Semua',

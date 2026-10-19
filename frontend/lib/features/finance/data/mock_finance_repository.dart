@@ -252,8 +252,6 @@ class MockFinanceRepository implements FinanceRepository {
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  // ---------------------------------------------------------------- seed
-
   static List<FinancialTransaction> _seed() {
     final now = DateTime.now();
 

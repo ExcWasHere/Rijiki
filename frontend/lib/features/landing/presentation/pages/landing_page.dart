@@ -40,7 +40,7 @@ class _LandingPageState extends ConsumerState<LandingPage> {
   Future<void> _finish() async {
     // TODO: sesuaikan dengan API tokenStorage kamu
     await ref.read(tokenStorageProvider).setLandingSeen(true);
-    if (mounted) context.go(RoutePaths.login); // sesuaikan route auth
+    if (mounted) context.go(RoutePaths.login);
   }
 
   @override

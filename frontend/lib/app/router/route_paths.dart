@@ -18,10 +18,10 @@ abstract final class RoutePaths {
   static const String orderCreate = '/customer/orders/new';
   static const String orderSummary = '/customer/orders/new/summary';
 
-static const workerHome = '/worker';
-static const workerOrders = '/worker/orders';
-static const workerManagement = '/worker/management';
-static const workerProfile = '/worker/profile';
+  static const workerHome = '/worker';
+  static const workerOrders = '/worker/orders';
+  static const workerManagement = '/worker/management';
+  static const workerProfile = '/worker/profile';
 
   static const String ownerHome = '/owner';
   static const String ownerOrders = '/owner/orders';
@@ -72,6 +72,12 @@ static const workerProfile = '/worker/profile';
 
   static String ownerCmsEventEditFor(String eventId) =>
       '$ownerCmsEvents/$eventId/edit';
+
+  static const String ownerCmsPromos = '/owner/management/cms/promos';
+  static const String ownerCmsPromoNew = '/owner/management/cms/promos/new';
+
+  static String ownerCmsPromoEditFor(String promoId) =>
+      '$ownerCmsPromos/$promoId/edit';
 
   static const String ownerCmsMerchandise =
       '/owner/management/cms/merchandise';

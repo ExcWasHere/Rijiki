@@ -93,8 +93,6 @@ class WorkerDashboardPage extends StatelessWidget {
             ),
 
             const SizedBox(height: AppSpacing.lg),
-
-            // RINGKASAN ORDER
             Text(
               'Ringkasan Hari Ini',
               style: Theme.of(context)
@@ -143,8 +141,6 @@ class WorkerDashboardPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
-
-            // ORDER YANG PERLU DITANGANI
             Row(
               children: [
                 Expanded(

@@ -9,7 +9,6 @@ abstract final class RoleRedirect {
     RoutePaths.verifyEmail,
   };
 
-  // Rute yang boleh dibuka tanpa session
   static const Set<String> _publicRoutes = {
     RoutePaths.landing,
     ..._authRoutes,
@@ -41,7 +40,6 @@ abstract final class RoleRedirect {
       return _publicRoutes.contains(location) ? null : RoutePaths.login;
     }
 
-    // User sudah login: landing tidak relevan lagi
     if (location == RoutePaths.landing) {
       return needsOnboarding(user) ? RoutePaths.onboarding : roleHome(user);
     }

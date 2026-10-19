@@ -21,6 +21,8 @@ import 'package:rijiki/features/cms/presentation/owner/event_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/event_manage_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/merchandise_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/merchandise_manage_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/promo_form_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/promo_manage_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_manage_page.dart';
 import 'package:rijiki/features/event/presentation/event_page.dart';
@@ -316,7 +318,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'workers',
                     builder: (context, state) => const WorkerListPage(),
                     routes: [
-                      // 'new' dan 'kpi' harus sebelum ':id' agar tidak dianggap id.
                       GoRoute(
                         path: 'new',
                         builder: (context, state) => const WorkerFormPage(),
@@ -403,6 +404,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                             path: ':id/edit',
                             builder: (context, state) => EventFormPage(
                               eventId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'promos',
+                        builder: (context, state) => const PromoManagePage(),
+                        routes: [
+                          GoRoute(
+                            path: 'new',
+                            builder: (context, state) => const PromoFormPage(),
+                          ),
+                          GoRoute(
+                            path: ':id/edit',
+                            builder: (context, state) => PromoFormPage(
+                              promoId: state.pathParameters['id']!,
                             ),
                           ),
                         ],

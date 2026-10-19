@@ -305,7 +305,6 @@ class _WorkerOrderDetailPageState
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          // Card detail pesanan dengan gaya card lama.
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
