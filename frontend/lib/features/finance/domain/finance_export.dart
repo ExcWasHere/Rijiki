@@ -24,8 +24,6 @@ class FinanceExportQuery {
   int get hashCode => Object.hash(start, end, expenseType);
 }
 
-/// Hasil ekspor. Pada fase UI hanya berisi nama file dan jumlah baris;
-/// file xlsx sungguhan nanti dibuat backend.
 @immutable
 class FinanceExportResult {
   const FinanceExportResult({

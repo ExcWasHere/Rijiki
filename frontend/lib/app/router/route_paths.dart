@@ -40,6 +40,26 @@ static const workerProfile = '/worker/profile';
       '/owner/management/finance/income/new';
   static const String ownerManagementRepeatCustomers =
       '/owner/management/repeat-customers';
+
+  static const String ownerWorkers = '/owner/management/workers';
+  static const String ownerWorkerNew = '/owner/management/workers/new';
+  static const String ownerWorkerKpiOverview = '/owner/management/workers/kpi';
+
+  static String ownerWorkerDetailFor(String workerId) =>
+      '$ownerWorkers/$workerId';
+  static String ownerWorkerEditFor(String workerId) =>
+      '$ownerWorkers/$workerId/edit';
+  static String ownerWorkerAccessFor(String workerId) =>
+      '$ownerWorkers/$workerId/access';
+  static String ownerWorkerKpiAssessFor(
+    String workerId,
+    int month,
+    int year,
+  ) => Uri(
+    path: '$ownerWorkers/$workerId/kpi',
+    queryParameters: {'month': '$month', 'year': '$year'},
+  ).toString();
+
   static const String ownerCms = '/owner/management/cms';
   static const String ownerCmsServices = '/owner/management/cms/services';
   static const String ownerCmsServiceNew = '/owner/management/cms/services/new';

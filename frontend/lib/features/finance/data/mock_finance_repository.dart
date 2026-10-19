@@ -10,13 +10,6 @@ import 'package:rijiki/features/finance/domain/transaction_filter.dart';
 import 'package:rijiki/features/home/owner/domain/dashboard_repository.dart';
 import 'package:rijiki/features/home/owner/domain/dashboard_summary.dart';
 
-/// Mock keuangan.
-///
-/// Ringkasan nyambung ke mock dashboard (pemasukan, pengeluaran, dan grafik
-/// omzet diambil dari [DashboardRepository]; pengeluaran dipecah ke 4 tipe
-/// dengan rasio tetap). Daftar transaksi berdiri sendiri dan bisa bertambah
-/// lewat input AI dan pemasukan manual selama aplikasi berjalan, tetapi
-/// tidak mengubah angka ringkasan.
 class MockFinanceRepository implements FinanceRepository {
   MockFinanceRepository({required DashboardRepository dashboard})
     : _dashboard = dashboard;
