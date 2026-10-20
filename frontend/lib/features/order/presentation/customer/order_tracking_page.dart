@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/extensions/enum_ui_x.dart';
+import 'package:rijiki/core/map/map_config.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/features/order/domain/courier_tracking.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/presentation/controllers/courier_tracking_controller.dart';
 import 'package:rijiki/features/order/presentation/controllers/order_detail_controller.dart';
+import 'package:rijiki/features/order/presentation/widgets/courier_map_layers.dart';
 import 'package:rijiki/features/order/presentation/widgets/order_status_stepper.dart';
 import 'package:rijiki/shared/widgets/app_card.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
@@ -144,11 +145,14 @@ class _MiniMap extends ConsumerStatefulWidget {
 }
 
 class _MiniMapState extends ConsumerState<_MiniMap> {
-  GoogleMapController? _map;
+  static const double _zoom = 15;
+
+  final MapController _controller = MapController();
+  bool _ready = false;
 
   @override
   void dispose() {
-    _map?.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -156,9 +160,9 @@ class _MiniMapState extends ConsumerState<_MiniMap> {
   Widget build(BuildContext context) {
     final tracking = ref.watch(courierTrackingProvider(widget.orderId));
     ref.listen(courierTrackingProvider(widget.orderId), (_, next) {
-      next.whenData(
-        (t) => _map?.animateCamera(CameraUpdate.newLatLng(t.position)),
-      );
+      next.whenData((t) {
+        if (_ready) _controller.move(t.position, _zoom);
+      });
     });
 
     return ClipRRect(
@@ -171,41 +175,18 @@ class _MiniMapState extends ConsumerState<_MiniMap> {
           data: (t) => GestureDetector(
             onTap: widget.onTap,
             child: AbsorbPointer(
-              child: GoogleMap(
-                initialCameraPosition:
-                    CameraPosition(target: t.position, zoom: 15),
-                onMapCreated: (c) => _map = c,
-                zoomControlsEnabled: false,
-                myLocationButtonEnabled: false,
-                mapToolbarEnabled: false,
-                compassEnabled: false,
-                polylines: {
-                  Polyline(
-                    polylineId: const PolylineId('route'),
-                    points: t.route,
-                    color: AppColors.primaryDark,
-                    width: 4,
+              child: FlutterMap(
+                mapController: _controller,
+                options: MapOptions(
+                  initialCenter: t.position,
+                  initialZoom: _zoom,
+                  maxZoom: MapConfig.maxZoom,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.none,
                   ),
-                },
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('destination'),
-                    position: t.destination,
-                    icon: BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueOrange,
-                    ),
-                  ),
-                  Marker(
-                    markerId: const MarkerId('courier'),
-                    position: t.position,
-                    rotation: t.heading,
-                    flat: true,
-                    anchor: const Offset(0.5, 0.5),
-                    icon: BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueAzure,
-                    ),
-                  ),
-                },
+                  onMapReady: () => _ready = true,
+                ),
+                children: buildCourierMapLayers(t, routeWidth: 4),
               ),
             ),
           ),

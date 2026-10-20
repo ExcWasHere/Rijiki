@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:rijiki/core/enums/order_status.dart';
+import 'package:rijiki/core/map/map_config.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/order/domain/courier_tracking.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/presentation/controllers/courier_tracking_controller.dart';
 import 'package:rijiki/features/order/presentation/controllers/order_detail_controller.dart';
+import 'package:rijiki/features/order/presentation/widgets/courier_map_layers.dart';
 import 'package:rijiki/shared/widgets/app_card.dart';
 import 'package:rijiki/shared/widgets/empty_state.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
@@ -61,47 +63,30 @@ class _MapBody extends ConsumerStatefulWidget {
 }
 
 class _MapBodyState extends ConsumerState<_MapBody> {
-  static const _sheetHeight = 230.0;
-
-  GoogleMapController? _map;
+  final MapController _controller = MapController();
+  bool _ready = false;
   bool _follow = true;
-  bool _fitted = false;
 
   @override
   void dispose() {
-    _map?.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _onUpdate(CourierTracking t) async {
-    final map = _map;
-    if (map == null) return;
-    if (!_fitted) {
-      _fitted = true;
-      await map.animateCamera(
-        CameraUpdate.newLatLngBounds(_boundsOf(t.position, t.destination), 90),
-      );
-    } else if (_follow) {
-      await map.animateCamera(CameraUpdate.newLatLng(t.position));
-    }
+  CameraFit _fitOf(CourierTracking t) => CameraFit.bounds(
+    bounds: LatLngBounds.fromPoints([t.position, t.destination]),
+    padding: const EdgeInsets.all(72),
+    maxZoom: 17,
+  );
+
+  void _onUpdate(CourierTracking t) {
+    if (!_ready || !_follow) return;
+    _controller.move(t.position, _controller.camera.zoom);
   }
 
-  LatLngBounds _boundsOf(LatLng a, LatLng b) => LatLngBounds(
-        southwest: LatLng(
-          a.latitude < b.latitude ? a.latitude : b.latitude,
-          a.longitude < b.longitude ? a.longitude : b.longitude,
-        ),
-        northeast: LatLng(
-          a.latitude > b.latitude ? a.latitude : b.latitude,
-          a.longitude > b.longitude ? a.longitude : b.longitude,
-        ),
-      );
-
-  Future<void> _recenter(CourierTracking t) async {
+  void _recenter(CourierTracking t) {
     setState(() => _follow = true);
-    await _map?.animateCamera(
-      CameraUpdate.newLatLngBounds(_boundsOf(t.position, t.destination), 90),
-    );
+    _controller.fitCamera(_fitOf(t));
   }
 
   @override
@@ -123,88 +108,54 @@ class _MapBodyState extends ConsumerState<_MapBody> {
           onRetry: () => ref.invalidate(courierTrackingProvider(id)),
         ),
       ),
-      data: (t) => Stack(
+      data: (t) => Column(
         children: [
-          Positioned.fill(
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(target: t.position, zoom: 15),
-              padding: const EdgeInsets.only(bottom: _sheetHeight),
-              onMapCreated: (c) {
-                _map = c;
-                _onUpdate(t);
-              },
-              onCameraMoveStarted: () {
-              },
-              onCameraMove: (_) {},
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              mapToolbarEnabled: false,
-              compassEnabled: false,
-              polylines: {
-                Polyline(
-                  polylineId: const PolylineId('route'),
-                  points: t.route,
-                  color: AppColors.primaryDark,
-                  width: 5,
-                  startCap: Cap.roundCap,
-                  endCap: Cap.roundCap,
-                  jointType: JointType.round,
-                ),
-              },
-              markers: {
-                Marker(
-                  markerId: const MarkerId('destination'),
-                  position: t.destination,
-                  icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueOrange,
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: FlutterMap(
+                    mapController: _controller,
+                    options: MapOptions(
+                      initialCameraFit: _fitOf(t),
+                      maxZoom: MapConfig.maxZoom,
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                      ),
+                      onMapReady: () => _ready = true,
+                      onPositionChanged: (camera, hasGesture) {
+                        if (hasGesture && _follow) {
+                          setState(() => _follow = false);
+                        }
+                      },
+                    ),
+                    children: buildCourierMapLayers(t, routeWidth: 5),
                   ),
                 ),
-                Marker(
-                  markerId: const MarkerId('courier'),
-                  position: t.position,
-                  rotation: t.heading,
-                  flat: true,
-                  anchor: const Offset(0.5, 0.5),
-                  zIndexInt: 2,
-                  // TODO: ganti dengan ikon motor kustom, mis.
-                  // await BitmapDescriptor.asset(
-                  //   const ImageConfiguration(size: Size(48, 48)),
-                  //   'assets/images/courier_marker.png',
-                  // )
-                  icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueAzure,
+                Positioned(
+                  right: AppSpacing.lg,
+                  bottom: AppSpacing.md,
+                  child: FloatingActionButton.small(
+                    heroTag: 'recenter',
+                    backgroundColor: Colors.white,
+                    onPressed: () => _recenter(t),
+                    child: Icon(
+                      Icons.my_location_rounded,
+                      color: _follow
+                          ? AppColors.rijikiBlue
+                          : AppColors.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              },
+              ],
             ),
           ),
-          Positioned.fill(
-            bottom: _sheetHeight,
-            child: Listener(
-              behavior: HitTestBehavior.translucent,
-              onPointerMove: (_) {
-                if (_follow) setState(() => _follow = false);
-              },
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: _CourierCard(order: widget.order, tracking: t),
             ),
-          ),
-          Positioned(
-            right: AppSpacing.lg,
-            bottom: _sheetHeight + AppSpacing.md,
-            child: FloatingActionButton.small(
-              heroTag: 'recenter',
-              backgroundColor: Colors.white,
-              onPressed: () => _recenter(t),
-              child: Icon(
-                Icons.my_location_rounded,
-                color: _follow ? AppColors.rijikiBlue : AppColors.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Positioned(
-            left: AppSpacing.lg,
-            right: AppSpacing.lg,
-            bottom: AppSpacing.lg,
-            child: _CourierCard(order: widget.order, tracking: t),
           ),
         ],
       ),

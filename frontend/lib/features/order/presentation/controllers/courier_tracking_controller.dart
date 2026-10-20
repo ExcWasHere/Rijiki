@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:rijiki/features/order/domain/courier_tracking.dart';
 
 // TODO(backend): ganti stream simulasi ini dengan polling/WebSocket ke
@@ -8,11 +8,11 @@ import 'package:rijiki/features/order/domain/courier_tracking.dart';
 final courierTrackingProvider = StreamProvider.autoDispose
     .family<CourierTracking, String>((ref, orderId) async* {
   const corners = [
-    LatLng(-7.2905, 112.7340),
-    LatLng(-7.2905, 112.7400),
-    LatLng(-7.2860, 112.7400),
-    LatLng(-7.2860, 112.7470),
-    LatLng(-7.2820, 112.7470),
+    LatLng(-7.9434, 112.6139),
+    LatLng(-7.9434, 112.6190),
+    LatLng(-7.9475, 112.6190),
+    LatLng(-7.9475, 112.6245),
+    LatLng(-7.9520, 112.6245),
   ];
 
   final route = <LatLng>[];
