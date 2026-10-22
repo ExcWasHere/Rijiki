@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:rijiki/core/session/session_provider.dart';
 
-/// Alamat default customer beserta koordinatnya (customer_profiles.default_address,
-/// default_lat, default_lng).
 @immutable
 class DefaultLocation {
   const DefaultLocation({required this.address, this.point});
@@ -14,15 +13,24 @@ class DefaultLocation {
 
 class DefaultLocationNotifier extends Notifier<DefaultLocation?> {
   @override
-  DefaultLocation? build() => null;
+  DefaultLocation? build() {
+    final user = ref.watch(sessionProvider);
+    final address = user?.defaultAddress?.trim();
+    if (user == null || address == null || address.isEmpty) return null;
+
+    final lat = user.defaultLat;
+    final lng = user.defaultLng;
+    return DefaultLocation(
+      address: address,
+      point: (lat != null && lng != null) ? LatLng(lat, lng) : null,
+    );
+  }
 
   void set(DefaultLocation value) => state = value;
 
   void clear() => state = null;
 }
 
-// TODO(backend): ganti dengan data profil dari API (customer_profiles) dan
-// kosongkan saat logout.
 final defaultLocationProvider =
     NotifierProvider<DefaultLocationNotifier, DefaultLocation?>(
       DefaultLocationNotifier.new,

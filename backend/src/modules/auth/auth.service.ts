@@ -2,7 +2,8 @@ import type { AuthError } from '@supabase/supabase-js';
 import { getSupabaseAdmin, getSupabaseAnon } from '../../config/supabase';
 import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
-import type { AppPermission, AppUser } from '../../shared/types/user';
+import type { AppPermission, AppUser, CustomerProfile } from '../../shared/types/user';
+import { getCustomerProfile } from '../profile/profile.service';
 import type {
   GoogleLoginInput,
   LoginInput,
@@ -19,6 +20,7 @@ export interface AuthContextPayload {
   user: AppUser;
   permissions: AppPermission[];
   owner_bypass: boolean;
+  customer_profile: CustomerProfile | null;
 }
 
 export interface AuthSessionPayload extends AuthContextPayload {
@@ -75,6 +77,7 @@ export async function loadAuthContext(env: Bindings, userId: string): Promise<Au
 
   const user = profile as AppUser;
   let permissions: AppPermission[] = [];
+  let customerProfile: CustomerProfile | null = null;
 
   if (user.role === 'worker') {
     const { data: permRows } = await admin
@@ -86,7 +89,16 @@ export async function loadAuthContext(env: Bindings, userId: string): Promise<Au
     permissions = (permRows ?? []).map((row) => row.permission as AppPermission);
   }
 
-  return { user, permissions, owner_bypass: user.role === 'owner' };
+  if (user.role === 'customer') {
+    customerProfile = await getCustomerProfile(env, user.id);
+  }
+
+  return {
+    user,
+    permissions,
+    owner_bypass: user.role === 'owner',
+    customer_profile: customerProfile,
+  };
 }
 
 async function buildSession(

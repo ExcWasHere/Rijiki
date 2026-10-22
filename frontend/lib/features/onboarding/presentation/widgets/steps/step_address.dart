@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/core/location/location_service.dart';
+import 'package:rijiki/core/location/service_area.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/features/onboarding/presentation/controllers/onboarding_controller.dart';
 import 'package:rijiki/features/onboarding/presentation/pages/location_picker_page.dart';
@@ -72,6 +73,11 @@ class _StepAddressState extends ConsumerState<StepAddress> {
         );
       case LocateResult.unavailable:
         _toast('Lokasi belum bisa dibaca. Coba lagi atau pilih di peta.');
+      case LocateResult.outOfArea:
+        _toast(
+          'Lokasimu saat ini di luar area layanan Rijiki. '
+          'Kamu bisa mengetik alamat atau memilih di peta.',
+        );
     }
   }
 
@@ -322,7 +328,11 @@ class _PointStatus extends StatelessWidget {
     final Color color;
     final String text;
 
-    if (state.point != null) {
+    if (state.outOfArea) {
+      icon = Icons.error_outline_rounded;
+      color = Colors.red.shade600;
+      text = '${ServiceArea.outOfAreaMessage} Pilih titik di dalam area.';
+    } else if (state.point != null) {
       icon = Icons.check_circle_rounded;
       color = AppColors.success;
       text = state.source == LocationSource.typed

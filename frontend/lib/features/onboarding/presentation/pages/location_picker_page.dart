@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rijiki/core/location/location_service.dart';
+import 'package:rijiki/core/location/service_area.dart';
 import 'package:rijiki/core/map/map_config.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
@@ -54,6 +55,12 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
     super.dispose();
   }
 
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   void _scheduleResolve() {
     _debounce?.cancel();
     if (!_resolving) {
@@ -67,6 +74,16 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
   Future<void> _resolve() async {
     final id = ++_requestId;
     final point = _center;
+
+    if (!ServiceArea.contains(point)) {
+      if (!mounted) return;
+      setState(() {
+        _address = null;
+        _resolving = false;
+      });
+      return;
+    }
+
     final address = await ref.read(locationServiceProvider).addressOf(point);
     if (!mounted || id != _requestId) return;
     setState(() {
@@ -81,6 +98,10 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
     try {
       final point = await ref.read(locationServiceProvider).currentPoint();
       if (!mounted) return;
+      if (!ServiceArea.contains(point)) {
+        if (!silent) _showMessage(ServiceArea.outOfAreaMessage);
+        return;
+      }
       if (_ready) {
         _controller.move(point, _zoom);
       } else {
@@ -95,15 +116,17 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
           'Izin lokasi diblokir. Aktifkan lewat pengaturan aplikasi.',
         LocationIssue.unavailable => 'Lokasi belum bisa dibaca. Coba lagi.',
       };
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(message)));
+      _showMessage(message);
     } finally {
       if (mounted) setState(() => _locating = false);
     }
   }
 
   void _confirm() {
+    if (!ServiceArea.contains(_center)) {
+      _showMessage(ServiceArea.outOfAreaMessage);
+      return;
+    }
     Navigator.of(context).pop(
       PickedLocation(point: _center, address: _resolving ? null : _address),
     );
@@ -112,8 +135,11 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final inArea = ServiceArea.contains(_center);
 
-    final addressText = _resolving
+    final addressText = !inArea
+        ? ServiceArea.outOfAreaMessage
+        : _resolving
         ? 'Mencari alamat...'
         : (_address ??
               'Alamat tidak terbaca. Setelah memilih titik, ketik alamatmu sendiri.');
@@ -241,19 +267,25 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.location_on_outlined,
+                      Icon(
+                        inArea
+                            ? Icons.location_on_outlined
+                            : Icons.error_outline_rounded,
                         size: 20,
-                        color: AppColors.rijikiBlue,
+                        color: inArea
+                            ? AppColors.rijikiBlue
+                            : AppColors.rijikiOrange,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           addressText,
                           style: textTheme.bodyMedium?.copyWith(
-                            color: _address == null && !_resolving
-                                ? AppColors.onSurfaceVariant
-                                : AppColors.onSurface,
+                            color: !inArea
+                                ? AppColors.rijikiOrange
+                                : (_address == null && !_resolving
+                                      ? AppColors.onSurfaceVariant
+                                      : AppColors.onSurface),
                           ),
                         ),
                       ),
@@ -261,7 +293,7 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   FilledButton(
-                    onPressed: _confirm,
+                    onPressed: inArea ? _confirm : null,
                     child: const Text('Konfirmasi lokasi'),
                   ),
                 ],
