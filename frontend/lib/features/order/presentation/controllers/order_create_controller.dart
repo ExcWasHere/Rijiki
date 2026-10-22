@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
+import 'package:rijiki/core/location/default_location.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/new_order.dart';
@@ -11,11 +12,16 @@ import 'package:rijiki/features/service/presentation/controllers/service_list_co
 
 Duration? _noRetry(int retryCount, Object error) => null;
 
-// TODO(backend): ambil dari customer_profiles.default_address.
+// TODO(backend): ambil dari customer_profiles.default_address. Sementara
+// memakai alamat hasil Onboarding (defaultLocationProvider); bila belum ada,
+// jatuh ke alamat contoh di bawah.
 const String _mockDefaultAddress =
     'Jl. Soekarno Hatta No. 9, Lowokwaru, Kota Malang';
 
-final defaultAddressProvider = Provider<String>((ref) => _mockDefaultAddress);
+final defaultAddressProvider = Provider<String>((ref) {
+  final saved = ref.watch(defaultLocationProvider)?.address.trim() ?? '';
+  return saved.isNotEmpty ? saved : _mockDefaultAddress;
+});
 
 enum PromoStatus { idle, checking, applied, invalid }
 

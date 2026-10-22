@@ -74,7 +74,10 @@ final merchandiseRepositoryProvider = Provider<MerchandiseRepository>(
 );
 
 final orderRepositoryProvider = Provider<OrderRepository>(
-  (ref) => MockOrderRepository(scenario: ref.watch(mockScenarioProvider)),
+  (ref) => MockOrderRepository(
+    promos: ref.watch(promoRepositoryProvider),
+    scenario: ref.watch(mockScenarioProvider),
+  ),
 );
 
 final ratingRepositoryProvider = Provider<RatingRepository>(
