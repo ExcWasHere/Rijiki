@@ -7,4 +7,6 @@ abstract final class ApiEndpoints {
   static const String refresh = '/api/auth/refresh';
   static const String me = '/api/auth/me';
   static const String logout = '/api/auth/logout';
+
+  static const String profile = '/api/profile';
 }

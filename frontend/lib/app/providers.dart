@@ -24,6 +24,9 @@ import 'package:rijiki/features/order/data/mock_order_repository.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
 import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
 import 'package:rijiki/features/payment/domain/payment_repository.dart';
+import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
+import 'package:rijiki/features/profile/data/profile_repository_impl.dart';
+import 'package:rijiki/features/profile/domain/profile_repository.dart';
 import 'package:rijiki/features/rating/data/mock_rating_repository.dart';
 import 'package:rijiki/features/rating/domain/rating_repository.dart';
 import 'package:rijiki/features/scan/data/mock_scan_repository.dart';
@@ -55,6 +58,12 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     googleSignIn: ref.watch(googleSignInServiceProvider),
   );
 });
+
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  if (AppConstants.useMockAuth) return MockProfileRepository();
+  return ProfileRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
 final mockScenarioProvider = Provider<MockScenario>((ref) => MockScenario.data);
 
 final serviceRepositoryProvider = Provider<ServiceRepository>(
@@ -74,7 +83,10 @@ final merchandiseRepositoryProvider = Provider<MerchandiseRepository>(
 );
 
 final orderRepositoryProvider = Provider<OrderRepository>(
-  (ref) => MockOrderRepository(scenario: ref.watch(mockScenarioProvider)),
+  (ref) => MockOrderRepository(
+    promos: ref.watch(promoRepositoryProvider),
+    scenario: ref.watch(mockScenarioProvider),
+  ),
 );
 
 final ratingRepositoryProvider = Provider<RatingRepository>(

@@ -3,6 +3,7 @@ import { authMiddleware } from '../../middleware/auth';
 import { AppError } from '../../shared/errors';
 import type { AppEnv } from '../../shared/types/env';
 import { parseInput } from '../../shared/utils/validate';
+import { getCustomerProfile } from '../profile/profile.service';
 import {
   googleLoginSchema,
   loginSchema,
@@ -50,9 +51,16 @@ authRoutes.post('/refresh', async (c) => {
   return c.json(await authService.refresh(c.env, input));
 });
 
-authRoutes.get('/me', authMiddleware, (c) => {
+authRoutes.get('/me', authMiddleware, async (c) => {
   const { user, permissions, ownerBypass } = c.get('user');
-  return c.json({ user, permissions, owner_bypass: ownerBypass });
+  const customerProfile =
+    user.role === 'customer' ? await getCustomerProfile(c.env, user.id) : null;
+  return c.json({
+    user,
+    permissions,
+    owner_bypass: ownerBypass,
+    customer_profile: customerProfile,
+  });
 });
 
 authRoutes.post('/logout', authMiddleware, async (c) => {

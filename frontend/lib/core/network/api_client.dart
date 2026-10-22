@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:rijiki/core/constants/app_constants.dart';
 import 'package:rijiki/core/constants/app_strings.dart';
@@ -33,6 +33,10 @@ class ApiClient {
     return _send('POST', path, body: body, auth: auth);
   }
 
+  Future<Json> patch(String path, {Json? body, bool auth = false}) {
+    return _send('PATCH', path, body: body, auth: auth);
+  }
+
   Future<Json> _send(
     String method,
     String path, {
@@ -60,19 +64,28 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final http.Response response;
     try {
-      final request = method == 'GET'
-          ? _client.get(uri, headers: headers)
-          : _client.post(
-              uri,
-              headers: headers,
-              body: jsonEncode(body ?? <String, dynamic>{}),
-            );
+      final Future<http.Response> request = switch (method) {
+        'GET' => _client.get(uri, headers: headers),
+        'PATCH' => _client.patch(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? <String, dynamic>{}),
+        ),
+        _ => _client.post(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? <String, dynamic>{}),
+        ),
+      };
       response = await request.timeout(AppConstants.requestTimeout);
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
+      _logNetworkFailure(method, uri, e);
       throw _networkError();
-    } on IOException {
+    } on IOException catch (e) {
+      _logNetworkFailure(method, uri, e);
       throw _networkError();
-    } on http.ClientException {
+    } on http.ClientException catch (e) {
+      _logNetworkFailure(method, uri, e);
       throw _networkError();
     }
 
@@ -133,6 +146,13 @@ class ApiClient {
     } on FormatException {
     }
     return <String, dynamic>{};
+  }
+
+  void _logNetworkFailure(String method, Uri uri, Object error) {
+    if (!kDebugMode) return;
+    debugPrint(
+      '[ApiClient] $method $uri gagal -> ${error.runtimeType}: $error',
+    );
   }
 
   AppException _networkError() {

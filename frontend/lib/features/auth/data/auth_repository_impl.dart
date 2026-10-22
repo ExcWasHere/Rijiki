@@ -25,12 +25,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       final json = await api.get(ApiEndpoints.me, auth: true);
-      final user = AppUser.fromAuthJson(json);
-      final isOnboarded = await tokens.isOnboardingCompleted();
-      if (isOnboarded && !user.profileCompleted) {
-        return user.copyWith(profileCompleted: true);
-      }
-      return user;
+      return AppUser.fromAuthJson(json);
     } on AppException catch (e) {
       if (e.statusCode == 401 || e.statusCode == 403) {
         await tokens.clear();
@@ -69,8 +64,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AppUser> verifyEmail({required String email, required String code}) async {
-    await tokens.setOnboardingCompleted(false);
+  Future<AppUser> verifyEmail({required String email, required String code}) {
     return _authenticate(
       ApiEndpoints.verifyEmail,
       {'email': email, 'code': code},
@@ -104,12 +98,7 @@ class AuthRepositoryImpl implements AuthRepository {
         accessToken: json['access_token'] as String,
         refreshToken: json['refresh_token'] as String,
       );
-      final user = AppUser.fromAuthJson(json);
-      final isOnboarded = await tokens.isOnboardingCompleted();
-      if (isOnboarded && !user.profileCompleted) {
-        return user.copyWith(profileCompleted: true);
-      }
-      return user;
+      return AppUser.fromAuthJson(json);
     } on AppException catch (e) {
       throw _toFailure(e);
     }

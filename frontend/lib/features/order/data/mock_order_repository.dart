@@ -1,6 +1,9 @@
+import 'package:rijiki/core/enums/discount_type.dart';
 import 'package:rijiki/core/enums/order_payment_status.dart';
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/mock/mock_scenario.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
+import 'package:rijiki/features/event/domain/promo_repository.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/data/mock_order_store.dart';
@@ -12,8 +15,12 @@ import 'package:rijiki/features/order/domain/order_status_history.dart';
 import 'package:rijiki/features/order/domain/price_breakdown.dart';
 
 class MockOrderRepository implements OrderRepository {
-  const MockOrderRepository({this.scenario = MockScenario.data});
+  const MockOrderRepository({
+    required this.promos,
+    this.scenario = MockScenario.data,
+  });
 
+  final PromoRepository promos;
   final MockScenario scenario;
 
   @override
@@ -47,36 +54,55 @@ class MockOrderRepository implements OrderRepository {
     );
   }
 
+  // TODO(backend): ongkir = jarak rute jalan outlet -> lokasi customer (km)
+  // x shipping_settings.rate_per_km (PRD Open Questions #40, #51).
   static const int _shippingFee = 8000;
+
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
   @override
   Future<PriceQuote> quotePrice({
     required int subtotal,
     String? promoCode,
   }) async {
-    await scenario.resolve<bool>(empty: true, data: true);
-
     final code = promoCode?.trim().toUpperCase() ?? '';
     if (code.isEmpty) {
+      await scenario.resolve<bool>(empty: true, data: true);
       return PriceQuote(
         price: PriceBreakdown(subtotal: subtotal, shipping: _shippingFee),
       );
     }
 
-    final int discount;
-    final String description;
-    switch (code) {
-      case 'RIJIKI10':
-        discount = (subtotal * 0.10).round().clamp(0, 15000).toInt();
-        description = 'Diskon 10% (maks Rp 15.000)';
-      case 'HEMAT5K':
-        discount = subtotal < 5000 ? subtotal : 5000;
-        description = 'Potongan Rp 5.000';
-      default:
-        throw const PromoException(
-          'Kode promo tidak ditemukan atau sudah tidak berlaku.',
-        );
+    // TODO(backend): promo bersyarat (applies_to, min_subtotal,
+    // max_discount_amount, kuota, first_order_only)
+    final all = await promos.fetchAllPromos();
+    final promo = all.where((p) => p.code.toUpperCase() == code).firstOrNull;
+    if (promo == null || !promo.isActive) {
+      throw const PromoException(
+        'Kode promo tidak ditemukan atau sudah tidak berlaku.',
+      );
     }
+
+    final today = _dateOnly(DateTime.now());
+    if (today.isBefore(_dateOnly(promo.startDate))) {
+      throw const PromoException('Promo ini belum dimulai.');
+    }
+    if (today.isAfter(_dateOnly(promo.endDate))) {
+      throw const PromoException('Promo ini sudah berakhir.');
+    }
+
+    final int raw;
+    final String valueLabel;
+    switch (promo.discountType) {
+      case DiscountType.percentage:
+        raw = (subtotal * promo.discountValue / 100).round();
+        valueLabel = 'Diskon ${promo.discountValue}%';
+      case DiscountType.fixed:
+        raw = promo.discountValue;
+        valueLabel =
+            'Potongan ${RupiahFormatter.full(promo.discountValue.toDouble())}';
+    }
+    final discount = raw.clamp(0, subtotal).toInt();
 
     return PriceQuote(
       price: PriceBreakdown(
@@ -84,8 +110,8 @@ class MockOrderRepository implements OrderRepository {
         discount: discount,
         shipping: _shippingFee,
       ),
-      promoCode: code,
-      promoDescription: description,
+      promoCode: promo.code,
+      promoDescription: '${promo.title} · $valueLabel',
     );
   }
 
@@ -223,10 +249,10 @@ class MockOrderRepository implements OrderRepository {
         ],
         price: const PriceBreakdown(
           subtotal: 25000,
-          discount: 2500,
+          discount: 5000,
           shipping: 10000,
         ),
-        promoCode: 'RIJIKI10',
+        promoCode: 'RIJIKI20',
         pickupAddress: _homeAddress,
         deliveryAddress: 'Jl. Veteran No. 12, Klojen, Kota Malang',
         createdAt: now.subtract(const Duration(days: 2)),
