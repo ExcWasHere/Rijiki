@@ -21,8 +21,11 @@ import 'package:rijiki/features/event/domain/promo_repository.dart';
 import 'package:rijiki/features/merchandise/data/mock_merchandise_repository.dart';
 import 'package:rijiki/features/merchandise/domain/merchandise_repository.dart';
 import 'package:rijiki/features/order/data/mock_order_repository.dart';
+import 'package:rijiki/features/order/data/mock_staff_order_repository.dart';
 import 'package:rijiki/features/order/data/order_repository_impl.dart';
+import 'package:rijiki/features/order/data/staff_order_repository_impl.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
+import 'package:rijiki/features/order/domain/staff_order_repository.dart';
 import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
 import 'package:rijiki/features/payment/domain/payment_repository.dart';
 import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
@@ -94,6 +97,13 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
     );
   }
   return OrderRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
+final staffOrderRepositoryProvider = Provider<StaffOrderRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockStaffOrderRepository(orders: ref.watch(orderRepositoryProvider));
+  }
+  return StaffOrderRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final ratingRepositoryProvider = Provider<RatingRepository>(

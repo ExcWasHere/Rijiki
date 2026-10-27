@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ORDER_STATUSES } from './orders.types';
+import { DOCUMENTATION_TYPES, ORDER_STATUSES } from './orders.types';
 
 const promoCode = z
   .string()
@@ -16,6 +16,11 @@ const address = (label: string) =>
     .min(5, `${label} terlalu pendek`)
     .max(300, `${label} maksimal 300 karakter`);
 
+/**
+ * Quote bersifat informatif untuk layar ringkasan. Subtotal dari klien
+ * hanya dipakai untuk menghitung diskon; harga final selalu dihitung ulang
+ * dari database saat order dibuat.
+ */
 export const quoteOrderSchema = z.object({
   subtotal: z
     .number()
@@ -63,10 +68,31 @@ export const createOrderSchema = z.object({
 export const listOrdersQuerySchema = z.object({
   status: z.enum(ORDER_STATUSES).optional(),
   active: z.enum(['true', 'false']).optional(),
+  /** true = order aktif yang belum punya worker (antrean untuk worker, daftar "belum di-assign" untuk owner). */
+  unassigned: z.enum(['true', 'false']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const updateStatusSchema = z.object({
+  new_status: z.enum(ORDER_STATUSES),
+  notes: z.string().trim().max(300, 'Catatan maksimal 300 karakter').nullish(),
+});
+
+export const assignOrderSchema = z.object({
+  /** worker_profiles.id; null = lepas assign. */
+  worker_id: z.string().uuid('Worker tidak valid').nullable(),
+});
+
+/** Field teks pada multipart upload dokumentasi (file ada di field `image`). */
+export const documentationFieldsSchema = z.object({
+  type: z.enum(DOCUMENTATION_TYPES),
+  order_item_id: z.string().uuid('Item order tidak valid').optional(),
 });
 
 export type QuoteOrderInput = z.infer<typeof quoteOrderSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
+export type UpdateStatusInput = z.infer<typeof updateStatusSchema>;
+export type AssignOrderInput = z.infer<typeof assignOrderSchema>;
+export type DocumentationFieldsInput = z.infer<typeof documentationFieldsSchema>;

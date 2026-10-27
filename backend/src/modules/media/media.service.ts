@@ -57,7 +57,9 @@ export async function getPrivateImage(
     throw new AppError(404, 'not_found', 'Gambar tidak ditemukan');
   }
 
-  if (!canReadPrivate(ctx, key)) {
+  // PENTING: canReadPrivate async. Tanpa await, Promise selalu dianggap true
+  // dan semua gambar privat akan terbuka untuk siapa pun yang login.
+  if (!(await canReadPrivate(env, ctx, key))) {
     throw new AppError(403, 'forbidden', 'Tidak punya akses ke gambar ini');
   }
 

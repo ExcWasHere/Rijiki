@@ -1,4 +1,6 @@
 import { toNumber } from '../../shared/utils/number';
+import { flowInfoFromRow, isAssignedToViewer, staffActionsFor } from './orders.transitions';
+import type { Viewer } from './orders.transitions';
 import type {
   OrderDocumentationView,
   OrderItemView,
@@ -7,6 +9,8 @@ import type {
   OrderView,
 } from './orders.types';
 
+/** PostgREST mengembalikan relasi to-one sebagai objek, tapi jaga-jaga bila array. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function one(value: any): any {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
@@ -17,14 +21,18 @@ function itemSuffix(code: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-export function toOrderView(row: OrderRow): OrderView {
+/**
+ * @param viewer pemanggil; null untuk customer sehingga blok `staff` kosong.
+ */
+export function toOrderView(row: OrderRow, viewer: Viewer | null): OrderView {
   const customer = one(row.customer);
   const customerUser = one(customer?.users);
   const worker = one(row.worker);
   const workerUser = one(worker?.users);
   const promo = one(row.promos);
+  const info = flowInfoFromRow(row);
 
-  const rawItems: OrderRow[] = Array.isArray(row.order_items) ? row.order_items : [];
+  const rawItems: OrderRow[] = Array.isArray(row.order_items) ? [...row.order_items] : [];
   rawItems.sort((a, b) => itemSuffix(String(a.item_code)) - itemSuffix(String(b.item_code)));
 
   const items: OrderItemView[] = rawItems.map((item) => ({
@@ -37,16 +45,16 @@ export function toOrderView(row: OrderRow): OrderView {
     notes: (item.notes as string | null) ?? null,
   }));
 
-  const documentation: OrderDocumentationView[] = rawItems.flatMap((item) =>
-    (Array.isArray(item.order_documentations) ? item.order_documentations : []).map(
-      (doc: OrderRow) => ({
-        id: doc.id as string,
-        type: doc.type as string,
-        order_item_id: item.id as string,
-        image_url: doc.image_url as string,
-      }),
-    ),
-  );
+  // Dokumentasi di-embed pada level order karena proof of delivery tidak punya item.
+  const rawDocs: OrderRow[] = Array.isArray(row.order_documentations)
+    ? row.order_documentations
+    : [];
+  const documentation: OrderDocumentationView[] = rawDocs.map((doc) => ({
+    id: doc.id as string,
+    type: doc.type as string,
+    order_item_id: (doc.order_item_id as string | null) ?? null,
+    image_url: doc.image_url as string,
+  }));
 
   const rawHistory: OrderRow[] = Array.isArray(row.order_status_histories)
     ? row.order_status_histories
@@ -68,6 +76,7 @@ export function toOrderView(row: OrderRow): OrderView {
     status: row.status as string,
     payment_status: row.payment_status as string,
     channel: row.channel as string,
+    delivery_method: info.delivery_method,
     subtotal: toNumber(row.subtotal),
     discount_amount: toNumber(row.discount_amount),
     shipping_fee: toNumber(row.shipping_fee),
@@ -75,8 +84,17 @@ export function toOrderView(row: OrderRow): OrderView {
     promo_code: (promo?.code as string | undefined) ?? null,
     pickup_address: (row.pickup_address as string | null) ?? null,
     delivery_address: (row.delivery_address as string | null) ?? null,
-    customer_name: (customerUser?.full_name as string | undefined) ?? null,
-    customer_phone: (customerUser?.phone_number as string | undefined) ?? null,
+    // Order offline tanpa akun memakai nama/HP walk-in dari form kasir.
+    customer_name:
+      (customerUser?.full_name as string | undefined) ??
+      (row.walk_in_customer_name as string | null | undefined) ??
+      null,
+    customer_phone:
+      (customerUser?.phone_number as string | undefined) ??
+      (row.walk_in_customer_phone as string | null | undefined) ??
+      null,
+    assigned_worker_id: info.assigned_worker_id,
+    assigned_to_me: viewer ? isAssignedToViewer(info, viewer) : false,
     worker_name: (workerUser?.full_name as string | undefined) ?? null,
     scheduled_pickup_at: (row.scheduled_pickup_at as string | null) ?? null,
     completed_at: (row.completed_at as string | null) ?? null,
@@ -85,5 +103,6 @@ export function toOrderView(row: OrderRow): OrderView {
     items,
     status_history,
     documentation,
+    staff: viewer ? staffActionsFor(info, viewer) : null,
   };
 }

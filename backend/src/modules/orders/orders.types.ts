@@ -10,6 +10,12 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type OrderPaymentStatus = 'unpaid' | 'paid';
+export type DeliveryMethod = 'delivery' | 'self_pickup';
+
+export const DOCUMENTATION_TYPES = ['before', 'after', 'proof_of_delivery'] as const;
+export type DocumentationType = (typeof DOCUMENTATION_TYPES)[number];
+
+/** Siapa yang boleh melihat order apa. */
 export type OrderScope =
   | { kind: 'all' }
   | { kind: 'customer'; customerProfileId: string }
@@ -21,6 +27,11 @@ export interface CustomerProfileRow {
   default_address: string | null;
   default_lat: number | null;
   default_lng: number | null;
+}
+
+export interface WorkerProfileRow {
+  id: string;
+  status: string;
 }
 
 export interface ServicePriceRow {
@@ -71,9 +82,25 @@ export interface OrderStatusHistoryView {
 export interface OrderDocumentationView {
   id: string;
   type: string;
-  order_item_id: string;
+  /** Kosong untuk proof_of_delivery (bukti per order). */
+  order_item_id: string | null;
   /** Bucket privat: berisi key objek, bukan URL (PRD Bagian 22). */
   image_url: string;
+}
+
+/**
+ * Aksi yang boleh dilakukan pemanggil pada order ini. Dihitung server supaya
+ * Flutter cukup menampilkan tombol sesuai hasil, bukan menebak aturannya.
+ * Null untuk customer.
+ */
+export interface StaffActionsView {
+  next_status: OrderStatus | null;
+  can_claim: boolean;
+  can_advance: boolean;
+  can_assign: boolean;
+  can_cancel: boolean;
+  can_correct: boolean;
+  can_upload: Record<DocumentationType, boolean>;
 }
 
 export interface OrderView {
@@ -82,6 +109,7 @@ export interface OrderView {
   status: string;
   payment_status: string;
   channel: string;
+  delivery_method: string;
   subtotal: number;
   discount_amount: number;
   shipping_fee: number;
@@ -91,6 +119,8 @@ export interface OrderView {
   delivery_address: string | null;
   customer_name: string | null;
   customer_phone: string | null;
+  assigned_worker_id: string | null;
+  assigned_to_me: boolean;
   worker_name: string | null;
   scheduled_pickup_at: string | null;
   completed_at: string | null;
@@ -99,6 +129,7 @@ export interface OrderView {
   items: OrderItemView[];
   status_history: OrderStatusHistoryView[];
   documentation: OrderDocumentationView[];
+  staff: StaffActionsView | null;
 }
 
 /** Baris mentah hasil select bersarang PostgREST (lihat orders.repo.ts). */

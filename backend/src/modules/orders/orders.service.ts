@@ -1,6 +1,7 @@
 import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
+import { loadVisibleOrder, resolveAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
 import { computeTotals, evaluatePromo } from './orders.pricing';
 import type { PromoEvaluation } from './orders.pricing';
@@ -9,21 +10,13 @@ import {
   findCustomerProfileByUserId,
   findPromoByCode,
   findServicesByIds,
-  findWorkerProfileId,
   getOrderRow,
   getRatePerKm,
   listOrderRows,
 } from './orders.repo';
 import type { CreateOrderInput, ListOrdersQuery, QuoteOrderInput } from './orders.schema';
 import { calculateShippingFee, routeDistanceKm } from './orders.shipping';
-import type {
-  CustomerProfileRow,
-  OrderScope,
-  OrderView,
-  PriceQuoteView,
-} from './orders.types';
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import type { CustomerProfileRow, OrderView, PriceQuoteView } from './orders.types';
 
 function profileIncomplete(): AppError {
   return new AppError(
@@ -45,6 +38,7 @@ function requireCoordinates(profile: CustomerProfileRow | null): Coordinates {
   return { lat: profile.default_lat, lng: profile.default_lng };
 }
 
+/** Ongkir dihitung dari koordinat default di profil (alamat order boleh diubah, titiknya belum). */
 async function loadShipping(
   env: Bindings,
   coords: Coordinates,
@@ -100,6 +94,8 @@ export async function createOrder(
 ): Promise<OrderView> {
   const profile = await findCustomerProfileByUserId(env, userId);
   const coords = requireCoordinates(profile);
+
+  // Harga selalu dari database, bukan dari klien.
   const serviceIds = [...new Set(input.items.map((item) => item.service_id))];
   const services = await findServicesByIds(env, serviceIds);
   const priceById = new Map(services.map((s) => [s.id, s]));
@@ -142,26 +138,7 @@ export async function createOrder(
     console.error('orders: order baru tidak ditemukan setelah dibuat', orderId);
     throw new AppError(500, 'order_create_failed', 'Order dibuat, tetapi gagal dimuat. Cek daftar order.');
   }
-  return toOrderView(row);
-}
-
-async function resolveScope(env: Bindings, ctx: AuthContextUser): Promise<OrderScope> {
-  const { user, permissions, ownerBypass } = ctx;
-
-  if (ownerBypass) return { kind: 'all' };
-
-  if (user.role === 'worker') {
-    if (permissions.includes('manage_orders_all')) return { kind: 'all' };
-    const workerProfileId = await findWorkerProfileId(env, user.id);
-    return workerProfileId ? { kind: 'worker', workerProfileId } : { kind: 'none' };
-  }
-
-  if (user.role === 'customer') {
-    const profile = await findCustomerProfileByUserId(env, user.id);
-    return profile ? { kind: 'customer', customerProfileId: profile.id } : { kind: 'none' };
-  }
-
-  return { kind: 'none' };
+  return toOrderView(row, null);
 }
 
 export async function listOrders(
@@ -169,14 +146,14 @@ export async function listOrders(
   ctx: AuthContextUser,
   query: ListOrdersQuery,
 ): Promise<{ items: OrderView[]; page: number; limit: number; total: number }> {
-  const scope = await resolveScope(env, ctx);
-  if (scope.kind === 'none') {
+  const access = await resolveAccess(env, ctx);
+  if (access.scope.kind === 'none') {
     return { items: [], page: query.page, limit: query.limit, total: 0 };
   }
 
-  const { rows, total } = await listOrderRows(env, scope, query);
+  const { rows, total } = await listOrderRows(env, access.scope, query);
   return {
-    items: rows.map(toOrderView),
+    items: rows.map((row) => toOrderView(row, access.viewer)),
     page: query.page,
     limit: query.limit,
     total,
@@ -188,16 +165,7 @@ export async function getOrder(
   ctx: AuthContextUser,
   orderId: string,
 ): Promise<OrderView> {
-  const notFound = new AppError(404, 'order_not_found', 'Order tidak ditemukan');
-  if (!UUID_PATTERN.test(orderId)) throw notFound;
-
-  const scope = await resolveScope(env, ctx);
-  if (scope.kind === 'none') throw notFound;
-
-  const row = await getOrderRow(env, orderId);
-  if (!row) throw notFound;
-  if (scope.kind === 'customer' && row.customer_id !== scope.customerProfileId) throw notFound;
-  if (scope.kind === 'worker' && row.assigned_worker_id !== scope.workerProfileId) throw notFound;
-
-  return toOrderView(row);
+  const access = await resolveAccess(env, ctx);
+  const row = await loadVisibleOrder(env, access, orderId);
+  return toOrderView(row, access.viewer);
 }

@@ -15,4 +15,14 @@ abstract final class ApiEndpoints {
   static const String orders = '/api/orders';
   static const String orderQuote = '/api/orders/quote';
   static String orderById(String id) => '$orders/$id';
+  static String orderClaim(String id) => '$orders/$id/claim';
+  static String orderAssign(String id) => '$orders/$id/assign';
+  static String orderStatus(String id) => '$orders/$id/status';
+  static String orderDocumentations(String id) => '$orders/$id/documentations';
+  static String orderDocumentation(String id, String docId) =>
+      '$orders/$id/documentations/$docId';
+
+  static const String workers = '/api/workers';
+
+  static String privateMedia(String key) => '/api/media/private/$key';
 }

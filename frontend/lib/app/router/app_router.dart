@@ -7,6 +7,7 @@ import 'package:rijiki/app/shells/customer_shell.dart';
 import 'package:rijiki/app/shells/owner_shell.dart';
 import 'package:rijiki/app/shells/worker_shell.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_dashboard_page.dart';
+import 'package:rijiki/features/home/worker/presentation/dashboard/worker_order_detail_page.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_orders_page.dart';
 import 'package:rijiki/features/home/worker/presentation/management/worker_management_hub_page.dart';
 import 'package:rijiki/core/session/app_user.dart';
@@ -229,6 +230,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: RoutePaths.workerOrders,
                 builder: (context, state) => const WorkerOrdersPage(),
+                routes: [
+                  GoRoute(
+                    path: ':orderId',
+                    builder: (context, state) => WorkerOrderDetailPage(
+                      orderId: state.pathParameters['orderId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -275,6 +284,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: RoutePaths.ownerOrders,
                 builder: (context, state) => const WorkerOrdersPage(),
+                routes: [
+                  GoRoute(
+                    path: ':orderId',
+                    builder: (context, state) => WorkerOrderDetailPage(
+                      orderId: state.pathParameters['orderId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

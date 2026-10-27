@@ -6,6 +6,7 @@ import { mediaRoutes } from './modules/media/media.routes';
 import { ordersRoutes } from './modules/orders/orders.routes';
 import { profileRoutes } from './modules/profile/profile.routes';
 import { servicesRoutes } from './modules/services/services.routes';
+import { workersRoutes } from './modules/workers/workers.routes';
 import { AppError } from './shared/errors';
 import type { AppEnv } from './shared/types/env';
 
@@ -30,6 +31,7 @@ export function createApp() {
   app.route('/api/profile', profileRoutes);
   app.route('/api/services', servicesRoutes);
   app.route('/api/orders', ordersRoutes);
+  app.route('/api/workers', workersRoutes);
 
   app.notFound((c) =>
     c.json({ error: { code: 'not_found', message: 'Endpoint tidak ditemukan' } }, 404),

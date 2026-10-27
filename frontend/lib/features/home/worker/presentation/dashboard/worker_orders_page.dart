@@ -1,221 +1,65 @@
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/enums/user_role.dart';
+import 'package:rijiki/core/error/failure.dart';
+import 'package:rijiki/core/permissions/access_policy.dart';
+import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'worker_order_detail_page.dart';
+import 'package:rijiki/features/order/domain/order_filter.dart';
+import 'package:rijiki/features/order/domain/staff_order_repository.dart';
+import 'package:rijiki/features/order/presentation/controllers/staff_order_controller.dart';
+import 'package:rijiki/features/order/presentation/widgets/staff_order_card.dart';
+import 'package:rijiki/shared/widgets/empty_state.dart';
+import 'package:rijiki/shared/widgets/error_state.dart';
+import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 
-class WorkerOrdersPage extends StatefulWidget {
+class WorkerOrdersPage extends ConsumerStatefulWidget {
   const WorkerOrdersPage({super.key});
 
   @override
-  State<WorkerOrdersPage> createState() => _WorkerOrdersPageState();
+  ConsumerState<WorkerOrdersPage> createState() => _WorkerOrdersPageState();
 }
 
-class _WorkerOrdersPageState extends State<WorkerOrdersPage> {
-  String selectedFilter = 'Semua';
+class _WorkerOrdersPageState extends ConsumerState<WorkerOrdersPage> {
+  StaffOrderList _list = StaffOrderList.primary;
+  OrderFilter _filter = OrderFilter.all;
 
-  static const Color primaryBlue = AppColors.primary;
-  static const Color lightBlue = AppColors.background;
-  static const Color textDark = AppColors.onSurface;
-  static const Color textGrey = AppColors.onSurfaceVariant;
-  static const Color borderColor = AppColors.onSurfaceVariant;
+  static const Map<OrderFilter, String> _filterLabels = {
+    OrderFilter.all: 'Semua',
+    OrderFilter.inProgress: 'Aktif',
+    OrderFilter.completed: 'Selesai',
+    OrderFilter.cancelled: 'Dibatalkan',
+  };
 
-  final List<Map<String, dynamic>> orders = [
-    {
-      'id': 'RJK-001',
-      'customer': 'Andi Pratama',
-      'shoe': 'Sneakers Putih',
-      'service': 'Deep Clean',
-      'status': 'Menunggu',
-      'date': '14 Okt 2026',
-      'icon': Icons.cleaning_services_outlined,
-    },
-    {
-      'id': 'RJK-002',
-      'customer': 'Dina Putri',
-      'shoe': 'Sneakers Hitam',
-      'service': 'Unyellowing',
-      'status': 'Diproses',
-      'date': '14 Okt 2026',
-      'icon': Icons.water_drop_outlined,
-    },
-    {
-      'id': 'RJK-003',
-      'customer': 'Raka Wijaya',
-      'shoe': 'Running Shoes',
-      'service': 'Regular Clean',
-      'status': 'Diproses',
-      'date': '13 Okt 2026',
-      'icon': Icons.sports_outlined,
-    },
-    {
-      'id': 'RJK-004',
-      'customer': 'Nadia Safitri',
-      'shoe': 'Canvas Shoes',
-      'service': 'Deep Clean',
-      'status': 'Selesai',
-      'date': '12 Okt 2026',
-      'icon': Icons.checkroom_outlined,
-    },
-  ];
-
-  List<Map<String, dynamic>> get filteredOrders {
-    if (selectedFilter == 'Semua') return orders;
-
-    return orders
-        .where((order) => order['status'] == selectedFilter)
-        .toList();
-  }
-
-  int countStatus(String status) {
-    if (status == 'Semua') return orders.length;
-
-    return orders.where((order) => order['status'] == status).length;
-  }
-
-  Color statusColor(String status) {
-    switch (status) {
-      case 'Menunggu':
-        return AppColors.rijikiOrange;
-      case 'Diproses':
-        return AppColors.primaryDark;
-      case 'Selesai':
-        return AppColors.success;
-      default:
-        return AppColors.onSurfaceVariant;
+  Future<void> _refresh() async {
+    ref.invalidate(staffOrdersProvider(_list));
+    try {
+      await ref.read(staffOrdersProvider(_list).future);
+    } catch (_) {
     }
   }
 
-  void showOrderDetail(Map<String, dynamic> order) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-      ),
-      builder: (context) {
-        final status = order['status'] as String;
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: borderColor.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Detail Pesanan',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: textDark,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  order['id'] as String,
-                  style: const TextStyle(color: textGrey),
-                ),
-                const SizedBox(height: 20),
-                _detailRow('Nama Customer', order['customer'] as String),
-                _detailRow('Jenis Sepatu', order['shoe'] as String),
-                _detailRow('Layanan', order['service'] as String),
-                _detailRow('Tanggal', order['date'] as String),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Text(
-                      'Status',
-                      style: TextStyle(color: textGrey),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor(status).withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          color: statusColor(status),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: primaryBlue,
-                      side: const BorderSide(color: primaryBlue),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Tutup'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(color: AppColors.onSurfaceVariant),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(
-                color: AppColors.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _openDetail(String orderId) {
+    final user = ref.read(sessionProvider);
+    final path = user?.role == UserRole.owner
+        ? RoutePaths.ownerOrderDetailFor(orderId)
+        : RoutePaths.workerOrderDetailFor(orderId);
+    context.push(path);
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(sessionProvider);
+    final manageAll = AccessPolicy.canManageAllOrders(user);
+    final orders = ref.watch(staffOrdersProvider(_list));
+    final textTheme = Theme.of(context).textTheme;
+
+    final primaryLabel = manageAll ? 'Semua order' : 'Tugas saya';
+    final unassignedLabel = manageAll ? 'Belum di-assign' : 'Antrean';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -223,286 +67,185 @@ class _WorkerOrdersPageState extends State<WorkerOrdersPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Pesanan',
-                    style: TextStyle(
-                      fontSize: 27,
-                      fontWeight: FontWeight.bold,
-                      color: textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _buildFilters(),
-                ],
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.sm,
+              ),
+              child: Text(
+                'Pesanan',
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
+            _ChipRow(
+              children: [
+                _Chip(
+                  label: primaryLabel,
+                  selected: _list == StaffOrderList.primary,
+                  onTap: () => setState(() => _list = StaffOrderList.primary),
+                ),
+                _Chip(
+                  label: unassignedLabel,
+                  selected: _list == StaffOrderList.unassigned,
+                  onTap: () => setState(() => _list = StaffOrderList.unassigned),
+                ),
+              ],
+            ),
+            if (_list == StaffOrderList.primary) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _ChipRow(
+                children: [
+                  for (final filter in OrderFilter.values)
+                    _Chip(
+                      label: _filterLabels[filter]!,
+                      selected: _filter == filter,
+                      subtle: true,
+                      onTap: () => setState(() => _filter = filter),
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: AppSpacing.sm),
             Expanded(
-              child: filteredOrders.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      itemCount: filteredOrders.length,
-                      itemBuilder: (context, index) {
-                        final order = filteredOrders[index];
+              child: orders.when(
+                loading: () => ListView(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  children: const [
+                    LoadingSkeleton(height: 150),
+                    SizedBox(height: AppSpacing.md),
+                    LoadingSkeleton(height: 150),
+                  ],
+                ),
+                error: (error, _) => Center(
+                  child: ErrorState(
+                    message: error is Failure
+                        ? error.message
+                        : 'Pesanan gagal dimuat. Coba lagi ya.',
+                    onRetry: () => ref.invalidate(staffOrdersProvider(_list)),
+                  ),
+                ),
+                data: (items) {
+                  final visible = _list == StaffOrderList.primary
+                      ? items.where((o) => _filter.matches(o.status)).toList()
+                      : items;
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _buildOrderCard(order),
+                  if (visible.isEmpty) {
+                    return RefreshIndicator(
+                      onRefresh: _refresh,
+                      child: ListView(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        children: [
+                          const SizedBox(height: (AppSpacing.lg * 2)),
+                          EmptyState(
+                            icon: Icons.inbox_outlined,
+                            title: _list == StaffOrderList.unassigned
+                                ? 'Tidak ada order menunggu'
+                                : 'Belum ada pesanan',
+                            message: _list == StaffOrderList.unassigned
+                                ? 'Order baru dari customer akan muncul di sini.'
+                                : 'Pesanan dengan filter ini akan muncul di sini.',
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        0,
+                        AppSpacing.lg,
+                        (AppSpacing.lg * 2),
+                      ),
+                      itemCount: visible.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: AppSpacing.md),
+                      itemBuilder: (context, index) {
+                        final order = visible[index];
+                        return StaffOrderCard(
+                          order: order,
+                          onTap: () => _openDetail(order.id),
                         );
                       },
                     ),
+                  );
+                },
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildFilters() {
-    const filters = [
-      'Semua',
-      'Menunggu',
-      'Diproses',
-      'Selesai',
-    ];
+class _ChipRow extends StatelessWidget {
+  const _ChipRow({required this.children});
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: filters.map((filter) {
-          final isSelected = selectedFilter == filter;
-          final count = countStatus(filter);
+  final List<Widget> children;
 
-          return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.xs),
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  selectedFilter = filter;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.background,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.onSurfaceVariant
-                            .withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      filter,
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelMedium
-                          ?.copyWith(
-                            color: isSelected
-                                ? AppColors.surface
-                                : AppColors.onSurface,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                          ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$count',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall
-                          ?.copyWith(
-                            color: isSelected
-                                ? Colors.white.withValues(alpha: 0.85)
-                                : AppColors.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        itemCount: children.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, index) => children[index],
       ),
     );
   }
+}
 
-  Widget _buildOrderCard(Map<String, dynamic> order) {
-    final status = order['status'] as String;
-    final color = statusColor(status);
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.subtle = false,
+  });
 
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.onSurfaceVariant.withValues(alpha: 0.25),
+  final String label;
+  final bool selected;
+  final bool subtle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = selected
+        ? (subtle ? AppColors.primary.withValues(alpha: 0.18) : AppColors.primary)
+        : AppColors.surface;
+    final textColor = selected
+        ? (subtle ? AppColors.primaryDark : AppColors.onPrimary)
+        : AppColors.onSurfaceVariant;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? (subtle ? AppColors.primaryDark : AppColors.primary)
+                : AppColors.outline.withValues(alpha: 0.4),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  order['id'] as String,
-                  style: const TextStyle(
-                    color: textDark,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: textColor,
           ),
-          const SizedBox(height: 10),
-          Text(
-            order['shoe'] as String,
-            style: const TextStyle(
-              color: textDark,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            order['service'] as String,
-            style: const TextStyle(
-              color: primaryBlue,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            order['customer'] as String,
-            style: const TextStyle(
-              color: textGrey,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Divider(
-            height: 1,
-            color: borderColor.withValues(alpha: 0.25),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                Icons.calendar_today_outlined,
-                color: textGrey,
-                size: 15,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  order['date'] as String,
-                  style: const TextStyle(
-                    color: textGrey,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              TextButton(
-              onPressed: () async {
-                final updatedOrder = await Navigator.push<Map<String, dynamic>>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => WorkerOrderDetailPage(
-                      order: Map<String, dynamic>.from(order),
-                    ),
-                  ),
-                );
-
-                if (updatedOrder != null && mounted) {
-                  setState(() {
-                    order.addAll(updatedOrder);
-                  });
-                }
-              },
-              child: const Text('Lihat Detail'),
-            ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(22),
-              decoration: const BoxDecoration(
-                color: lightBlue,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.inbox_outlined,
-                size: 42,
-                color: primaryBlue,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Belum Ada Pesanan',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: textDark,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Pesanan dengan status ini akan muncul di sini.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: textGrey,
-                height: 1.5,
-              ),
-            ),
-          ],
         ),
       ),
     );
