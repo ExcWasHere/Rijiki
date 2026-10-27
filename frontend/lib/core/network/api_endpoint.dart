@@ -9,4 +9,10 @@ abstract final class ApiEndpoints {
   static const String logout = '/api/auth/logout';
 
   static const String profile = '/api/profile';
+
+  static const String services = '/api/services';
+
+  static const String orders = '/api/orders';
+  static const String orderQuote = '/api/orders/quote';
+  static String orderById(String id) => '$orders/$id';
 }

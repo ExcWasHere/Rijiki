@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/order/domain/order_item.dart';
@@ -119,7 +120,9 @@ class OrderSummaryPage extends ConsumerWidget {
                         },
                       )
                     : ErrorState(
-                        message: 'Harga gagal dihitung. Coba lagi ya.',
+                        message: error is Failure
+                            ? error.message
+                            : 'Harga gagal dihitung. Coba lagi ya.',
                         onRetry: () => ref.invalidate(orderQuoteProvider),
                       ),
               ),
@@ -191,11 +194,12 @@ class OrderSummaryPage extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (order == null) {
+      final message =
+          ref.read(orderCreateControllerProvider).submitError ??
+          'Order gagal dibuat. Coba lagi ya.';
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('Order gagal dibuat. Coba lagi ya.')),
-        );
+        ..showSnackBar(SnackBar(content: Text(message)));
       return;
     }
     context.go(RoutePaths.orderPaymentFor(order.id));

@@ -7,6 +7,9 @@ abstract final class AppConstants {
     defaultValue: 'http://10.0.2.2:8787',
   );
   static const bool useMockAuth = bool.fromEnvironment('USE_MOCK_AUTH');
+  static const bool useMockOrders =
+      useMockAuth || bool.fromEnvironment('USE_MOCK_ORDERS');
+
   static const Duration requestTimeout = Duration(seconds: 15);
   static const String googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',

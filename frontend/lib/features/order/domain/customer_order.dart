@@ -49,14 +49,7 @@ class CustomerOrder {
   final bool isRated;
 
   int get totalPrice => price.total;
-  int get shoeCount {
-    final perShoe = <String, int>{};
-    for (final item in items) {
-      final current = perShoe[item.shoeName] ?? 0;
-      if (item.quantity > current) perShoe[item.shoeName] = item.quantity;
-    }
-    return perShoe.values.fold(0, (sum, count) => sum + count);
-  }
+  int get shoeCount => items.fold(0, (sum, item) => sum + item.quantity);
 
   String get shoeNames => items.map((item) => item.shoeName).toSet().join(', ');
   String get serviceSummary =>
