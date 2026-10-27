@@ -4,9 +4,8 @@ import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/domain/order_item.dart';
 import 'package:rijiki/shared/widgets/network_image_box.dart';
+import 'package:rijiki/shared/widgets/private_image.dart';
 
-// TODO(backend): foto privat dimuat lewat endpoint ber-auth, teruskan
-// header Authorization ke NetworkImageBox.
 class BeforeAfterGallery extends StatelessWidget {
   const BeforeAfterGallery({
     super.key,
@@ -39,14 +38,14 @@ class BeforeAfterGallery extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _PhotoTile(
+                child: PhotoTile(
                   label: 'Sebelum',
                   doc: _find(item.id, DocumentationType.before),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _PhotoTile(
+                child: PhotoTile(
                   label: 'Sesudah',
                   doc: _find(item.id, DocumentationType.after),
                 ),
@@ -60,7 +59,7 @@ class BeforeAfterGallery extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: _PhotoTile(label: 'Diterima', doc: proof)),
+              Expanded(child: PhotoTile(label: 'Diterima', doc: proof)),
               const SizedBox(width: 10),
               const Expanded(child: SizedBox.shrink()),
             ],
@@ -71,8 +70,8 @@ class BeforeAfterGallery extends StatelessWidget {
   }
 }
 
-class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({required this.label, required this.doc});
+class PhotoTile extends StatelessWidget {
+  const PhotoTile({super.key, required this.label, required this.doc});
 
   final String label;
   final OrderDocumentation? doc;
@@ -80,10 +79,13 @@ class _PhotoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final key = doc?.imageKey;
     final url = doc?.photoUrl;
 
     final Widget content;
-    if (url != null) {
+    if (key != null) {
+      content = PrivateImage(imageKey: key);
+    } else if (url != null) {
       content = NetworkImageBox(url: url, radius: 0);
     } else {
       content = ColoredBox(

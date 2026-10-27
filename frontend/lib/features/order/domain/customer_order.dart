@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:rijiki/core/enums/order_payment_status.dart';
 import 'package:rijiki/core/enums/order_status.dart';
+import 'package:rijiki/features/order/domain/delivery_method.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/domain/order_item.dart';
 import 'package:rijiki/features/order/domain/order_status_history.dart';
 import 'package:rijiki/features/order/domain/price_breakdown.dart';
+import 'package:rijiki/features/order/domain/staff_capabilities.dart';
 
 @immutable
 class CustomerOrder {
@@ -27,6 +29,11 @@ class CustomerOrder {
     this.statusHistory = const [],
     this.documentation = const [],
     this.isRated = false,
+    this.deliveryMethod = DeliveryMethod.delivery,
+    this.isOffline = false,
+    this.assignedWorkerId,
+    this.assignedToMe = false,
+    this.staff,
   });
 
   final String id;
@@ -47,16 +54,14 @@ class CustomerOrder {
   final List<OrderStatusHistory> statusHistory;
   final List<OrderDocumentation> documentation;
   final bool isRated;
+  final DeliveryMethod deliveryMethod;
+  final bool isOffline;
+  final String? assignedWorkerId;
+  final bool assignedToMe;
+  final StaffCapabilities? staff;
 
   int get totalPrice => price.total;
-  int get shoeCount {
-    final perShoe = <String, int>{};
-    for (final item in items) {
-      final current = perShoe[item.shoeName] ?? 0;
-      if (item.quantity > current) perShoe[item.shoeName] = item.quantity;
-    }
-    return perShoe.values.fold(0, (sum, count) => sum + count);
-  }
+  int get shoeCount => items.fold(0, (sum, item) => sum + item.quantity);
 
   String get shoeNames => items.map((item) => item.shoeName).toSet().join(', ');
   String get serviceSummary =>
@@ -67,6 +72,26 @@ class CustomerOrder {
   bool get canPay => !isPaid && status != OrderStatus.cancelled;
 
   bool get canRate => status == OrderStatus.completed && !isRated;
+  List<OrderStatus> get flowStatuses {
+    if (!isOffline) {
+      return const [
+        OrderStatus.order,
+        OrderStatus.pickup,
+        OrderStatus.waiting,
+        OrderStatus.cleaning,
+        OrderStatus.delivery,
+        OrderStatus.completed,
+      ];
+    }
+    return deliveryMethod == DeliveryMethod.selfPickup
+        ? const [OrderStatus.waiting, OrderStatus.cleaning, OrderStatus.completed]
+        : const [
+            OrderStatus.waiting,
+            OrderStatus.cleaning,
+            OrderStatus.delivery,
+            OrderStatus.completed,
+          ];
+  }
 
   CustomerOrder copyWith({OrderPaymentStatus? paymentStatus}) {
     return CustomerOrder(
@@ -88,6 +113,11 @@ class CustomerOrder {
       statusHistory: statusHistory,
       documentation: documentation,
       isRated: isRated,
+      deliveryMethod: deliveryMethod,
+      isOffline: isOffline,
+      assignedWorkerId: assignedWorkerId,
+      assignedToMe: assignedToMe,
+      staff: staff,
     );
   }
 

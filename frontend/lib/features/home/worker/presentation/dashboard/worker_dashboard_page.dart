@@ -1,188 +1,226 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/enums/order_status.dart';
+import 'package:rijiki/core/error/failure.dart';
+import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
+import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/domain/staff_order_repository.dart';
+import 'package:rijiki/features/order/presentation/controllers/staff_order_controller.dart';
+import 'package:rijiki/features/order/presentation/widgets/staff_order_card.dart';
+import 'package:rijiki/shared/widgets/empty_state.dart';
+import 'package:rijiki/shared/widgets/error_state.dart';
+import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 
-class WorkerDashboardPage extends StatelessWidget {
+class WorkerDashboardPage extends ConsumerWidget {
   const WorkerDashboardPage({super.key});
 
+  static const int _previewCount = 3;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(sessionProvider);
+    final mine = ref.watch(staffOrdersProvider(StaffOrderList.primary));
+    final queue = ref.watch(staffOrdersProvider(StaffOrderList.unassigned));
+    final textTheme = Theme.of(context).textTheme;
 
-    const totalOrders = 12;
-    const waitingOrders = 3;
-    const cleaningOrders = 4;
-    const completedOrders = 5;
+    final myOrders = mine.value ?? const <CustomerOrder>[];
+    final activeOrders = myOrders.where((o) => o.status.isActive).toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final cleaning = myOrders
+        .where((o) => o.status == OrderStatus.cleaning)
+        .length;
+    final completed = myOrders
+        .where((o) => o.status == OrderStatus.completed)
+        .length;
+    final queueCount = queue.value?.length ?? 0;
 
-    final orders = [
-      const _WorkerOrder(
-        number: 'RJ-001',
-        shoeName: 'White Sneakers',
-        service: 'Deep Cleaning',
-        status: 'Menunggu',
-        imageUrl:
-            'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=300',
-      ),
-      const _WorkerOrder(
-        number: 'RJ-002',
-        shoeName: 'Black Sneakers',
-        service: 'Deep Cleaning',
-        status: 'Diproses',
-        imageUrl:
-            'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=300',
-      ),
-    ];
+    final firstName = (user?.fullName ?? '').trim().split(' ').first;
+
+    Future<void> refresh() async {
+      ref.invalidate(staffOrdersProvider);
+      try {
+        await Future.wait([
+          ref.read(staffOrdersProvider(StaffOrderList.primary).future),
+          ref.read(staffOrdersProvider(StaffOrderList.unassigned).future),
+        ]);
+      } catch (_) {
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.10),
-                    borderRadius: BorderRadius.circular(16),
+        child: RefreshIndicator(
+          onRefresh: refresh,
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.person_outline_rounded,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.person_outline_rounded,
-                    color: AppColors.primary,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Halo, Karyawan!',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.onSurface,
-                            ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Siap memproses pesanan hari ini?',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    // TODO: Buka halaman notifikasi.
-                  },
-                  icon: const Icon(
-                    Icons.notifications_none_rounded,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Ringkasan Hari Ini',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
-                  ),
-            ),
-
-            const SizedBox(height: AppSpacing.sm),
-
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: AppSpacing.sm,
-              mainAxisSpacing: AppSpacing.sm,
-              childAspectRatio: 1.25,
-              children: [
-                _WorkerStatCard(
-                  title: 'Pesanan Hari Ini',
-                  value: totalOrders,
-                  icon: Icons.receipt_long_outlined,
-                  color: AppColors.primary,
-                ),
-                _WorkerStatCard(
-                  title: 'Menunggu',
-                  value: waitingOrders,
-                  icon: Icons.schedule_rounded,
-                  color: const Color(0xFFD97706),
-                ),
-                _WorkerStatCard(
-                  title: 'Diproses',
-                  value: cleaningOrders,
-                  icon: Icons.cleaning_services_outlined,
-                  color: AppColors.primary,
-                ),
-                _WorkerStatCard(
-                  title: 'Selesai',
-                  value: completedOrders,
-                  icon: Icons.check_circle_outline_rounded,
-                  color: const Color(0xFF16845B),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Pesanan yang Perlu Ditangani',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          firstName.isEmpty ? 'Halo!' : 'Halo, $firstName!',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                          ),
                         ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Siap memproses pesanan hari ini?',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    // TODO: Arahkan ke tab Pesan.
-                  },
-                  child: const Text('Lihat semua'),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: AppSpacing.xs),
-
-            ...orders.map(
-              (order) => Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppSpacing.sm,
-                ),
-                child: _WorkerOrderCard(order: order),
+                  IconButton(
+                    onPressed: () {
+                      // TODO: Buka halaman notifikasi.
+                    },
+                    icon: const Icon(Icons.notifications_none_rounded),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Ringkasan',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: AppSpacing.sm,
+                mainAxisSpacing: AppSpacing.sm,
+                childAspectRatio: 1.25,
+                children: [
+                  _StatCard(
+                    title: 'Tugas aktif',
+                    value: activeOrders.length,
+                    icon: Icons.receipt_long_outlined,
+                    color: AppColors.primary,
+                  ),
+                  _StatCard(
+                    title: 'Antrean',
+                    value: queueCount,
+                    icon: Icons.schedule_rounded,
+                    color: AppColors.warning,
+                  ),
+                  _StatCard(
+                    title: 'Dikerjakan',
+                    value: cleaning,
+                    icon: Icons.cleaning_services_outlined,
+                    color: AppColors.primaryDark,
+                  ),
+                  _StatCard(
+                    title: 'Selesai',
+                    value: completed,
+                    icon: Icons.check_circle_outline_rounded,
+                    color: AppColors.success,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Pesanan yang perlu ditangani',
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go(RoutePaths.workerOrders),
+                    child: const Text('Lihat semua'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              ..._buildPreview(context, ref, mine, activeOrders),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  List<Widget> _buildPreview(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<List<CustomerOrder>> mine,
+    List<CustomerOrder> activeOrders,
+  ) {
+    if (mine.isLoading && !mine.hasValue) {
+      return const [LoadingSkeleton(height: 150)];
+    }
+    if (mine.hasError && !mine.hasValue) {
+      final error = mine.error;
+      return [
+        ErrorState(
+          message: error is Failure
+              ? error.message
+              : 'Pesanan gagal dimuat. Coba lagi ya.',
+          onRetry: () =>
+              ref.invalidate(staffOrdersProvider(StaffOrderList.primary)),
+        ),
+      ];
+    }
+    if (activeOrders.isEmpty) {
+      return const [
+        EmptyState(
+          icon: Icons.task_alt_rounded,
+          title: 'Tidak ada tugas aktif',
+          message: 'Ambil order dari tab Pesanan > Antrean.',
+        ),
+      ];
+    }
+
+    return [
+      for (final order in activeOrders.take(_previewCount))
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: StaffOrderCard(
+            order: order,
+            onTap: () =>
+                context.push(RoutePaths.workerOrderDetailFor(order.id)),
+          ),
+        ),
+    ];
+  }
 }
 
-class _WorkerStatCard extends StatelessWidget {
-  const _WorkerStatCard({
+class _StatCard extends StatelessWidget {
+  const _StatCard({
     required this.title,
     required this.value,
     required this.icon,
@@ -196,13 +234,15 @@ class _WorkerStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.onSurfaceVariant.withOpacity(0.25),
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.25),
         ),
       ),
       child: Column(
@@ -212,154 +252,21 @@ class _WorkerStatCard extends StatelessWidget {
           Icon(icon, color: color, size: 23),
           Text(
             '$value',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
+            style: textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
           ),
           Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
         ],
       ),
     );
   }
-}
-
-
-class _WorkerOrderCard extends StatelessWidget {
-  const _WorkerOrderCard({
-    required this.order,
-  });
-
-  final _WorkerOrder order;
-
-  @override
-  Widget build(BuildContext context) {
-    final statusColor = switch (order.status) {
-      'Menunggu' => const Color(0xFFD97706),
-      'Diproses' => AppColors.primary,
-      'Delivery' => const Color(0xFF7C3AED),
-      'Selesai' => const Color(0xFF16845B),
-      _ => AppColors.onSurfaceVariant,
-    };
-
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          // TODO: Buka detail order.
-        },
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.onSurfaceVariant.withValues(alpha: 0.25),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '#${order.number}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      order.shoeName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      order.service,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        order.status,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-
-class _WorkerOrder {
-  const _WorkerOrder({
-    required this.number,
-    required this.shoeName,
-    required this.service,
-    required this.status,
-    required this.imageUrl,
-  });
-
-  final String number;
-  final String shoeName;
-  final String service;
-  final String status;
-  final String imageUrl;
 }

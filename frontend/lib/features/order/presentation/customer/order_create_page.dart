@@ -82,16 +82,21 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
               children: [
                 TextField(
                   controller: _name,
-                  onChanged: controller.setName,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(labelText: 'Nama'),
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama',
+                    helperText: 'Diambil dari profil akunmu',
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: _phone,
-                  onChanged: controller.setPhone,
+                  readOnly: true,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'No HP'),
+                  decoration: const InputDecoration(
+                    labelText: 'No HP',
+                    helperText: 'Ubah nomor HP lewat halaman Profil',
+                  ),
                 ),
               ],
             ),

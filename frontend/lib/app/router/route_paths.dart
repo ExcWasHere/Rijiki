@@ -112,4 +112,8 @@ abstract final class RoutePaths {
     path: '$customerOrders/$orderId/pay/result',
     queryParameters: {'status': status},
   ).toString();
+
+  static String workerOrderDetailFor(String orderId) =>
+      '$workerOrders/$orderId';
+  static String ownerOrderDetailFor(String orderId) => '$ownerOrders/$orderId';
 }

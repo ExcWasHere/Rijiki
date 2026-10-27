@@ -21,7 +21,11 @@ import 'package:rijiki/features/event/domain/promo_repository.dart';
 import 'package:rijiki/features/merchandise/data/mock_merchandise_repository.dart';
 import 'package:rijiki/features/merchandise/domain/merchandise_repository.dart';
 import 'package:rijiki/features/order/data/mock_order_repository.dart';
+import 'package:rijiki/features/order/data/mock_staff_order_repository.dart';
+import 'package:rijiki/features/order/data/order_repository_impl.dart';
+import 'package:rijiki/features/order/data/staff_order_repository_impl.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
+import 'package:rijiki/features/order/domain/staff_order_repository.dart';
 import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
 import 'package:rijiki/features/payment/domain/payment_repository.dart';
 import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
@@ -32,6 +36,7 @@ import 'package:rijiki/features/rating/domain/rating_repository.dart';
 import 'package:rijiki/features/scan/data/mock_scan_repository.dart';
 import 'package:rijiki/features/scan/domain/scan_repository.dart';
 import 'package:rijiki/features/service/data/mock_service_repository.dart';
+import 'package:rijiki/features/service/data/service_repository_impl.dart';
 import 'package:rijiki/features/service/domain/service_repository.dart';
 import 'package:rijiki/features/worker_management/data/mock_worker_repository.dart';
 import 'package:rijiki/features/worker_management/domain/worker_repository.dart';
@@ -66,9 +71,11 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 
 final mockScenarioProvider = Provider<MockScenario>((ref) => MockScenario.data);
 
-final serviceRepositoryProvider = Provider<ServiceRepository>(
-  (ref) => MockServiceRepository(scenario: ref.watch(mockScenarioProvider)),
-);
+final serviceRepositoryProvider = Provider<ServiceRepository>((ref) {
+  final mock = MockServiceRepository(scenario: ref.watch(mockScenarioProvider));
+  if (AppConstants.useMockOrders) return mock;
+  return ServiceRepositoryImpl(api: ref.watch(apiClientProvider), cms: mock);
+});
 
 final eventRepositoryProvider = Provider<EventRepository>(
   (ref) => MockEventRepository(scenario: ref.watch(mockScenarioProvider)),
@@ -82,12 +89,22 @@ final merchandiseRepositoryProvider = Provider<MerchandiseRepository>(
   (ref) => MockMerchandiseRepository(scenario: ref.watch(mockScenarioProvider)),
 );
 
-final orderRepositoryProvider = Provider<OrderRepository>(
-  (ref) => MockOrderRepository(
-    promos: ref.watch(promoRepositoryProvider),
-    scenario: ref.watch(mockScenarioProvider),
-  ),
-);
+final orderRepositoryProvider = Provider<OrderRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockOrderRepository(
+      promos: ref.watch(promoRepositoryProvider),
+      scenario: ref.watch(mockScenarioProvider),
+    );
+  }
+  return OrderRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
+final staffOrderRepositoryProvider = Provider<StaffOrderRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockStaffOrderRepository(orders: ref.watch(orderRepositoryProvider));
+  }
+  return StaffOrderRepositoryImpl(api: ref.watch(apiClientProvider));
+});
 
 final ratingRepositoryProvider = Provider<RatingRepository>(
   (ref) => MockRatingRepository(scenario: ref.watch(mockScenarioProvider)),
