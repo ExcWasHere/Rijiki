@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rijiki/core/constants/asset_paths.dart';
+import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
+
+import '../../../../app/router/route_paths.dart' show RoutePaths;
 
 class OwnerProfilePage extends ConsumerWidget {
   const OwnerProfilePage({super.key});
@@ -38,10 +41,9 @@ class OwnerProfilePage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Column(
                 children: [
-                  _CmsCtaCard(
-                    // TODO: ganti dengan route CMS, mis. context.push(RoutePaths.ownerCms)
-                    onTap: () => _showComingSoon(context, 'CMS'),
-                  ),
+                            _CmsCtaCard(
+            onTap: () => context.push(RoutePaths.ownerCms),
+          ),
                   const SizedBox(height: AppSpacing.lg),
                   _MenuSection(
                     title: 'Keuangan',
