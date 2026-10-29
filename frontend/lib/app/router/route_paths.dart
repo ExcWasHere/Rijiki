@@ -22,6 +22,7 @@ abstract final class RoutePaths {
   static const workerOrders = '/worker/orders';
   static const workerManagement = '/worker/management';
   static const workerProfile = '/worker/profile';
+  static const String workerOfflineOrder = '/worker/orders/offline/new';
 
   static const String ownerHome = '/owner';
   static const String ownerOrders = '/owner/orders';
@@ -51,14 +52,11 @@ abstract final class RoutePaths {
       '$ownerWorkers/$workerId/edit';
   static String ownerWorkerAccessFor(String workerId) =>
       '$ownerWorkers/$workerId/access';
-  static String ownerWorkerKpiAssessFor(
-    String workerId,
-    int month,
-    int year,
-  ) => Uri(
-    path: '$ownerWorkers/$workerId/kpi',
-    queryParameters: {'month': '$month', 'year': '$year'},
-  ).toString();
+  static String ownerWorkerKpiAssessFor(String workerId, int month, int year) =>
+      Uri(
+        path: '$ownerWorkers/$workerId/kpi',
+        queryParameters: {'month': '$month', 'year': '$year'},
+      ).toString();
 
   static const String ownerCms = '/owner/management/cms';
   static const String ownerCmsServices = '/owner/management/cms/services';
@@ -79,8 +77,7 @@ abstract final class RoutePaths {
   static String ownerCmsPromoEditFor(String promoId) =>
       '$ownerCmsPromos/$promoId/edit';
 
-  static const String ownerCmsMerchandise =
-      '/owner/management/cms/merchandise';
+  static const String ownerCmsMerchandise = '/owner/management/cms/merchandise';
   static const String ownerCmsMerchandiseNew =
       '/owner/management/cms/merchandise/new';
 
