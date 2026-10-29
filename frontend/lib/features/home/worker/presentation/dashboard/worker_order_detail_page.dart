@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/enums/order_status.dart';
+import 'package:rijiki/core/enums/user_role.dart';
 import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/extensions/enum_ui_x.dart';
+import 'package:rijiki/core/location/location_service.dart';
+import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/date_formatter.dart';
@@ -106,6 +111,14 @@ class _DetailBody extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         _HeaderCard(order: order),
+        if (order.status == OrderStatus.delivery && order.assignedToMe) ...[
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: () => context.push(RoutePaths.workerDeliveryRun),
+            icon: const Icon(Icons.map_outlined, size: 20),
+            label: const Text('Lihat peta pengantaran'),
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Sepatu & dokumentasi'),
         const SizedBox(height: AppSpacing.sm),
@@ -576,17 +589,68 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
     _ => next.label,
   };
 
-  Future<void> _run(Future<void> Function() action, {String? success}) async {
-    if (_busy) return;
+  Future<bool> _run(Future<void> Function() action, {String? success}) async {
+    if (_busy) return false;
     setState(() => _busy = true);
     try {
       await action();
       if (mounted && success != null) _snack(context, success);
+      return true;
     } catch (e) {
       if (mounted) _snack(context, Failure.messageOf(e));
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<bool> _ensureLocationReady() async {
+    final location = ref.read(locationServiceProvider);
+    final issue = await location.trackingIssue(request: true);
+    if (issue == null) return true;
+    if (!mounted) return false;
+
+    final message = switch (issue) {
+      LocationIssue.serviceDisabled =>
+        'GPS perangkat sedang mati. Nyalakan GPS agar customer bisa melihat posisimu selama pengantaran.',
+      LocationIssue.deniedForever =>
+        'Izin lokasi ditolak permanen. Aktifkan izin lokasi untuk Rijiki di pengaturan aplikasi.',
+      LocationIssue.denied =>
+        'Izin lokasi wajib diberikan sebelum mulai mengantar, supaya customer bisa memantau posisimu.',
+      LocationIssue.unavailable =>
+        'Lokasi belum bisa dibaca. Pastikan GPS aktif lalu coba lagi.',
+    };
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Izin lokasi diperlukan'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Tutup'),
+          ),
+          if (issue == LocationIssue.deniedForever)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                location.openAppSettings();
+              },
+              child: const Text('Buka pengaturan'),
+            ),
+          if (issue == LocationIssue.serviceDisabled)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                location.openLocationSettings();
+              },
+              child: const Text('Buka pengaturan GPS'),
+            ),
+        ],
+      ),
+    );
+    return false;
   }
 
   Future<void> _claim() => _run(
@@ -597,6 +661,7 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
   Future<void> _advance() async {
     final next = _order.staff?.nextStatus;
     if (next == null) return;
+    if (next == OrderStatus.delivery && !await _ensureLocationReady()) return;
 
     if (next == OrderStatus.completed) {
       final confirmed = await showDialog<bool>(
@@ -621,10 +686,17 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
       if (confirmed != true) return;
     }
 
-    await _run(
+    final ok = await _run(
       () => ref.read(staffOrderCommandsProvider).updateStatus(_order.id, next),
       success: 'Status diperbarui: ${next.label}.',
     );
+
+    if (ok &&
+        next == OrderStatus.delivery &&
+        mounted &&
+        ref.read(sessionProvider)?.role == UserRole.worker) {
+      context.push(RoutePaths.workerDeliveryRun);
+    }
   }
 
   Future<void> _assign() async {

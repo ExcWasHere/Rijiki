@@ -7,6 +7,7 @@ import 'package:rijiki/app/shells/customer_shell.dart';
 import 'package:rijiki/app/shells/owner_shell.dart';
 import 'package:rijiki/app/shells/worker_shell.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_dashboard_page.dart';
+import 'package:rijiki/features/home/worker/presentation/dashboard/worker_delivery_run_page.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_order_detail_page.dart';
 import 'package:rijiki/features/home/worker/presentation/dashboard/worker_orders_page.dart';
 import 'package:rijiki/features/home/worker/presentation/management/worker_management_hub_page.dart';
@@ -218,7 +219,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             WorkerShell(navigationShell: navigationShell),
         branches: [
-          // Dashboard Worker
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -227,31 +227,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-
-          // Pesanan Worker
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.workerOrders,
-                builder: (context, state) => const WorkerOrdersPage(),
-                routes: [
-                  // Tambah Pesanan Offline
-                  GoRoute(
-                    path: 'offline/new',
-                    builder: (context, state) => const WorkerOfflineOrderPage(),
-                  ),
-
-                  // Detail Pesanan
-                  GoRoute(
-                    path: ':orderId',
-                    builder: (context, state) => WorkerOrderDetailPage(
-                      orderId: state.pathParameters['orderId']!,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -262,6 +237,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'offline/new',
                     builder: (context, state) => const WorkerOfflineOrderPage(),
                   ),
+
+                  GoRoute(
+                    path: 'delivery',
+                    builder: (context, state) => const WorkerDeliveryRunPage(),
+                  ),
+
                   GoRoute(
                     path: ':orderId',
                     builder: (context, state) => WorkerOrderDetailPage(
@@ -272,7 +253,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Manajemen Worker
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -281,8 +261,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-
-          // Profil Worker
           StatefulShellBranch(
             routes: [
               GoRoute(

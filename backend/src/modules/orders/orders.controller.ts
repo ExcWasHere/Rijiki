@@ -11,6 +11,8 @@ import {
   updateStatusSchema,
 } from './orders.schema';
 import { createOrder, getOrder, listOrders, quoteOrder } from './orders.service';
+import { trackingPointSchema } from './orders.tracking.schema';
+import { getTracking, recordTrackingPoint } from './orders.tracking.service';
 import {
   DOCUMENTATION_MAX_BYTES,
   assignOrder,
@@ -88,4 +90,16 @@ export async function deleteDocumentationHandler(c: Context<AppEnv>) {
   const ctx = c.get('user');
   await deleteDocumentation(c.env, ctx, c.req.param('id') ?? '', c.req.param('docId') ?? '');
   return c.body(null, 204);
+}
+
+export async function recordTrackingHandler(c: Context<AppEnv>) {
+  const ctx = c.get('user');
+  const input = parseInput(trackingPointSchema, await c.req.json().catch(() => null));
+  return c.json(await recordTrackingPoint(c.env, ctx, c.req.param('id') ?? '', input), 201);
+}
+
+export async function getTrackingHandler(c: Context<AppEnv>) {
+  const ctx = c.get('user');
+  c.header('Cache-Control', 'no-store');
+  return c.json(await getTracking(c.env, ctx, c.req.param('id') ?? ''));
 }
