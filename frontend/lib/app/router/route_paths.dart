@@ -23,6 +23,7 @@ abstract final class RoutePaths {
   static const workerManagement = '/worker/management';
   static const workerProfile = '/worker/profile';
   static const String workerOfflineOrder = '/worker/orders/offline/new';
+  static const String workerDeliveryRun = '/worker/orders/delivery';
 
   static const String ownerHome = '/owner';
   static const String ownerOrders = '/owner/orders';

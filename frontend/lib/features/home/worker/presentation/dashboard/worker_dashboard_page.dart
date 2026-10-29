@@ -7,8 +7,10 @@ import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
+import 'package:rijiki/features/home/worker/presentation/dashboard/worker_delivery_run_page.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
+import 'package:rijiki/features/order/presentation/controllers/courier_tracking_sender.dart';
 import 'package:rijiki/features/order/presentation/controllers/staff_order_controller.dart';
 import 'package:rijiki/features/order/presentation/widgets/staff_order_card.dart';
 import 'package:rijiki/shared/widgets/empty_state.dart';
@@ -25,6 +27,7 @@ class WorkerDashboardPage extends ConsumerWidget {
     final user = ref.watch(sessionProvider);
     final mine = ref.watch(staffOrdersProvider(StaffOrderList.primary));
     final queue = ref.watch(staffOrdersProvider(StaffOrderList.unassigned));
+    final sender = ref.watch(courierTrackingSenderProvider);
     final textTheme = Theme.of(context).textTheme;
 
     final myOrders = mine.value ?? const <CustomerOrder>[];
@@ -37,11 +40,13 @@ class WorkerDashboardPage extends ConsumerWidget {
         .where((o) => o.status == OrderStatus.completed)
         .length;
     final queueCount = queue.value?.length ?? 0;
+    final deliveries = deliveryRunOf(myOrders);
 
     final firstName = (user?.fullName ?? '').trim().split(' ').first;
 
     Future<void> refresh() async {
       ref.invalidate(staffOrdersProvider);
+      ref.read(courierTrackingSenderProvider.notifier).sync();
       try {
         await Future.wait([
           ref.read(staffOrdersProvider(StaffOrderList.primary).future),
@@ -104,6 +109,10 @@ class WorkerDashboardPage extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (deliveries.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                _DeliveryBanner(count: deliveries.length, sender: sender),
+              ],
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'Ringkasan',
@@ -264,6 +273,68 @@ class _StatCard extends StatelessWidget {
             style: textTheme.bodySmall?.copyWith(
               color: AppColors.onSurfaceVariant,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeliveryBanner extends ConsumerWidget {
+  const _DeliveryBanner({required this.count, required this.sender});
+
+  final int count;
+  final CourierSenderState sender;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    final hasIssue = sender.issue != null;
+    final color = hasIssue ? AppColors.warning : AppColors.rijikiOrange;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.two_wheeler_rounded, color: color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Sedang mengantar $count order',
+                  style: textTheme.titleSmall,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            hasIssue
+                ? 'Pelacakan lokasi belum aktif, customer belum bisa melihat posisimu.'
+                : 'Lokasimu dibagikan ke customer selama pengantaran.',
+            style: textTheme.bodySmall,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            children: [
+              FilledButton(
+                onPressed: () => context.push(RoutePaths.workerDeliveryRun),
+                child: const Text('Buka peta pengantaran'),
+              ),
+              if (hasIssue)
+                OutlinedButton(
+                  onPressed: () =>
+                      ref.read(courierTrackingSenderProvider.notifier).retry(),
+                  child: const Text('Aktifkan lokasi'),
+                ),
+            ],
           ),
         ],
       ),

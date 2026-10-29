@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:rijiki/core/enums/order_status.dart';
+import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/map/map_config.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
@@ -102,9 +104,11 @@ class _MapBodyState extends ConsumerState<_MapBody> {
         padding: EdgeInsets.all(AppSpacing.lg),
         child: LoadingSkeleton(height: 420),
       ),
-      error: (_, _) => Center(
+      error: (error, _) => Center(
         child: ErrorState(
-          message: 'Posisi kurir gagal dimuat. Coba lagi ya.',
+          message: error is Failure
+              ? error.message
+              : 'Posisi kurir gagal dimuat. Coba lagi ya.',
           onRetry: () => ref.invalidate(courierTrackingProvider(id)),
         ),
       ),
@@ -169,20 +173,62 @@ class _CourierCard extends StatelessWidget {
   final CustomerOrder order;
   final CourierTracking tracking;
 
+  static const Distance _distance = Distance();
+  static const double _arrivedMeters = 30;
+  static const Duration _staleAfter = Duration(seconds: 90);
+
+  String get _headline {
+    if (!tracking.hasLivePosition) return 'Menunggu lokasi kurir…';
+
+    final arrived =
+        !tracking.isWaitingForOtherOrder &&
+        _distance.as(LengthUnit.Meter, tracking.position, tracking.destination) <
+            _arrivedMeters;
+    if (arrived) return 'Kurir sudah tiba';
+
+    final eta = 'tiba sekitar ${tracking.etaMinutes} menit lagi';
+    if (tracking.isWaitingForOtherOrder) {
+      final others = tracking.queuePosition - 1;
+      return 'Kurir mengantar $others order lain dulu · $eta';
+    }
+    return '${eta[0].toUpperCase()}${eta.substring(1)}';
+  }
+
+  String? get _staleNote {
+    final at = tracking.recordedAt;
+    if (at == null || !tracking.hasLivePosition) return null;
+    final age = DateTime.now().difference(at);
+    if (age < _staleAfter) return null;
+    return 'Lokasi terakhir diperbarui ${age.inMinutes} menit lalu';
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final arrived = tracking.position == tracking.destination;
+    final stale = _staleNote;
 
     return AppCard(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            arrived ? 'Kurir sudah tiba' : 'Tiba sekitar ${tracking.etaMinutes} menit lagi',
-            style: textTheme.titleMedium,
-          ),
+          Text(_headline, style: textTheme.titleMedium),
+          if (stale != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              stale,
+              style: textTheme.bodySmall?.copyWith(color: AppColors.warning),
+            ),
+          ],
+          if (tracking.isEstimate && tracking.hasLivePosition) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Perkiraan waktu bersifat kasar.',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [

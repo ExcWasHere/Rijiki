@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:geolocator/geolocator.dart';
@@ -19,6 +20,12 @@ class LocationService {
     : _geocoding = geocoding ?? geo.Geocoding();
 
   final geo.Geocoding _geocoding;
+
+  /// Jarak minimum antar titik pelacakan kurir (PRD Bagian 11).
+  static const int trackingDistanceFilterMeters = 15;
+
+  /// Selang permintaan lokasi Android saat pelacakan kurir (PRD Bagian 11).
+  static const Duration trackingInterval = Duration(seconds: 10);
 
   static final RegExp _plusCode = RegExp(
     r'^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,}',
@@ -51,6 +58,52 @@ class LocationService {
     } catch (_) {
       throw const LocationException(LocationIssue.unavailable);
     }
+  }
+
+  /// Memeriksa kesiapan pelacakan kurir. Mengembalikan null bila siap, atau
+  /// penyebab belum siapnya. Dialog izin hanya muncul bila [request] true.
+  Future<LocationIssue?> trackingIssue({bool request = false}) async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      return LocationIssue.serviceDisabled;
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied && request) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return LocationIssue.deniedForever;
+    }
+    if (permission == LocationPermission.denied) {
+      return LocationIssue.denied;
+    }
+    return null;
+  }
+
+  /// Aliran posisi untuk pelacakan kurir. Di Android berjalan sebagai
+  /// foreground service dengan notifikasi, sehingga tetap aktif saat layar mati.
+  Stream<Position> trackingStream() {
+    final LocationSettings settings;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      settings = AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: trackingDistanceFilterMeters,
+        intervalDuration: trackingInterval,
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'Rijiki sedang mengantar',
+          notificationText:
+              'Lokasimu dibagikan ke customer selama pengantaran.',
+          enableWakeLock: true,
+          setOngoing: true,
+        ),
+      );
+    } else {
+      settings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: trackingDistanceFilterMeters,
+      );
+    }
+    return Geolocator.getPositionStream(locationSettings: settings);
   }
 
   Future<String?> addressOf(LatLng point) async {

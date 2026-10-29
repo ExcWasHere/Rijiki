@@ -7,8 +7,10 @@ import {
   createOrderHandler,
   deleteDocumentationHandler,
   getOrderHandler,
+  getTrackingHandler,
   listOrdersHandler,
   quoteOrderHandler,
+  recordTrackingHandler,
   updateStatusHandler,
   uploadDocumentationHandler,
 } from './orders.controller';
@@ -25,10 +27,12 @@ ordersRoutes.post('/', createOrderHandler);
 ordersRoutes.get('/', listOrdersHandler);
 ordersRoutes.get('/:id', getOrderHandler);
 
-// Worker / owner (tahap D). Aturan akses dan alur status ada di orders.staff.service.ts.
-// Order offline (POST /offline), tracking kurir, dan pembayaran menyusul.
+// Worker / owner
 ordersRoutes.post('/:id/claim', claimOrderHandler);
 ordersRoutes.patch('/:id/assign', assignOrderHandler);
 ordersRoutes.patch('/:id/status', updateStatusHandler);
 ordersRoutes.post('/:id/documentations', uploadDocumentationHandler);
 ordersRoutes.delete('/:id/documentations/:docId', deleteDocumentationHandler);
+
+ordersRoutes.post('/:id/tracking', recordTrackingHandler);
+ordersRoutes.get('/:id/tracking', getTrackingHandler);

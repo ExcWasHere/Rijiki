@@ -22,7 +22,11 @@ abstract final class ApiEndpoints {
   static String orderDocumentation(String id, String docId) =>
       '$orders/$id/documentations/$docId';
 
+  /// Kurir mengirim titik (POST) dan customer/staff membaca posisi (GET).
+  static String orderTracking(String id) => '$orders/$id/tracking';
+
   static const String workers = '/api/workers';
 
+  /// Foto privat (dokumentasi order, dst.) - butuh header Authorization.
   static String privateMedia(String key) => '/api/media/private/$key';
 }

@@ -21,9 +21,11 @@ import 'package:rijiki/features/event/domain/promo_repository.dart';
 import 'package:rijiki/features/merchandise/data/mock_merchandise_repository.dart';
 import 'package:rijiki/features/merchandise/domain/merchandise_repository.dart';
 import 'package:rijiki/features/order/data/mock_order_repository.dart';
+import 'package:rijiki/features/order/data/courier_tracking_repository_impl.dart';
 import 'package:rijiki/features/order/data/mock_staff_order_repository.dart';
 import 'package:rijiki/features/order/data/order_repository_impl.dart';
 import 'package:rijiki/features/order/data/staff_order_repository_impl.dart';
+import 'package:rijiki/features/order/domain/courier_tracking_repository.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
 import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
@@ -105,6 +107,10 @@ final staffOrderRepositoryProvider = Provider<StaffOrderRepository>((ref) {
   }
   return StaffOrderRepositoryImpl(api: ref.watch(apiClientProvider));
 });
+
+final courierTrackingRepositoryProvider = Provider<CourierTrackingRepository>(
+  (ref) => CourierTrackingRepositoryImpl(api: ref.watch(apiClientProvider)),
+);
 
 final ratingRepositoryProvider = Provider<RatingRepository>(
   (ref) => MockRatingRepository(scenario: ref.watch(mockScenarioProvider)),

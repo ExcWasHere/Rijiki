@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
 import 'package:rijiki/core/enums/order_status.dart';
@@ -5,6 +7,7 @@ import 'package:rijiki/features/order/domain/assignable_worker.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
+import 'package:rijiki/features/order/presentation/controllers/courier_tracking_sender.dart';
 
 Duration? _noRetry(int retryCount, Object error) => null;
 final staffOrdersProvider = FutureProvider.autoDispose
@@ -53,6 +56,7 @@ class StaffOrderCommands {
   }) async {
     final order = await _repo.updateStatus(orderId, status, notes: notes);
     _refresh(orderId);
+    unawaited(_ref.read(courierTrackingSenderProvider.notifier).sync());
     return order;
   }
 
