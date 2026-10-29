@@ -156,7 +156,7 @@ Future<void> _showQrisDialog(int total) async {
             const SizedBox(height: 12),
 
             const Text(
-              'QRIS',
+              'QRIS RIJIKI',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey,
