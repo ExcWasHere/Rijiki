@@ -284,7 +284,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       top: AppSpacing.xs,
                     ),
                     child: Text(
-                      'Email tidak bisa diubah.',
+                      'Untuk mengganti email, buka Keamanan akun.',
                       style: textTheme.bodySmall?.copyWith(
                         color: AppColors.onSurfaceVariant,
                       ),

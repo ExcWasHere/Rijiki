@@ -8,6 +8,10 @@ abstract final class RoutePaths {
 
   // Di luar shell supaya bottom navbar tersembunyi; dipakai semua role.
   static const String editProfile = '/profile/edit';
+  
+  static const String accountSecurity = '/profile/security';
+  static const String changePassword = '/profile/security/password';
+  static const String changeEmail = '/profile/security/email';
 
   static const String customerHome = '/customer';
   static const String customerOrders = '/customer/orders';

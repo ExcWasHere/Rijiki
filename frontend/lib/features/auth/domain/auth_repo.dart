@@ -14,4 +14,22 @@ abstract interface class AuthRepository {
   Future<void> resendVerification({required String email});
 
   Future<void> logout();
+
+    Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String password,
+  });
+
+  Future<void> confirmEmailChange({
+    required String newEmail,
+    required String code,
+  });
+
+  /// true = berhasil, false = dibatalkan pengguna.
+  Future<bool> linkGoogle();
 }

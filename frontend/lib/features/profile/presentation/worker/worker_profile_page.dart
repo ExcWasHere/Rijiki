@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/constants/asset_paths.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
@@ -55,7 +56,7 @@ class WorkerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.lock_outline_rounded,
                         title: 'Keamanan akun',
-                        onTap: () => _showComingSoon(context, 'Keamanan akun'),
+                        onTap: () => context.push(RoutePaths.accountSecurity),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.notifications_none_rounded,

@@ -50,6 +50,9 @@ import 'package:rijiki/features/payment/presentation/customer/payment_result_pag
 import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.dart';
 import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
 import 'package:rijiki/features/profile/presentation/owner/owner_profile_page.dart';
+import 'package:rijiki/features/profile/presentation/shared/account_security_page.dart';
+import 'package:rijiki/features/profile/presentation/shared/change_email_page.dart';
+import 'package:rijiki/features/profile/presentation/shared/change_password_page.dart';
 import 'package:rijiki/features/profile/presentation/shared/edit_profile_page.dart';
 import 'package:rijiki/features/profile/presentation/worker/worker_profile_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
@@ -108,6 +111,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.editProfile,
         builder: (context, state) => const EditProfilePage(),
+      ),
+            GoRoute(
+        path: RoutePaths.accountSecurity,
+        builder: (context, state) => const AccountSecurityPage(),
+        routes: [
+          GoRoute(
+            path: 'password',
+            builder: (context, state) => const ChangePasswordPage(),
+          ),
+          GoRoute(
+            path: 'email',
+            builder: (context, state) => const ChangeEmailPage(),
+          ),
+        ],
       ),
 
       // Cust

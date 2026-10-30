@@ -58,6 +58,7 @@ class AppUser {
   }
 
   AppUser copyWith({
+    String? email,
     String? fullName,
     String? phoneNumber,
     String? avatarUrl,
@@ -69,7 +70,7 @@ class AppUser {
   }) {
     return AppUser(
       id: id,
-      email: email,
+      email: email ?? this.email,
       role: role,
       fullName: fullName ?? this.fullName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
