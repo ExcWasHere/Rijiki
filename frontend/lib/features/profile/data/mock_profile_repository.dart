@@ -23,4 +23,24 @@ class MockProfileRepository implements ProfileRepository {
       profileCompleted: true,
     );
   }
+
+  @override
+  Future<AppUser> saveProfile({
+    required AppUser currentUser,
+    required String fullName,
+    required String phoneNumber,
+  }) async {
+    await Future<void>.delayed(_latency);
+    return currentUser.copyWith(fullName: fullName, phoneNumber: phoneNumber);
+  }
+
+  @override
+  Future<AppUser> uploadAvatar({
+    required AppUser currentUser,
+    required String filePath,
+  }) async {
+    await Future<void>.delayed(_latency);
+    // Mock: pakai path lokal sebagai "URL" supaya fotonya langsung tampil.
+    return currentUser.copyWith(avatarUrl: filePath);
+  }
 }

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-Future<String?> pickImageFromSheet(BuildContext context) async {
+/// [maxSize] = sisi terpanjang (px), [quality] = kualitas JPG 0-100.
+/// Default sama seperti sebelumnya; avatar memakai 512 / 85 (PRD #30).
+Future<String?> pickImageFromSheet(
+  BuildContext context, {
+  int maxSize = 1600,
+  int quality = 80,
+}) async {
   final source = await showModalBottomSheet<ImageSource>(
     context: context,
     showDragHandle: true,
@@ -28,9 +34,9 @@ Future<String?> pickImageFromSheet(BuildContext context) async {
   try {
     final picked = await ImagePicker().pickImage(
       source: source,
-      imageQuality: 80,
-      maxWidth: 1600,
-      maxHeight: 1600,
+      imageQuality: quality,
+      maxWidth: maxSize.toDouble(),
+      maxHeight: maxSize.toDouble(),
     );
     return picked?.path;
   } catch (_) {

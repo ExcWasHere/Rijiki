@@ -38,6 +38,54 @@ class ProfileRepositoryImpl implements ProfileRepository {
     }
   }
 
+  @override
+  Future<AppUser> saveProfile({
+    required AppUser currentUser,
+    required String fullName,
+    required String phoneNumber,
+  }) async {
+    try {
+      final json = await api.patch(
+        ApiEndpoints.profile,
+        auth: true,
+        body: {'full_name': fullName, 'phone_number': phoneNumber},
+      );
+      // Jangan pakai hasil parse langsung: respons PATCH belum tentu memuat
+      // permissions/owner_bypass, sehingga izin worker/owner bisa hilang.
+      final parsed = AppUser.fromAuthJson(json);
+      return currentUser.copyWith(
+        fullName: parsed.fullName,
+        phoneNumber: parsed.phoneNumber,
+        avatarUrl: parsed.avatarUrl,
+      );
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
+  }
+
+  @override
+  Future<AppUser> uploadAvatar({
+    required AppUser currentUser,
+    required String filePath,
+  }) async {
+    try {
+      final json = await api.postMultipart(
+        ApiEndpoints.avatar,
+        fields: const {},
+        fileField: 'image',
+        filePath: filePath,
+        auth: true,
+      );
+      final url = json['avatar_url'] as String?;
+      if (url == null || url.isEmpty) {
+        throw const Failure(FailureType.unknown, AppStrings.errUnknown);
+      }
+      return currentUser.copyWith(avatarUrl: url);
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
+  }
+
   Failure _toFailure(AppException e) {
     switch (e.code) {
       case AppException.networkCode:

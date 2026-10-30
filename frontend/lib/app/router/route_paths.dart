@@ -6,6 +6,9 @@ abstract final class RoutePaths {
   static const String verifyEmail = '/verify-email';
   static const String onboarding = '/onboarding';
 
+  // Di luar shell supaya bottom navbar tersembunyi; dipakai semua role.
+  static const String editProfile = '/profile/edit';
+
   static const String customerHome = '/customer';
   static const String customerOrders = '/customer/orders';
   static const String customerEvents = '/customer/events';
