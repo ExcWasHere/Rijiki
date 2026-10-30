@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:rijiki/core/constants/asset_paths.dart';
 import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/constants/asset_paths.dart';
 import 'package:rijiki/core/session/session_provider.dart';
-import 'package:flutter/services.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
-
-import '../../../../app/router/route_paths.dart' show RoutePaths;
+import 'package:rijiki/features/profile/presentation/shared/contact_sheet.dart';
 
 class OwnerProfilePage extends ConsumerWidget {
   const OwnerProfilePage({super.key});
@@ -42,9 +40,7 @@ class OwnerProfilePage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Column(
                 children: [
-                            _CmsCtaCard(
-            onTap: () => context.push(RoutePaths.ownerCms),
-          ),
+                  _CmsCtaCard(onTap: () => context.push(RoutePaths.ownerCms)),
                   const SizedBox(height: AppSpacing.lg),
                   _MenuSection(
                     title: 'Keuangan',
@@ -106,7 +102,7 @@ class OwnerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Hubungi Rijiki',
-                        onTap: () => _showContactSheet(context),
+                        onTap: () => showContactSheet(context),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.description_outlined,
@@ -153,68 +149,6 @@ class OwnerProfilePage extends ConsumerWidget {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text('$title segera hadir')));
-  }
-    static void _showContactSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppSpacing.radiusLg),
-        ),
-      ),
-      builder: (sheetContext) {
-        final textTheme = Theme.of(sheetContext).textTheme;
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              0,
-              AppSpacing.md,
-              AppSpacing.md,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Hubungi Rijiki', style: textTheme.titleLarge),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Ketuk kontak untuk menyalinnya.',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                const _ContactTile(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  label: 'WhatsApp',
-                  value: '081330506652',
-                ),
-                const _ContactTile(
-                  icon: Icons.mail_outline_rounded,
-                  label: 'Email',
-                  value: 'excellchristian12@gmail.com',
-                ),
-                const _ContactTile(
-                  icon: Icons.camera_alt_outlined,
-                  label: 'Instagram',
-                  value: '@_exczxz',
-                ),
-                const _ContactTile(
-                  icon: Icons.schedule_rounded,
-                  label: 'Jam operasional',
-                  value: '07:00 - 19:00',
-                  copyable: false,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }
 
@@ -532,47 +466,6 @@ class _ProfileMenuItem extends StatelessWidget {
       title: Text(title),
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: onTap,
-    );
-  }
-}
-
-class _ContactTile extends StatelessWidget {
-  const _ContactTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.copyable = true,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool copyable;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: AppColors.primary.withValues(alpha: 0.2),
-        child: Icon(icon, color: AppColors.primaryDark),
-      ),
-      title: Text(label),
-      subtitle: Text(value),
-      trailing: copyable
-          ? const Icon(Icons.copy_rounded, size: AppSpacing.iconSm)
-          : null,
-      onTap: copyable
-          ? () async {
-              await Clipboard.setData(ClipboardData(text: value));
-              if (!context.mounted) return;
-              final messenger = ScaffoldMessenger.of(context);
-              Navigator.of(context).pop();
-              messenger.showSnackBar(
-                SnackBar(content: Text('$label disalin')),
-              );
-            }
-          : null,
     );
   }
 }
