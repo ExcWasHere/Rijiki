@@ -50,6 +50,7 @@ import 'package:rijiki/features/payment/presentation/customer/payment_result_pag
 import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.dart';
 import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
 import 'package:rijiki/features/profile/presentation/owner/owner_profile_page.dart';
+import 'package:rijiki/features/profile/presentation/shared/edit_profile_page.dart';
 import 'package:rijiki/features/profile/presentation/worker/worker_profile_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
@@ -103,6 +104,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.onboarding,
         builder: (context, state) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.editProfile,
+        builder: (context, state) => const EditProfilePage(),
       ),
 
       // Cust

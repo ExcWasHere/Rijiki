@@ -34,7 +34,7 @@ class OwnerProfilePage extends ConsumerWidget {
               phone: user?.phoneNumber ?? 'nomor HP belum tersedia',
               initials: _initials(fullName),
               roleLabel: 'Owner',
-              onEdit: () => _showComingSoon(context, 'Edit profil'),
+              onEdit: () => context.push(RoutePaths.editProfile),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -76,7 +76,7 @@ class OwnerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.person_outline_rounded,
                         title: 'Data pribadi',
-                        onTap: () => _showComingSoon(context, 'Data pribadi'),
+                        onTap: () => context.push(RoutePaths.editProfile),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.lock_outline_rounded,
