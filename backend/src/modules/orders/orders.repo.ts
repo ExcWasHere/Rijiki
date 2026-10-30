@@ -19,9 +19,6 @@ const DEFAULT_RATE_PER_KM = 2000;
 const PROMO_COLUMNS =
   'id, code, title, discount_type, discount_value, start_date, end_date, is_active, applies_to';
 
-// Satu query mengambil order beserta item, layanan, riwayat status,
-// dokumentasi, promo, nama customer, nama worker, dan status rating.
-// Ditulis bertipe string agar supabase-js tidak mencoba mem-parse tipenya.
 const ORDER_SELECT: string = [
   'id',
   'order_number',
@@ -46,7 +43,7 @@ const ORDER_SELECT: string = [
   'customer:customer_profiles(users(full_name, phone_number))',
   'worker:worker_profiles(users(full_name))',
   'ratings(id)',
-  'order_items(id, item_code, shoe_brand, quantity, price, notes, created_at, services(name))',
+  'order_items(id, item_code, shoe_brand, quantity, price, notes, services(name))',
   'order_status_histories(new_status, notes, changed_at)',
   'order_documentations(id, type, image_url, order_item_id)',
 ].join(', ');
@@ -118,8 +115,6 @@ export async function getRatePerKm(env: Bindings): Promise<number> {
     .maybeSingle();
 
   if (error) {
-    // Jangan blokir order hanya karena pengaturan ongkir belum bisa dibaca,
-    // tetapi catat keras-keras supaya migrasi yang terlewat ketahuan.
     console.error('orders: gagal membaca shipping_settings, pakai tarif bawaan', error.message);
     return DEFAULT_RATE_PER_KM;
   }
@@ -147,8 +142,6 @@ export async function findServicesByIds(env: Bindings, ids: string[]): Promise<S
 
 export async function findPromoByCode(env: Bindings, code: string): Promise<PromoRow | null> {
   const admin = getSupabaseAdmin(env);
-  // ilike agar tidak peka huruf besar/kecil; kecocokan persis dicek ulang di bawah
-  // karena "_" pada ilike adalah wildcard. Kode sudah divalidasi [A-Za-z0-9_-].
   const { data, error } = await admin.from('promos').select(PROMO_COLUMNS).ilike('code', code).limit(5);
 
   if (error) throw loadFailed('promo', error.message, 'Gagal memeriksa kode promo');
@@ -234,8 +227,6 @@ export async function listOrderRows(
   let builder = admin.from('orders').select(ORDER_SELECT, { count: 'exact' });
 
   if (query.unassigned === 'true') {
-    // Antrean: order aktif yang belum punya worker. Worker biasa hanya melihat
-    // order dari aplikasi yang masih berstatus `order` (yang memang boleh diambil).
     builder = builder
       .is('assigned_worker_id', null)
       .not('status', 'in', '(completed,cancelled)');
