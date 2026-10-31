@@ -7,6 +7,7 @@ import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:rijiki/features/profile/presentation/shared/contact_sheet.dart';
 
 class WorkerProfilePage extends ConsumerWidget {
   const WorkerProfilePage({super.key});
@@ -33,7 +34,7 @@ class WorkerProfilePage extends ConsumerWidget {
               phone: user?.phoneNumber ?? 'nomor HP belum tersedia',
               initials: _initials(fullName),
               roleLabel: 'Worker',
-              onEdit: () => _showComingSoon(context, 'Edit profil'),
+              onEdit: () => context.push(RoutePaths.editProfile),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -51,7 +52,7 @@ class WorkerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.person_outline_rounded,
                         title: 'Data pribadi',
-                        onTap: () => _showComingSoon(context, 'Data pribadi'),
+                        onTap: () => context.push(RoutePaths.editProfile),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.lock_outline_rounded,
@@ -77,7 +78,7 @@ class WorkerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Hubungi Rijiki',
-                        onTap: () => _showComingSoon(context, 'Hubungi Rijiki'),
+                        onTap: () => showContactSheet(context),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.description_outlined,

@@ -7,6 +7,9 @@ import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:rijiki/features/finance/domain/transaction_filter.dart';
+import 'package:rijiki/features/finance/presentation/controllers/finance_controller.dart';
+import 'package:rijiki/features/finance/presentation/widgets/export_range_sheet.dart';
 import 'package:rijiki/features/profile/presentation/shared/contact_sheet.dart';
 
 class OwnerProfilePage extends ConsumerWidget {
@@ -48,24 +51,30 @@ class OwnerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.account_balance_wallet_outlined,
                         title: 'Ringkasan keuangan',
-                        onTap: () =>
-                            _showComingSoon(context, 'Ringkasan keuangan'),
+                        onTap: () => context.push(RoutePaths.ownerFinance),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.trending_up_rounded,
                         title: 'Pendapatan',
-                        onTap: () => _showComingSoon(context, 'Pendapatan'),
+                        onTap: () => _openTransactions(
+                          context,
+                          ref,
+                          TransactionTypeFilter.income,
+                        ),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.receipt_long_outlined,
                         title: 'Pengeluaran',
-                        onTap: () => _showComingSoon(context, 'Pengeluaran'),
+                        onTap: () => _openTransactions(
+                          context,
+                          ref,
+                          TransactionTypeFilter.expense,
+                        ),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.assessment_outlined,
                         title: 'Laporan keuangan',
-                        onTap: () =>
-                            _showComingSoon(context, 'Laporan keuangan'),
+                        onTap: () => showExportRangeSheet(context),
                       ),
                     ],
                   ),
@@ -143,6 +152,19 @@ class OwnerProfilePage extends ConsumerWidget {
     if (values.isEmpty) return 'O';
     if (values.length == 1) return values.first.substring(0, 1).toUpperCase();
     return '${values.first[0]}${values.last[0]}'.toUpperCase();
+  }
+
+  /// Buka Rekap transaksi dengan filter tipe sudah terpilih. Filter bersifat
+  /// global, jadi direset dulu agar rentang tanggal/tipe lama tidak ikut.
+  static void _openTransactions(
+    BuildContext context,
+    WidgetRef ref,
+    TransactionTypeFilter type,
+  ) {
+    ref.read(transactionFilterProvider.notifier)
+      ..reset()
+      ..selectType(type);
+    context.push(RoutePaths.ownerFinanceTransactions);
   }
 
   static void _showComingSoon(BuildContext context, String title) {
