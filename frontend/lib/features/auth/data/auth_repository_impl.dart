@@ -91,6 +91,45 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+ static const _mockEmailCode = '123456';
+  static const _mockDelay = Duration(milliseconds: 800);
+  
+@override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await Future<void>.delayed(_mockDelay);
+  }
+
+  @override
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String password,
+  }) async {
+    await Future<void>.delayed(_mockDelay);
+  }
+
+  @override
+  Future<void> confirmEmailChange({
+    required String newEmail,
+    required String code,
+  }) async {
+    await Future<void>.delayed(_mockDelay);
+    if (code != _mockEmailCode) {
+      throw const Failure(FailureType.invalidOtp, 'Kode verifikasi salah.');
+    }
+  }
+
+  @override
+  Future<bool> linkGoogle() async {
+    final idToken = await googleSignIn.signIn();
+    if (idToken == null) return false;
+    // TODO(backend): kirim idToken ke endpoint "hubungkan Google".
+    await Future<void>.delayed(_mockDelay);
+    return true;
+  }
+
   Future<AppUser> _authenticate(String path, Map<String, dynamic> body) async {
     try {
       final json = await api.post(path, body: body);

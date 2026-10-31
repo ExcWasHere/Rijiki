@@ -90,6 +90,60 @@ class AuthController extends AsyncNotifier<void> {
     return ok ?? false;
   }
 
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final repository = ref.read(authRepositoryProvider);
+    final ok = await _run(() async {
+      await repository.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return true;
+    });
+    return ok ?? false;
+  }
+
+  Future<bool> requestEmailChange({
+    required String newEmail,
+    required String password,
+  }) async {
+    final repository = ref.read(authRepositoryProvider);
+    final ok = await _run(() async {
+      await repository.requestEmailChange(
+        newEmail: newEmail,
+        password: password,
+      );
+      return true;
+    });
+    return ok ?? false;
+  }
+
+  Future<bool> confirmEmailChange({
+    required String newEmail,
+    required String code,
+  }) async {
+    final repository = ref.read(authRepositoryProvider);
+    final session = ref.read(sessionProvider.notifier);
+
+    final ok = await _run(() async {
+      await repository.confirmEmailChange(newEmail: newEmail, code: code);
+      return true;
+    });
+    if (ok != true) return false;
+
+    final current = ref.read(sessionProvider);
+    if (current != null) session.setUser(current.copyWith(email: newEmail));
+    return true;
+  }
+
+  Future<bool> linkGoogle() async {
+    final repository = ref.read(authRepositoryProvider);
+    final ok = await _run(repository.linkGoogle);
+    return ok ?? false;
+  }
+  
   Future<void> logout() async {
     final repository = ref.read(authRepositoryProvider);
     final session = ref.read(sessionProvider.notifier);

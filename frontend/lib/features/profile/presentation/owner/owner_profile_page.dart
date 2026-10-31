@@ -81,7 +81,7 @@ class OwnerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.lock_outline_rounded,
                         title: 'Keamanan akun',
-                        onTap: () => _showComingSoon(context, 'Keamanan akun'),
+                        onTap: () => context.push(RoutePaths.accountSecurity),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.notifications_none_rounded,
