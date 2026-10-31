@@ -147,4 +147,41 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {}
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await Future<void>.delayed(_latency);
+  }
+
+  @override
+  Future<void> confirmEmailChange({
+    required String newEmail,
+    required String code,
+  }) async {
+    await Future<void>.delayed(_latency);
+
+    if (code != validOtp) {
+      throw const Failure(
+        FailureType.invalidOtp,
+        'Kode verifikasi salah.',
+      );
+    }
+  }
+
+  @override
+  Future<bool> linkGoogle() async {
+    await Future<void>.delayed(_latency);
+    return true;
+  }
+
+  @override
+  Future<void> requestEmailChange({
+    required String newEmail,
+    required String password,
+  }) async {
+    await Future<void>.delayed(_latency);
+  }
 }

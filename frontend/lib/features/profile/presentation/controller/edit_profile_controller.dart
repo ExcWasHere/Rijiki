@@ -93,6 +93,11 @@ class EditProfileController extends Notifier<EditProfileState> {
 
   Timer? _geocodeDebounce;
 
+  /// Alamat + titik yang sudah dipastikan (alamat tersimpan, GPS, atau peta).
+  /// Dipakai untuk memulihkan titik bila teks dikembalikan ke alamat itu.
+  String? _pinnedAddress;
+  LatLng? _pinnedPoint;
+
   @override
   EditProfileState build() {
     ref.onDispose(() => _geocodeDebounce?.cancel());
@@ -100,14 +105,16 @@ class EditProfileController extends Notifier<EditProfileState> {
     final user = ref.read(sessionProvider);
     final lat = user?.defaultLat;
     final lng = user?.defaultLng;
-    final hasPoint = lat != null && lng != null;
+    final point = (lat != null && lng != null) ? LatLng(lat, lng) : null;
+    _pinnedPoint = point;
+    _pinnedAddress = point == null ? null : (user?.defaultAddress ?? '').trim();
 
     return EditProfileState(
       name: user?.fullName?.trim() ?? '',
       phone: phoneInputOf(user?.phoneNumber),
       address: user?.defaultAddress ?? '',
-      point: hasPoint ? LatLng(lat, lng) : null,
-      source: hasPoint ? LocationSource.map : LocationSource.none,
+      point: point,
+      source: point == null ? LocationSource.none : LocationSource.map,
     );
   }
 
@@ -164,23 +171,31 @@ class EditProfileController extends Notifier<EditProfileState> {
 
   void updateAddress(String val) {
     if (state.address == val) return;
-    state = state.copyWith(address: val);
-
-    if (state.source == LocationSource.gps ||
-        state.source == LocationSource.map) {
-      return;
-    }
-
     _geocodeDebounce?.cancel();
     final text = val.trim();
-    if (text.length < 8) {
+
+    // Teks kembali sama dengan alamat yang titiknya sudah dipastikan
+    // (alamat tersimpan / GPS / peta): pulihkan titik itu.
+    final pinnedPoint = _pinnedPoint;
+    if (pinnedPoint != null && text == _pinnedAddress) {
       state = state.copyWith(
-        clearPoint: true,
-        source: LocationSource.none,
+        address: val,
+        point: pinnedPoint,
+        source: LocationSource.map,
         outOfArea: false,
       );
       return;
     }
+
+    // Alamat diubah manual: titik lama tidak berlaku lagi. Cari ulang dari
+    // teks; bila tidak ketemu, user diminta memilih di peta.
+    state = state.copyWith(
+      address: val,
+      clearPoint: true,
+      source: LocationSource.none,
+      outOfArea: false,
+    );
+    if (text.length < 8) return;
     _geocodeDebounce = Timer(
       const Duration(milliseconds: 900),
       () => _geocodeTyped(text),
@@ -237,6 +252,8 @@ class EditProfileController extends Notifier<EditProfileState> {
       final address = await service.addressOf(point);
       if (!ref.mounted) return LocateResult.success;
 
+      _pinnedPoint = point;
+      _pinnedAddress = (address ?? state.address).trim();
       state = state.copyWith(
         point: point,
         source: LocationSource.gps,
@@ -265,13 +282,16 @@ class EditProfileController extends Notifier<EditProfileState> {
       state = state.copyWith(outOfArea: true);
       return;
     }
+    final resolved = (address == null || address.trim().isEmpty)
+        ? state.address
+        : address;
+    _pinnedPoint = point;
+    _pinnedAddress = resolved.trim();
     state = state.copyWith(
       point: point,
       source: LocationSource.map,
       outOfArea: false,
-      address: (address == null || address.trim().isEmpty)
-          ? state.address
-          : address,
+      address: resolved,
     );
   }
 
