@@ -15,7 +15,6 @@ export type DeliveryMethod = 'delivery' | 'self_pickup';
 export const DOCUMENTATION_TYPES = ['before', 'after', 'proof_of_delivery'] as const;
 export type DocumentationType = (typeof DOCUMENTATION_TYPES)[number];
 
-/** Siapa yang boleh melihat order apa. */
 export type OrderScope =
   | { kind: 'all' }
   | { kind: 'customer'; customerProfileId: string }
@@ -51,6 +50,29 @@ export interface PromoRow {
   end_date: string;
   is_active: boolean;
   applies_to: 'subtotal' | 'shipping' | null;
+  min_subtotal: number | string | null;
+  max_discount_amount: number | string | null;
+  usage_limit: number | null;
+  usage_limit_per_customer: number | null;
+  first_order_only: boolean;
+  /** Kosong/null = promo berlaku untuk semua layanan. */
+  promo_services: Array<{ service_id: string }> | null;
+}
+
+/** Satu baris harga hasil hitung server (harga dari database x jumlah). */
+export interface PricedLine {
+  service_id: string;
+  amount: number;
+}
+
+/** Pemakaian promo yang relevan untuk syarat dan kuota (order batal tidak dihitung). */
+export interface PromoUsage {
+  /** Seluruh pemakaian promo ini. */
+  total: number;
+  /** Pemakaian oleh customer yang sedang memesan. */
+  perCustomer: number;
+  /** Jumlah order (tidak batal) milik customer, untuk syarat order pertama. */
+  customerOrders: number;
 }
 
 export interface PriceQuoteView {
@@ -132,6 +154,4 @@ export interface OrderView {
   staff: StaffActionsView | null;
 }
 
-/** Baris mentah hasil select bersarang PostgREST (lihat orders.repo.ts). */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type OrderRow = Record<string, any>;

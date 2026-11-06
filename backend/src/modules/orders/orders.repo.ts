@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from '../../config/supabase';
 import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import { toNumber, toNumberOrNull } from '../../shared/utils/number';
+import { EMPTY_USAGE } from './orders.pricing';
 import type { ListOrdersQuery } from './orders.schema';
 import type {
   CustomerProfileRow,
@@ -10,14 +11,30 @@ import type {
   OrderScope,
   OrderStatus,
   PromoRow,
+  PromoUsage,
   ServicePriceRow,
   WorkerProfileRow,
 } from './orders.types';
 
 const DEFAULT_RATE_PER_KM = 2000;
 
-const PROMO_COLUMNS =
-  'id, code, title, discount_type, discount_value, start_date, end_date, is_active, applies_to';
+const PROMO_COLUMNS = [
+  'id',
+  'code',
+  'title',
+  'discount_type',
+  'discount_value',
+  'start_date',
+  'end_date',
+  'is_active',
+  'applies_to',
+  'min_subtotal',
+  'max_discount_amount',
+  'usage_limit',
+  'usage_limit_per_customer',
+  'first_order_only',
+  'promo_services(service_id)',
+].join(', ');
 
 const ORDER_SELECT: string = [
   'id',
@@ -142,12 +159,63 @@ export async function findServicesByIds(env: Bindings, ids: string[]): Promise<S
 
 export async function findPromoByCode(env: Bindings, code: string): Promise<PromoRow | null> {
   const admin = getSupabaseAdmin(env);
-  const { data, error } = await admin.from('promos').select(PROMO_COLUMNS).ilike('code', code).limit(5);
+  const { data, error } = await admin
+    .from('promos')
+    .select(PROMO_COLUMNS)
+    .ilike('code', code)
+    .limit(5);
 
   if (error) throw loadFailed('promo', error.message, 'Gagal memeriksa kode promo');
 
-  const row = (data ?? []).find((r) => String(r.code).toUpperCase() === code.toUpperCase());
+  const row = (data ?? []).find(
+    (r) => String((r as unknown as { code: string }).code).toUpperCase() === code.toUpperCase(),
+  );
   return row ? (row as unknown as PromoRow) : null;
+}
+
+async function countOrders(
+  env: Bindings,
+  filters: { promoId?: string; customerId?: string },
+): Promise<number> {
+  const admin = getSupabaseAdmin(env);
+  let builder = admin
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .neq('status', 'cancelled');
+  if (filters.promoId) builder = builder.eq('promo_id', filters.promoId);
+  if (filters.customerId) builder = builder.eq('customer_id', filters.customerId);
+
+  const { count, error } = await builder;
+  if (error) throw loadFailed('pemakaian promo', error.message, 'Gagal memeriksa kuota promo');
+  return count ?? 0;
+}
+
+/**
+ * Pemakaian promo untuk pengecekan ramah di quote/checkout. Hanya menghitung
+ * yang dibutuhkan promo itu. Pengecekan yang mengikat (atomik) ada di
+ * create_customer_order.
+ */
+export async function getPromoUsage(
+  env: Bindings,
+  promo: PromoRow,
+  customerId: string | null,
+): Promise<PromoUsage> {
+  const needsTotal = promo.usage_limit !== null && promo.usage_limit !== undefined;
+  const needsPerCustomer =
+    promo.usage_limit_per_customer !== null && promo.usage_limit_per_customer !== undefined;
+  const needsFirstOrder = Boolean(promo.first_order_only);
+
+  if (!needsTotal && !needsPerCustomer && !needsFirstOrder) return EMPTY_USAGE;
+
+  const [total, perCustomer, customerOrders] = await Promise.all([
+    needsTotal ? countOrders(env, { promoId: promo.id }) : Promise.resolve(0),
+    needsPerCustomer && customerId
+      ? countOrders(env, { promoId: promo.id, customerId })
+      : Promise.resolve(0),
+    needsFirstOrder && customerId ? countOrders(env, { customerId }) : Promise.resolve(0),
+  ]);
+
+  return { total, perCustomer, customerOrders };
 }
 
 export interface CreateOrderRpcParams {
@@ -161,7 +229,17 @@ export interface CreateOrderRpcParams {
   discountAmount: number;
   shippingFee: number;
   expectedSubtotal: number;
+  idempotencyKey: string | null;
+  requestFingerprint: string | null;
 }
+
+const PROMO_RPC_ERRORS: Array<[string, string]> = [
+  ['promo_inactive', 'Kode promo tidak ditemukan atau sudah tidak berlaku.'],
+  ['promo_min_subtotal', 'Belanja kamu belum memenuhi syarat minimal promo ini.'],
+  ['promo_first_order_only', 'Promo ini hanya berlaku untuk order pertama.'],
+  ['promo_customer_quota_exceeded', 'Kamu sudah mencapai batas pemakaian promo ini.'],
+  ['promo_quota_exceeded', 'Kuota promo ini sudah habis.'],
+];
 
 export async function createOrderViaRpc(
   env: Bindings,
@@ -179,6 +257,8 @@ export async function createOrderViaRpc(
     p_discount_amount: params.discountAmount,
     p_shipping_fee: params.shippingFee,
     p_expected_subtotal: params.expectedSubtotal,
+    p_idempotency_key: params.idempotencyKey,
+    p_request_fingerprint: params.requestFingerprint,
   });
 
   if (error) {
@@ -192,6 +272,16 @@ export async function createOrderViaRpc(
     if (message.includes('customer_not_found')) {
       throw new AppError(400, 'profile_incomplete', 'Lengkapi profil dulu sebelum membuat order.');
     }
+    if (message.includes('idempotency_conflict')) {
+      throw new AppError(
+        409,
+        'idempotency_conflict',
+        'Permintaan ini memakai kunci yang sama dengan permintaan sebelumnya yang isinya berbeda.',
+      );
+    }
+    for (const [marker, publicMessage] of PROMO_RPC_ERRORS) {
+      if (message.includes(marker)) throw new AppError(400, 'promo_invalid', publicMessage);
+    }
     console.error('orders: create_customer_order gagal', message);
     throw new AppError(500, 'order_create_failed', 'Order gagal dibuat. Coba lagi ya.');
   }
@@ -201,6 +291,28 @@ export async function createOrderViaRpc(
     throw new AppError(500, 'order_create_failed', 'Order gagal dibuat. Coba lagi ya.');
   }
   return data;
+}
+
+/** Order yang sudah dibuat dengan kunci idempotency ini (untuk request ulang). */
+export async function findOrderByIdempotencyKey(
+  env: Bindings,
+  customerId: string,
+  key: string,
+): Promise<{ id: string; fingerprint: string | null } | null> {
+  const admin = getSupabaseAdmin(env);
+  const { data, error } = await admin
+    .from('orders')
+    .select('id, idempotency_fingerprint')
+    .eq('customer_id', customerId)
+    .eq('idempotency_key', key)
+    .maybeSingle();
+
+  if (error) throw loadFailed('idempotency order', error.message, 'Gagal memeriksa order');
+  if (!data) return null;
+  return {
+    id: data.id as string,
+    fingerprint: (data.idempotency_fingerprint as string | null) ?? null,
+  };
 }
 
 export async function getOrderRow(env: Bindings, id: string): Promise<OrderRow | null> {

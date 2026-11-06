@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import { AppError } from '../../shared/errors';
 import type { AppEnv } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
+import { parseIdempotencyKey } from '../../shared/utils/idempotency';
 import { parseInput } from '../../shared/utils/validate';
 import {
   assignOrderSchema,
@@ -43,7 +44,14 @@ export async function createOrderHandler(c: Context<AppEnv>) {
   requireCustomer(ctx);
 
   const input = parseInput(createOrderSchema, await c.req.json().catch(() => null));
-  return c.json(await createOrder(c.env, ctx.user.id, input), 201);
+  const key = parseIdempotencyKey(c.req.header('Idempotency-Key'));
+
+  const result = await createOrder(c.env, ctx.user.id, input, key);
+  if (result.replayed) {
+    c.header('Idempotent-Replayed', 'true');
+    return c.json(result.order, 200);
+  }
+  return c.json(result.order, 201);
 }
 
 export async function listOrdersHandler(c: Context<AppEnv>) {

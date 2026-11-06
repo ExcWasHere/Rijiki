@@ -16,17 +16,30 @@ const address = (label: string) =>
     .min(5, `${label} terlalu pendek`)
     .max(300, `${label} maksimal 300 karakter`);
 
+const quoteItemSchema = z.object({
+  service_id: z.string().uuid('Layanan tidak valid'),
+  quantity: z
+    .number()
+    .int('Jumlah harus bilangan bulat')
+    .min(1, 'Jumlah minimal 1')
+    .max(10, 'Jumlah maksimal 10 per item'),
+});
+
 /**
- * Quote bersifat informatif untuk layar ringkasan. Subtotal dari klien
- * hanya dipakai untuk menghitung diskon; harga final selalu dihitung ulang
- * dari database saat order dibuat.
+ * Quote bersifat informatif untuk layar ringkasan. Bila `items` dikirim,
+ * subtotal dihitung server dari harga di database (dan `subtotal` klien
+ * diabaikan), sehingga promo per layanan bisa dicek. `subtotal` saja masih
+ * diterima untuk klien lama dan alur offline; harga final order tetap
+ * dihitung ulang dari database saat order dibuat.
  */
 export const quoteOrderSchema = z.object({
   subtotal: z
     .number()
     .int('Subtotal harus bilangan bulat')
     .min(0, 'Subtotal tidak valid')
-    .max(100_000_000, 'Subtotal terlalu besar'),
+    .max(100_000_000, 'Subtotal terlalu besar')
+    .optional(),
+  items: z.array(quoteItemSchema).max(5, 'Maksimal 5 item per order').optional(),
   promo_code: promoCode.nullish(),
 });
 

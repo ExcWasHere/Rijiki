@@ -4,6 +4,7 @@ import 'package:rijiki/app/providers.dart';
 import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/location/default_location.dart';
 import 'package:rijiki/core/session/session_provider.dart';
+import 'package:rijiki/core/utils/idempotency_key.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/new_order.dart';
 import 'package:rijiki/features/order/domain/price_quote.dart';
@@ -72,6 +73,13 @@ class OrderCreateState {
 
   int get subtotal => items.fold(0, (sum, item) => sum + item.lineTotal);
 
+  /// Ringkasan layanan + jumlah, dipakai sebagai kunci quote: berubah hanya
+  /// bila pilihan layanan atau jumlahnya berubah (promo bisa dibatasi per layanan).
+  String get quoteItemsKey => [
+    for (final item in items)
+      if (item.service != null) '${item.service!.id}x${item.quantity}',
+  ].join(',');
+
   String get effectiveDeliveryAddress =>
       sameDeliveryAddress ? pickupAddress : deliveryAddress;
 
@@ -115,6 +123,12 @@ class OrderCreateController extends Notifier<OrderCreateState> {
 
   String _newItemId() => 'draft-${_nextItemId++}';
 
+  // Kunci idempotency untuk upaya checkout yang sedang berjalan. Kirim ulang
+  // isi yang sama (mis. sinyal putus) memakai kunci yang sama; isi berubah
+  // berarti order baru dengan kunci baru.
+  String? _idempotencyKey;
+  String? _idempotencyFingerprint;
+
   @override
   OrderCreateState build() {
     final user = ref.read(sessionProvider);
@@ -149,6 +163,11 @@ class OrderCreateController extends Notifier<OrderCreateState> {
   void setSameDeliveryAddress(bool value) =>
       state = state.copyWith(sameDeliveryAddress: value);
 
+  /// Promo bisa bergantung pada layanan dan subtotal, jadi dilepas saat
+  /// keranjang berubah; customer menerapkannya lagi dan dicek ulang server.
+  PromoUiState _promoAfterCartChange() =>
+      state.promo.status == PromoStatus.idle ? state.promo : const PromoUiState();
+
   void addItem() {
     if (state.items.length >= maxItems) return;
     state = state.copyWith(
@@ -160,6 +179,7 @@ class OrderCreateController extends Notifier<OrderCreateState> {
     if (state.items.length <= 1) return;
     state = state.copyWith(
       items: state.items.where((item) => item.id != id).toList(),
+      promo: _promoAfterCartChange(),
     );
   }
 
@@ -170,6 +190,7 @@ class OrderCreateController extends Notifier<OrderCreateState> {
     CareService? service,
     String? notes,
   }) {
+    final cartChanged = quantity != null || service != null;
     state = state.copyWith(
       items: [
         for (final item in state.items)
@@ -183,6 +204,7 @@ class OrderCreateController extends Notifier<OrderCreateState> {
           else
             item,
       ],
+      promo: cartChanged ? _promoAfterCartChange() : null,
     );
   }
 
@@ -196,7 +218,11 @@ class OrderCreateController extends Notifier<OrderCreateState> {
     try {
       final quote = await ref
           .read(orderRepositoryProvider)
-          .quotePrice(subtotal: state.subtotal, promoCode: code);
+          .quotePrice(
+            subtotal: state.subtotal,
+            promoCode: code,
+            items: state.items,
+          );
       state = state.copyWith(
         promo: PromoUiState(
           status: PromoStatus.applied,
@@ -225,6 +251,27 @@ class OrderCreateController extends Notifier<OrderCreateState> {
 
   void clearPromo() => state = state.copyWith(promo: const PromoUiState());
 
+  String _fingerprint(PriceQuote quote) {
+    final lines = [
+      for (final item in state.items)
+        '${item.service?.id}|${item.shoeBrand.trim()}|${item.quantity}|${item.notes.trim()}',
+    ];
+    return [
+      ...lines,
+      state.pickupAddress.trim(),
+      state.effectiveDeliveryAddress.trim(),
+      quote.promoCode ?? '',
+    ].join('\n');
+  }
+
+  String _keyFor(String fingerprint) {
+    if (_idempotencyKey == null || _idempotencyFingerprint != fingerprint) {
+      _idempotencyKey = generateIdempotencyKey();
+      _idempotencyFingerprint = fingerprint;
+    }
+    return _idempotencyKey!;
+  }
+
   Future<CustomerOrder?> submit(PriceQuote quote) async {
     if (state.isSubmitting || !state.isValid) return null;
     state = state.copyWith(isSubmitting: true, clearSubmitError: true);
@@ -239,9 +286,13 @@ class OrderCreateController extends Notifier<OrderCreateState> {
               pickupAddress: state.pickupAddress.trim(),
               deliveryAddress: state.effectiveDeliveryAddress.trim(),
               promoCode: quote.promoCode,
+              idempotencyKey: _keyFor(_fingerprint(quote)),
             ),
             quote,
           );
+      // Order berhasil: upaya berikutnya adalah order baru dengan kunci baru.
+      _idempotencyKey = null;
+      _idempotencyFingerprint = null;
       ref.invalidate(ordersProvider);
       return order;
     } catch (e) {
@@ -262,10 +313,11 @@ final orderCreateControllerProvider =
 final orderQuoteProvider = FutureProvider.autoDispose<PriceQuote>((ref) {
   final key = ref.watch(
     orderCreateControllerProvider.select(
-      (state) => (state.subtotal, state.promo.appliedCode),
+      (state) => (state.subtotal, state.promo.appliedCode, state.quoteItemsKey),
     ),
   );
+  final items = ref.read(orderCreateControllerProvider).items;
   return ref
       .watch(orderRepositoryProvider)
-      .quotePrice(subtotal: key.$1, promoCode: key.$2);
+      .quotePrice(subtotal: key.$1, promoCode: key.$2, items: items);
 }, retry: _noRetry);
