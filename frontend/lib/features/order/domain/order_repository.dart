@@ -6,6 +6,13 @@ abstract interface class OrderRepository {
   Future<List<CustomerOrder>> fetchOrders();
   Future<List<CustomerOrder>> fetchActiveOrders();
   Future<CustomerOrder> fetchOrderById(String id);
-  Future<PriceQuote> quotePrice({required int subtotal, String? promoCode});
+
+  /// [items] membuat server menghitung subtotal sendiri dan memeriksa promo
+  /// per layanan. Tanpa [items], [subtotal] dipakai apa adanya (alur offline).
+  Future<PriceQuote> quotePrice({
+    required int subtotal,
+    String? promoCode,
+    List<OrderDraftItem> items = const [],
+  });
   Future<CustomerOrder> createOrder(NewOrder order, PriceQuote quote);
 }

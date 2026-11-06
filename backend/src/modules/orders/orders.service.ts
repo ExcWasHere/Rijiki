@@ -1,22 +1,30 @@
 import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
+import { fingerprintOf, idempotencyConflict } from '../../shared/utils/idempotency';
 import { loadVisibleOrder, resolveAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
-import { computeTotals, evaluatePromo } from './orders.pricing';
+import { EMPTY_USAGE, computeTotals, evaluatePromo } from './orders.pricing';
 import type { PromoEvaluation } from './orders.pricing';
 import {
   createOrderViaRpc,
   findCustomerProfileByUserId,
+  findOrderByIdempotencyKey,
   findPromoByCode,
   findServicesByIds,
   getOrderRow,
+  getPromoUsage,
   getRatePerKm,
   listOrderRows,
 } from './orders.repo';
 import type { CreateOrderInput, ListOrdersQuery, QuoteOrderInput } from './orders.schema';
 import { calculateShippingFee, routeDistanceKm } from './orders.shipping';
-import type { CustomerProfileRow, OrderView, PriceQuoteView } from './orders.types';
+import type {
+  CustomerProfileRow,
+  OrderView,
+  PriceQuoteView,
+  PricedLine,
+} from './orders.types';
 
 function profileIncomplete(): AppError {
   return new AppError(
@@ -50,14 +58,39 @@ async function loadShipping(
   return { fee: calculateShippingFee(route.km, rate), distanceKm: route.km };
 }
 
+/** Harga selalu dari database, bukan dari klien. */
+async function priceItems(
+  env: Bindings,
+  items: Array<{ service_id: string; quantity: number }>,
+): Promise<{ subtotal: number; lines: PricedLine[] }> {
+  const serviceIds = [...new Set(items.map((item) => item.service_id))];
+  const services = await findServicesByIds(env, serviceIds);
+  const byId = new Map(services.map((s) => [s.id, s]));
+
+  let subtotal = 0;
+  const lines: PricedLine[] = [];
+  for (const item of items) {
+    const service = byId.get(item.service_id);
+    if (!service || !service.is_active) {
+      throw new AppError(400, 'service_unavailable', 'Salah satu layanan sudah tidak tersedia.');
+    }
+    const amount = service.base_price * item.quantity;
+    subtotal += amount;
+    lines.push({ service_id: service.id, amount });
+  }
+  return { subtotal, lines };
+}
+
 async function loadPromo(
   env: Bindings,
   code: string | null | undefined,
-  base: { subtotal: number; shipping: number },
+  base: { subtotal: number; shipping: number; lines: PricedLine[] },
+  customerId: string | null,
 ): Promise<{ evaluation: PromoEvaluation | null; promoId: string | null }> {
   if (!code) return { evaluation: null, promoId: null };
   const promo = await findPromoByCode(env, code);
-  const evaluation = evaluatePromo(promo, base);
+  const usage = promo ? await getPromoUsage(env, promo, customerId) : EMPTY_USAGE;
+  const evaluation = evaluatePromo(promo, { ...base, usage });
   return { evaluation, promoId: promo?.id ?? null };
 }
 
@@ -70,12 +103,19 @@ export async function quoteOrder(
   const coords = requireCoordinates(profile);
   const shipping = await loadShipping(env, coords);
 
-  const { evaluation } = await loadPromo(env, input.promo_code, {
-    subtotal: input.subtotal,
-    shipping: shipping.fee,
-  });
+  const priced =
+    input.items !== undefined
+      ? await priceItems(env, input.items)
+      : { subtotal: input.subtotal ?? 0, lines: [] as PricedLine[] };
 
-  const totals = computeTotals(input.subtotal, evaluation?.discount ?? 0, shipping.fee);
+  const { evaluation } = await loadPromo(
+    env,
+    input.promo_code,
+    { subtotal: priced.subtotal, shipping: shipping.fee, lines: priced.lines },
+    profile?.id ?? null,
+  );
+
+  const totals = computeTotals(priced.subtotal, evaluation?.discount ?? 0, shipping.fee);
   return {
     subtotal: totals.subtotal,
     discount_amount: totals.discount,
@@ -87,33 +127,54 @@ export async function quoteOrder(
   };
 }
 
+export interface CreateOrderResult {
+  order: OrderView;
+  /** true bila request ini hanya mengulang order yang sudah dibuat dengan kunci yang sama. */
+  replayed: boolean;
+}
+
+/** Sidik jari isi order; urutan dan nilai harus sama persis agar dianggap request yang sama. */
+function orderFingerprint(input: CreateOrderInput): Promise<string> {
+  return fingerprintOf({
+    items: input.items.map((item) => [
+      item.service_id,
+      item.shoe_brand,
+      item.quantity,
+      item.notes,
+    ]),
+    pickup: input.pickup_address,
+    delivery: input.delivery_address,
+    promo: input.promo_code ?? null,
+  });
+}
+
 export async function createOrder(
   env: Bindings,
   userId: string,
   input: CreateOrderInput,
-): Promise<OrderView> {
+  idempotencyKey: string | null,
+): Promise<CreateOrderResult> {
   const profile = await findCustomerProfileByUserId(env, userId);
-  const coords = requireCoordinates(profile);
+  const fingerprint = idempotencyKey ? await orderFingerprint(input) : null;
 
-  // Harga selalu dari database, bukan dari klien.
-  const serviceIds = [...new Set(input.items.map((item) => item.service_id))];
-  const services = await findServicesByIds(env, serviceIds);
-  const priceById = new Map(services.map((s) => [s.id, s]));
-
-  let subtotal = 0;
-  for (const item of input.items) {
-    const service = priceById.get(item.service_id);
-    if (!service || !service.is_active) {
-      throw new AppError(400, 'service_unavailable', 'Salah satu layanan sudah tidak tersedia.');
+  if (idempotencyKey && profile) {
+    const existing = await findOrderByIdempotencyKey(env, profile.id, idempotencyKey);
+    if (existing) {
+      if (existing.fingerprint !== fingerprint) throw idempotencyConflict();
+      const row = await getOrderRow(env, existing.id);
+      if (row) return { order: toOrderView(row, null), replayed: true };
     }
-    subtotal += service.base_price * item.quantity;
   }
 
+  const coords = requireCoordinates(profile);
+  const priced = await priceItems(env, input.items);
   const shipping = await loadShipping(env, coords);
-  const { evaluation, promoId } = await loadPromo(env, input.promo_code, {
-    subtotal,
-    shipping: shipping.fee,
-  });
+  const { evaluation, promoId } = await loadPromo(
+    env,
+    input.promo_code,
+    { subtotal: priced.subtotal, shipping: shipping.fee, lines: priced.lines },
+    profile?.id ?? null,
+  );
 
   const orderId = await createOrderViaRpc(env, {
     userId,
@@ -130,7 +191,9 @@ export async function createOrder(
     promoId,
     discountAmount: evaluation?.discount ?? 0,
     shippingFee: shipping.fee,
-    expectedSubtotal: subtotal,
+    expectedSubtotal: priced.subtotal,
+    idempotencyKey,
+    requestFingerprint: fingerprint,
   });
 
   const row = await getOrderRow(env, orderId);
@@ -138,7 +201,7 @@ export async function createOrder(
     console.error('orders: order baru tidak ditemukan setelah dibuat', orderId);
     throw new AppError(500, 'order_create_failed', 'Order dibuat, tetapi gagal dimuat. Cek daftar order.');
   }
-  return toOrderView(row, null);
+  return { order: toOrderView(row, null), replayed: false };
 }
 
 export async function listOrders(

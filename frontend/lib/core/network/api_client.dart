@@ -29,20 +29,40 @@ class ApiClient {
 
   static const Duration uploadTimeout = Duration(seconds: 60);
 
-  Future<Json> get(String path, {bool auth = false}) {
-    return _send('GET', path, auth: auth);
+  static const String idempotencyHeader = 'Idempotency-Key';
+
+  Future<Json> get(
+    String path, {
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('GET', path, auth: auth, extraHeaders: headers);
   }
 
-  Future<Json> post(String path, {Json? body, bool auth = false}) {
-    return _send('POST', path, body: body, auth: auth);
+  Future<Json> post(
+    String path, {
+    Json? body,
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('POST', path, body: body, auth: auth, extraHeaders: headers);
   }
 
-  Future<Json> patch(String path, {Json? body, bool auth = false}) {
-    return _send('PATCH', path, body: body, auth: auth);
+  Future<Json> patch(
+    String path, {
+    Json? body,
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('PATCH', path, body: body, auth: auth, extraHeaders: headers);
   }
 
-  Future<Json> delete(String path, {bool auth = false}) {
-    return _send('DELETE', path, auth: auth);
+  Future<Json> delete(
+    String path, {
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('DELETE', path, auth: auth, extraHeaders: headers);
   }
 
   Future<Uint8List> getBytes(String path, {bool auth = false}) async {
@@ -83,11 +103,13 @@ class ApiClient {
     String path, {
     Json? body,
     bool auth = false,
+    Map<String, String>? extraHeaders,
   }) async {
     final response = await _request(
       method: method,
       path: path,
       auth: auth,
+      extraHeaders: extraHeaders,
       send: (uri, headers) {
         final jsonHeaders = {...headers, 'Content-Type': 'application/json'};
         final encoded = jsonEncode(body ?? <String, dynamic>{});
@@ -108,10 +130,12 @@ class ApiClient {
     required bool auth,
     required Future<http.Response> Function(Uri uri, Map<String, String> headers)
     send,
+    Map<String, String>? extraHeaders,
     Duration? timeout,
     bool isRetry = false,
   }) async {
     final headers = <String, String>{'Accept': 'application/json'};
+    if (extraHeaders != null) headers.addAll(extraHeaders);
 
     if (auth) {
       final token = await tokenStorage.readAccessToken();
@@ -155,6 +179,7 @@ class ApiClient {
           path: path,
           auth: auth,
           send: send,
+          extraHeaders: extraHeaders,
           timeout: timeout,
           isRetry: true,
         );

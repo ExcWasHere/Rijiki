@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
+import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/features/cms/domain/cms_status_filter.dart';
 import 'package:rijiki/features/cms/presentation/controllers/cms_action_state.dart';
 import 'package:rijiki/features/cms/presentation/controllers/cms_list_filter.dart';
@@ -38,6 +39,15 @@ class PromoManageNotifier extends Notifier<CmsActionState> {
   @override
   CmsActionState build() => const CmsActionState();
 
+  // Pesan dari backend (mis. "kode sudah dipakai") ditampilkan apa adanya;
+  // selain itu pakai pesan umum.
+  String _messageFor(Object error, String fallback) {
+    if (error is Failure && error.message.trim().isNotEmpty) {
+      return error.message;
+    }
+    return fallback;
+  }
+
   Future<bool> setActive(Promo promo, bool active) async {
     if (state.busyId != null) return false;
     state = CmsActionState(busyId: promo.id, busyValue: active);
@@ -49,10 +59,13 @@ class PromoManageNotifier extends Notifier<CmsActionState> {
       if (!ref.mounted) return true;
       state = const CmsActionState();
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!ref.mounted) return false;
-      state = const CmsActionState(
-        errorMessage: 'Gagal mengubah status promo. Coba lagi ya.',
+      state = CmsActionState(
+        errorMessage: _messageFor(
+          e,
+          'Gagal mengubah status promo. Coba lagi ya.',
+        ),
       );
       return false;
     }
@@ -72,10 +85,10 @@ class PromoManageNotifier extends Notifier<CmsActionState> {
       _refresh();
       state = const CmsActionState();
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!ref.mounted) return false;
-      state = const CmsActionState(
-        errorMessage: 'Gagal menyimpan promo. Coba lagi ya.',
+      state = CmsActionState(
+        errorMessage: _messageFor(e, 'Gagal menyimpan promo. Coba lagi ya.'),
       );
       return false;
     }

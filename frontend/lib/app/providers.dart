@@ -16,6 +16,7 @@ import 'package:rijiki/features/home/owner/data/mock_dashboard_repository.dart';
 import 'package:rijiki/features/home/owner/domain/dashboard_repository.dart';
 import 'package:rijiki/features/event/data/mock_event_repository.dart';
 import 'package:rijiki/features/event/data/mock_promo_repository.dart';
+import 'package:rijiki/features/event/data/promo_repository_impl.dart';
 import 'package:rijiki/features/event/domain/event_repository.dart';
 import 'package:rijiki/features/event/domain/promo_repository.dart';
 import 'package:rijiki/features/merchandise/data/mock_merchandise_repository.dart';
@@ -83,9 +84,12 @@ final eventRepositoryProvider = Provider<EventRepository>(
   (ref) => MockEventRepository(scenario: ref.watch(mockScenarioProvider)),
 );
 
-final promoRepositoryProvider = Provider<PromoRepository>(
-  (ref) => MockPromoRepository(scenario: ref.watch(mockScenarioProvider)),
-);
+final promoRepositoryProvider = Provider<PromoRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockPromoRepository(scenario: ref.watch(mockScenarioProvider));
+  }
+  return PromoRepositoryImpl(api: ref.watch(apiClientProvider));
+});
 
 final merchandiseRepositoryProvider = Provider<MerchandiseRepository>(
   (ref) => MockMerchandiseRepository(scenario: ref.watch(mockScenarioProvider)),

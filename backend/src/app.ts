@@ -5,6 +5,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { mediaRoutes } from './modules/media/media.routes';
 import { ordersRoutes } from './modules/orders/orders.routes';
 import { profileRoutes } from './modules/profile/profile.routes';
+import { promosRoutes } from './modules/promos/promos.routes';
 import { servicesRoutes } from './modules/services/services.routes';
 import { workersRoutes } from './modules/workers/workers.routes';
 import { AppError } from './shared/errors';
@@ -30,6 +31,7 @@ export function createApp() {
   app.route('/api/media', mediaRoutes);
   app.route('/api/profile', profileRoutes);
   app.route('/api/services', servicesRoutes);
+  app.route('/api/promos', promosRoutes);
   app.route('/api/orders', ordersRoutes);
   app.route('/api/workers', workersRoutes);
 

@@ -1,6 +1,7 @@
 import 'package:rijiki/core/enums/discount_type.dart';
 import 'package:rijiki/core/enums/order_payment_status.dart';
 import 'package:rijiki/core/enums/order_status.dart';
+import 'package:rijiki/core/enums/promo_applies_to.dart';
 import 'package:rijiki/core/mock/mock_scenario.dart';
 import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/event/domain/promo_repository.dart';
@@ -64,6 +65,7 @@ class MockOrderRepository implements OrderRepository {
   Future<PriceQuote> quotePrice({
     required int subtotal,
     String? promoCode,
+    List<OrderDraftItem> items = const [],
   }) async {
     final code = promoCode?.trim().toUpperCase() ?? '';
     if (code.isEmpty) {
@@ -73,8 +75,7 @@ class MockOrderRepository implements OrderRepository {
       );
     }
 
-    // TODO(backend): promo bersyarat (applies_to, min_subtotal,
-    // max_discount_amount, kuota, first_order_only)
+    // Kuota dan syarat order pertama hanya dicek backend; mock meniru sisanya.
     final all = await promos.fetchAllPromos();
     final promo = all.where((p) => p.code.toUpperCase() == code).firstOrNull;
     if (promo == null || !promo.isActive) {
@@ -91,18 +92,48 @@ class MockOrderRepository implements OrderRepository {
       throw const PromoException('Promo ini sudah berakhir.');
     }
 
-    final int raw;
+    final minSubtotal = promo.minSubtotal;
+    if (minSubtotal != null && subtotal < minSubtotal) {
+      throw PromoException(
+        'Minimal belanja ${RupiahFormatter.full(minSubtotal.toDouble())} '
+        'untuk memakai promo ini.',
+      );
+    }
+
+    final int target;
+    if (promo.appliesTo == PromoAppliesTo.shipping) {
+      target = _shippingFee;
+    } else if (promo.serviceIds.isNotEmpty && items.isNotEmpty) {
+      target = items
+          .where(
+            (item) =>
+                item.service != null &&
+                promo.serviceIds.contains(item.service!.id),
+          )
+          .fold<int>(0, (sum, item) => sum + item.lineTotal);
+      if (target <= 0) {
+        throw const PromoException(
+          'Promo ini tidak berlaku untuk layanan yang kamu pilih.',
+        );
+      }
+    } else {
+      target = subtotal;
+    }
+
+    int raw;
     final String valueLabel;
     switch (promo.discountType) {
       case DiscountType.percentage:
-        raw = (subtotal * promo.discountValue / 100).round();
+        raw = (target * promo.discountValue / 100).round();
         valueLabel = 'Diskon ${promo.discountValue}%';
       case DiscountType.fixed:
         raw = promo.discountValue;
         valueLabel =
             'Potongan ${RupiahFormatter.full(promo.discountValue.toDouble())}';
     }
-    final discount = raw.clamp(0, subtotal).toInt();
+    final cap = promo.maxDiscountAmount;
+    if (cap != null && cap > 0 && raw > cap) raw = cap;
+    final discount = raw.clamp(0, target).toInt();
 
     return PriceQuote(
       price: PriceBreakdown(

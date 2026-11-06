@@ -38,7 +38,7 @@ class MockPromoRepository implements PromoRepository {
     await _write();
     final index = _indexOf(id);
     _ensureCodeFree(input.code, exceptId: id);
-    final updated = _fromInput(id, input);
+    final updated = _fromInput(id, input, usageCount: _promos[index].usageCount);
     _promos[index] = updated;
     return updated;
   }
@@ -70,7 +70,7 @@ class MockPromoRepository implements PromoRepository {
     if (taken) throw const MockException('Kode promo sudah dipakai');
   }
 
-  static Promo _fromInput(String id, PromoInput input) {
+  static Promo _fromInput(String id, PromoInput input, {int usageCount = 0}) {
     final description = input.description?.trim() ?? '';
     return Promo(
       id: id,
@@ -82,6 +82,14 @@ class MockPromoRepository implements PromoRepository {
       endDate: input.endDate,
       description: description.isEmpty ? null : description,
       isActive: input.isActive,
+      appliesTo: input.appliesTo,
+      minSubtotal: input.minSubtotal,
+      maxDiscountAmount: input.maxDiscountAmount,
+      usageLimit: input.usageLimit,
+      usageLimitPerCustomer: input.usageLimitPerCustomer,
+      firstOrderOnly: input.firstOrderOnly,
+      serviceIds: input.serviceIds,
+      usageCount: usageCount,
     );
   }
 
@@ -100,6 +108,7 @@ class MockPromoRepository implements PromoRepository {
         startDate: shift(-3),
         endDate: shift(14),
         description: 'Khusus order pertama kamu bulan ini.',
+        usageCount: 3,
       ),
       Promo(
         id: 'promo-2',
@@ -118,6 +127,7 @@ class MockPromoRepository implements PromoRepository {
         discountValue: 17,
         startDate: shift(-70),
         endDate: shift(-45),
+        usageCount: 12,
       ),
       Promo(
         id: 'promo-4',

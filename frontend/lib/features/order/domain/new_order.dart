@@ -47,6 +47,7 @@ class NewOrder {
     required this.pickupAddress,
     required this.deliveryAddress,
     this.promoCode,
+    this.idempotencyKey,
   });
 
   final String customerName;
@@ -55,4 +56,8 @@ class NewOrder {
   final String pickupAddress;
   final String deliveryAddress;
   final String? promoCode;
+
+  /// Kunci per upaya checkout. Kirim ulang karena gagal jaringan memakai kunci
+  /// yang sama sehingga order tidak terbuat dua kali.
+  final String? idempotencyKey;
 }

@@ -44,13 +44,23 @@ class OrderRepositoryImpl implements OrderRepository {
   Future<PriceQuote> quotePrice({
     required int subtotal,
     String? promoCode,
+    List<OrderDraftItem> items = const [],
   }) async {
     final code = promoCode?.trim() ?? '';
+    final lines = [
+      for (final item in items)
+        if (item.service != null)
+          {'service_id': item.service!.id, 'quantity': item.quantity},
+    ];
     try {
       final json = await api.post(
         ApiEndpoints.orderQuote,
         auth: true,
-        body: {'subtotal': subtotal, if (code.isNotEmpty) 'promo_code': code},
+        body: {
+          'subtotal': subtotal,
+          if (lines.isNotEmpty) 'items': lines,
+          if (code.isNotEmpty) 'promo_code': code,
+        },
       );
       return PriceQuote(
         price: PriceBreakdown(
@@ -70,9 +80,11 @@ class OrderRepositoryImpl implements OrderRepository {
   @override
   Future<CustomerOrder> createOrder(NewOrder order, PriceQuote quote) async {
     try {
+      final key = order.idempotencyKey;
       final json = await api.post(
         ApiEndpoints.orders,
         auth: true,
+        headers: key == null ? null : {ApiClient.idempotencyHeader: key},
         body: {
           'items': [
             for (final item in order.items)
@@ -112,7 +124,7 @@ class OrderRepositoryImpl implements OrderRepository {
     }
   }
 
-  // TODO(tahap-B): hapus overlay ini begitu pembayaran QRIS Duitku asli
+  // TODO(tahap-B): hapus overlay ini begitu pembayaran QRIS asli (Midtrans)
   // terhubung. Selama QRIS masih mock, "lunas" hanya hidup di memori aplikasi
   // (MockOrderStore) dan tidak pernah ditulis ke backend.
   CustomerOrder _withMockPayment(CustomerOrder order) {
@@ -137,6 +149,7 @@ class OrderRepositoryImpl implements OrderRepository {
       case 'service_unavailable':
         return Failure(FailureType.validation, e.message, code: e.code);
       case 'price_changed':
+      case 'idempotency_conflict':
         return Failure(FailureType.conflict, e.message, code: e.code);
     }
     if ((e.statusCode ?? 0) >= 500) {
