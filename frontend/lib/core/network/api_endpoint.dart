@@ -15,6 +15,9 @@ abstract final class ApiEndpoints {
   static const String promos = '/api/promos';
   static String promoById(String id) => '$promos/$id';
 
+  static const String pointRules = '/api/management/point-rules';
+  static String pointRuleById(String id) => '$pointRules/$id';
+
   static const String orders = '/api/orders';
   static const String orderQuote = '/api/orders/quote';
   static String orderById(String id) => '$orders/$id';

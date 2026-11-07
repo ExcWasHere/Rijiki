@@ -3,7 +3,7 @@ import 'package:rijiki/core/enums/app_permission.dart';
 import 'package:rijiki/core/enums/user_role.dart';
 import 'package:rijiki/core/session/app_user.dart';
 
-enum CmsSectionId { services, events, promos, merchandise, testimonials }
+enum CmsSectionId { services, events, promos, merchandise, points, testimonials }
 
 @immutable
 class CmsSection {

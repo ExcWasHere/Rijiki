@@ -5,6 +5,8 @@ import 'package:rijiki/core/enums/app_permission.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/features/cms/domain/cms_section.dart';
+import 'package:rijiki/features/cms/presentation/utils/point_format.dart';
+import 'package:rijiki/features/cms/presentation/utils/promo_format.dart';
 
 const List<CmsSection> _allSections = [
   CmsSection(
@@ -38,6 +40,14 @@ const List<CmsSection> _allSections = [
     icon: Icons.card_giftcard_rounded,
     color: AppColors.primaryDark,
     permission: AppPermission.manageCmsMerchandise,
+  ),
+  CmsSection(
+    id: CmsSectionId.points,
+    title: 'Poin',
+    description: 'Atur poin yang didapat customer',
+    icon: Icons.stars_rounded,
+    color: AppColors.rijikiOrange,
+    permission: AppPermission.managePoints,
   ),
   CmsSection(
     id: CmsSectionId.testimonials,
@@ -78,6 +88,17 @@ final cmsEventSummaryProvider = FutureProvider.autoDispose<String>((ref) async {
       : '$published event tayang · $hidden disembunyikan';
 });
 
+final cmsPromoSummaryProvider = FutureProvider.autoDispose<String>((ref) async {
+  final promos = await ref.watch(promoRepositoryProvider).fetchAllPromos();
+  final live = promos.where((p) => p.isActive).toList();
+  final running = live.where((p) => promoPhaseOf(p) == PromoPhase.running).length;
+  final upcoming = live.where((p) => promoPhaseOf(p) == PromoPhase.upcoming).length;
+  if (running == 0 && upcoming == 0) return 'Tidak ada promo berlangsung';
+  return upcoming == 0
+      ? '$running promo berlangsung'
+      : '$running promo berlangsung · $upcoming akan datang';
+});
+
 final cmsMerchandiseSummaryProvider = FutureProvider.autoDispose<String>((
   ref,
 ) async {
@@ -91,6 +112,15 @@ final cmsMerchandiseSummaryProvider = FutureProvider.autoDispose<String>((
       : '${active.length} merchandise aktif · $soldOut stok habis';
 });
 
+final cmsPointSummaryProvider = FutureProvider.autoDispose<String>((ref) async {
+  final rules = await ref.watch(pointRuleRepositoryProvider).fetchRules();
+  final parts = [
+    for (final rule in rules)
+      if (rule.isActive) '${rule.source.shortTitle} ${formatPointRuleValue(rule)}',
+  ];
+  return parts.isEmpty ? 'Aturan poin belum aktif' : parts.join(' · ');
+});
+
 final cmsSectionSummaryProvider = Provider.autoDispose
     .family<AsyncValue<String?>, CmsSectionId>((ref, id) {
       return switch (id) {
@@ -100,8 +130,14 @@ final cmsSectionSummaryProvider = Provider.autoDispose
         CmsSectionId.events => ref
             .watch(cmsEventSummaryProvider)
             .whenData<String?>((text) => text),
+        CmsSectionId.promos => ref
+            .watch(cmsPromoSummaryProvider)
+            .whenData<String?>((text) => text),
         CmsSectionId.merchandise => ref
             .watch(cmsMerchandiseSummaryProvider)
+            .whenData<String?>((text) => text),
+        CmsSectionId.points => ref
+            .watch(cmsPointSummaryProvider)
             .whenData<String?>((text) => text),
         _ => const AsyncData<String?>(null),
       };
@@ -110,12 +146,16 @@ final cmsSectionSummaryProvider = Provider.autoDispose
 Future<void> refreshCmsHub(WidgetRef ref) async {
   ref.invalidate(cmsServiceSummaryProvider);
   ref.invalidate(cmsEventSummaryProvider);
+  ref.invalidate(cmsPromoSummaryProvider);
   ref.invalidate(cmsMerchandiseSummaryProvider);
+  ref.invalidate(cmsPointSummaryProvider);
   try {
     await Future.wait<Object?>([
       ref.read(cmsServiceSummaryProvider.future),
       ref.read(cmsEventSummaryProvider.future),
+      ref.read(cmsPromoSummaryProvider.future),
       ref.read(cmsMerchandiseSummaryProvider.future),
+      ref.read(cmsPointSummaryProvider.future),
     ]);
   } catch (_) {
   }

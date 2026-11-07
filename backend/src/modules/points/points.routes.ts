@@ -1,0 +1,27 @@
+import { Hono } from 'hono';
+import { authMiddleware } from '../../middleware/auth';
+import { requirePermission } from '../../middleware/permission';
+import type { AppEnv } from '../../shared/types/env';
+import {
+  balanceHandler,
+  ledgerHandler,
+  listRulesHandler,
+  updateRuleHandler,
+} from './points.controller';
+
+/** Customer: saldo dan riwayat poin sendiri. Dipasang di /api/points. */
+export const pointsRoutes = new Hono<AppEnv>();
+pointsRoutes.use('*', authMiddleware);
+pointsRoutes.get('/balance', balanceHandler);
+pointsRoutes.get('/ledger', ledgerHandler);
+
+/**
+ * Owner / worker berizin manage_points: aturan perolehan poin. Dipasang di
+ * /api/management/point-rules. Hanya baca dan ubah nilai; aturan tidak dibuat
+ * atau dihapus lewat aplikasi.
+ */
+export const pointRulesRoutes = new Hono<AppEnv>();
+pointRulesRoutes.use('*', authMiddleware);
+pointRulesRoutes.use('*', requirePermission('manage_points'));
+pointRulesRoutes.get('/', listRulesHandler);
+pointRulesRoutes.patch('/:id', updateRuleHandler);

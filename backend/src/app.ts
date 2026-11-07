@@ -4,6 +4,7 @@ import { validateEnv } from './config/env';
 import { authRoutes } from './modules/auth/auth.routes';
 import { mediaRoutes } from './modules/media/media.routes';
 import { ordersRoutes } from './modules/orders/orders.routes';
+import { pointRulesRoutes, pointsRoutes } from './modules/points/points.routes';
 import { profileRoutes } from './modules/profile/profile.routes';
 import { promosRoutes } from './modules/promos/promos.routes';
 import { servicesRoutes } from './modules/services/services.routes';
@@ -33,6 +34,8 @@ export function createApp() {
   app.route('/api/services', servicesRoutes);
   app.route('/api/promos', promosRoutes);
   app.route('/api/orders', ordersRoutes);
+  app.route('/api/points', pointsRoutes);
+  app.route('/api/management/point-rules', pointRulesRoutes);
   app.route('/api/workers', workersRoutes);
 
   app.notFound((c) =>
