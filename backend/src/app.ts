@@ -7,6 +7,7 @@ import { ordersRoutes } from './modules/orders/orders.routes';
 import { pointRulesRoutes, pointsRoutes } from './modules/points/points.routes';
 import { profileRoutes } from './modules/profile/profile.routes';
 import { promosRoutes } from './modules/promos/promos.routes';
+import { managementTestimonialsRoutes, testimonialsRoutes } from './modules/ratings/ratings.routes';
 import { servicesRoutes } from './modules/services/services.routes';
 import { workersRoutes } from './modules/workers/workers.routes';
 import { AppError } from './shared/errors';
@@ -35,6 +36,8 @@ export function createApp() {
   app.route('/api/promos', promosRoutes);
   app.route('/api/orders', ordersRoutes);
   app.route('/api/points', pointsRoutes);
+  app.route('/api/testimonials', testimonialsRoutes);
+  app.route('/api/management/testimonials', managementTestimonialsRoutes);
   app.route('/api/management/point-rules', pointRulesRoutes);
   app.route('/api/workers', workersRoutes);
 

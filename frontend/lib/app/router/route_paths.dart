@@ -89,6 +89,8 @@ abstract final class RoutePaths {
       '$ownerCmsMerchandise/$merchandiseId/edit';
 
   static const String ownerCmsPoints = '/owner/management/cms/points';
+  static const String ownerCmsTestimonials =
+      '/owner/management/cms/testimonials';
 
   static String verifyEmailFor(String email) {
     return Uri(path: verifyEmail, queryParameters: {'email': email}).toString();
@@ -110,6 +112,8 @@ abstract final class RoutePaths {
       '$customerOrders/$orderId/receipt';
   static String deliveryMapFor(String orderId) =>
       '$customerOrders/$orderId/map';
+  static String ratingFor(String orderId) =>
+      '$customerOrders/$orderId/rating';
 
   static String paymentResultFor(String orderId, String status) => Uri(
     path: '$customerOrders/$orderId/pay/result',

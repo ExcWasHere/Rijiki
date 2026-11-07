@@ -8,6 +8,17 @@ class MockRatingRepository implements RatingRepository {
   final MockScenario scenario;
 
   @override
+  Future<RatingSubmission> submitRating({
+    required String orderId,
+    required int ratingValue,
+    String? comment,
+    String? photoPath,
+  }) async {
+    await scenario.resolve<bool>(empty: true, data: true);
+    return const RatingSubmission(pointsAwarded: 20);
+  }
+
+  @override
   Future<List<Testimonial>> fetchFeaturedTestimonials() {
     final now = DateTime.now();
     return scenario.resolve<List<Testimonial>>(

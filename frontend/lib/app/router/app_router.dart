@@ -29,6 +29,7 @@ import 'package:rijiki/features/cms/presentation/owner/promo_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/promo_manage_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_manage_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/testimonial_manage_page.dart';
 import 'package:rijiki/features/event/presentation/event_page.dart';
 import 'package:rijiki/features/finance/presentation/pages/expense_ai_input_page.dart';
 import 'package:rijiki/features/finance/presentation/pages/expense_draft_review_page.dart';
@@ -53,6 +54,7 @@ import 'package:rijiki/features/profile/presentation/customer/profile_page.dart'
 import 'package:rijiki/features/profile/presentation/owner/owner_profile_page.dart';
 import 'package:rijiki/features/profile/presentation/shared/edit_profile_page.dart';
 import 'package:rijiki/features/profile/presentation/worker/worker_profile_page.dart';
+import 'package:rijiki/features/rating/presentation/customer/rating_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
@@ -163,6 +165,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'map',
                         builder: (context, state) => DeliveryMapPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'rating',
+                        builder: (context, state) => RatingPage(
                           orderId: state.pathParameters['orderId']!,
                         ),
                       ),
@@ -480,6 +488,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'points',
                         builder: (context, state) => const PointRulePage(),
+                      ),
+                      GoRoute(
+                        path: 'testimonials',
+                        builder: (context, state) =>
+                            const TestimonialManagePage(),
                       ),
                     ],
                   ),

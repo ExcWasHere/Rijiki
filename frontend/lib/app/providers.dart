@@ -38,7 +38,11 @@ import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
 import 'package:rijiki/features/profile/data/profile_repository_impl.dart';
 import 'package:rijiki/features/profile/domain/profile_repository.dart';
 import 'package:rijiki/features/rating/data/mock_rating_repository.dart';
+import 'package:rijiki/features/rating/data/mock_testimonial_manage_repository.dart';
+import 'package:rijiki/features/rating/data/rating_repository_impl.dart';
+import 'package:rijiki/features/rating/data/testimonial_manage_repository_impl.dart';
 import 'package:rijiki/features/rating/domain/rating_repository.dart';
+import 'package:rijiki/features/rating/domain/testimonial_manage_repository.dart';
 import 'package:rijiki/features/scan/data/mock_scan_repository.dart';
 import 'package:rijiki/features/scan/domain/scan_repository.dart';
 import 'package:rijiki/features/service/data/mock_service_repository.dart';
@@ -126,9 +130,22 @@ final courierTrackingRepositoryProvider = Provider<CourierTrackingRepository>(
   (ref) => CourierTrackingRepositoryImpl(api: ref.watch(apiClientProvider)),
 );
 
-final ratingRepositoryProvider = Provider<RatingRepository>(
-  (ref) => MockRatingRepository(scenario: ref.watch(mockScenarioProvider)),
-);
+final ratingRepositoryProvider = Provider<RatingRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockRatingRepository(scenario: ref.watch(mockScenarioProvider));
+  }
+  return RatingRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
+final testimonialManageRepositoryProvider =
+    Provider<TestimonialManageRepository>((ref) {
+      if (AppConstants.useMockOrders) {
+        return MockTestimonialManageRepository(
+          scenario: ref.watch(mockScenarioProvider),
+        );
+      }
+      return TestimonialManageRepositoryImpl(api: ref.watch(apiClientProvider));
+    });
 
 final scanRepositoryProvider = Provider<ScanRepository>(
   (ref) => MockScanRepository(scenario: ref.watch(mockScenarioProvider)),

@@ -29,6 +29,14 @@ abstract final class ApiEndpoints {
       '$orders/$id/documentations/$docId';
 
   static String orderTracking(String id) => '$orders/$id/tracking';
+  static String orderRating(String id) => '$orders/$id/rating';
+
+  static const String testimonialsFeatured = '/api/testimonials/featured';
+  static const String managementTestimonials = '/api/management/testimonials';
+  static const String managementTestimonialsExport =
+      '/api/management/testimonials/export';
+  static String managementTestimonialFeatured(String id) =>
+      '$managementTestimonials/$id/featured';
 
   static const String workers = '/api/workers';
 

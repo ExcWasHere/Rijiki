@@ -20,12 +20,6 @@ import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 import 'package:rijiki/shared/widgets/section_header.dart';
 import 'package:rijiki/shared/widgets/status_chip.dart';
 
-void _comingSoon(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
-}
-
 class OrderDetailPage extends ConsumerWidget {
   const OrderDetailPage({super.key, required this.orderId});
 
@@ -271,13 +265,13 @@ class _ActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String label;
-    final String message;
+    final String route;
     if (order.canPay) {
       label = 'Bayar ${CurrencyFormatter.rupiah(order.totalPrice)}';
-      message = '';
+      route = RoutePaths.orderPaymentFor(order.id);
     } else if (order.canRate) {
       label = 'Beri rating';
-      message = 'Fitur rating segera hadir.';
+      route = RoutePaths.ratingFor(order.id);
     } else {
       return const SizedBox.shrink();
     }
@@ -292,10 +286,7 @@ class _ActionBar extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: FilledButton(
-          // TODO: halaman rating menyusul.
-          onPressed: order.canPay
-              ? () => context.push(RoutePaths.orderPaymentFor(order.id))
-              : () => _comingSoon(context, message),
+          onPressed: () => context.push(route),
           child: Text(label),
         ),
       ),

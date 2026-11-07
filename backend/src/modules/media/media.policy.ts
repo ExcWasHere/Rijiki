@@ -53,9 +53,6 @@ async function canReadDocumentation(
   return false;
 }
 
-// TODO saat modul ratings jadi:
-//   - 'testimonials': pemilik rating + pemegang izin manage_testimonials
-//
 // Async karena sebagian aturan butuh query database. Defaultnya MENOLAK:
 // folder baru wajib didaftarkan eksplisit di sini.
 export async function canReadPrivate(
@@ -74,6 +71,13 @@ export async function canReadPrivate(
       return ctx.user.role === 'worker' && ctx.permissions.includes('manage_finance');
     case 'documentations':
       return canReadDocumentation(env, ctx, ownerId ?? '');
+    case 'testimonials':
+      // testimonials/<user_id customer>/<uuid>.<ext>: pemilik rating dan
+      // pemegang izin manage_testimonials (owner sudah lolos di atas).
+      return (
+        ownerId === ctx.user.id ||
+        (ctx.user.role === 'worker' && ctx.permissions.includes('manage_testimonials'))
+      );
     default:
       return false;
   }
