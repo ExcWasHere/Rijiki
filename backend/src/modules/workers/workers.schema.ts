@@ -59,5 +59,35 @@ export const setPermissionsSchema = z.object({
   permissions: z.array(z.enum(APP_PERMISSIONS)).max(APP_PERMISSIONS.length),
 });
 
+export const KPI_ASPECTS = ['quality', 'timeliness', 'neatness', 'attitude'] as const;
+export type KpiAspectKey = (typeof KPI_ASPECTS)[number];
+
+const score = z
+  .number()
+  .int('Skor harus bilangan bulat')
+  .min(1, 'Skor minimal 1')
+  .max(5, 'Skor maksimal 5');
+
+/** Periode dalam bulan WIB; tanpa nilai berarti bulan berjalan. */
+export const kpiQuerySchema = z.object({
+  month: z.coerce.number().int().min(1).max(12).optional(),
+  year: z.coerce.number().int().min(2020).max(2100).optional(),
+});
+
+export const saveAssessmentSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  year: z.number().int().min(2020).max(2100),
+  scores: z.object({
+    quality: score,
+    timeliness: score,
+    neatness: score,
+    attitude: score,
+  }),
+  note: z.string().trim().max(300, 'Catatan maksimal 300 karakter').nullish(),
+});
+
 export type CreateWorkerInput = z.infer<typeof createWorkerSchema>;
 export type UpdateWorkerInput = z.infer<typeof updateWorkerSchema>;
+
+export type KpiQuery = z.infer<typeof kpiQuerySchema>;
+export type SaveAssessmentInput = z.infer<typeof saveAssessmentSchema>;

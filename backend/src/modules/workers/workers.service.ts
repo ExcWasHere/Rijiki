@@ -8,6 +8,7 @@ import {
   getManagedWorker,
   getWorkerUserId,
   grantPermissions,
+  listActiveGrants,
   listActivePermissions,
   listManagedWorkers,
   revokePermissions,
@@ -15,7 +16,7 @@ import {
   updateUserRow,
   updateWorkerProfileRow,
 } from './workers.repo';
-import type { ManagedWorkerView } from './workers.repo';
+import type { ManagedWorkerView, PermissionGrantView } from './workers.repo';
 import type { CreateWorkerInput, UpdateWorkerInput } from './workers.schema';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -137,12 +138,22 @@ export async function updateWorker(
   return view;
 }
 
+export interface PermissionsPayload {
+  permissions: AppPermission[];
+  grants: PermissionGrantView[];
+}
+
+async function permissionsPayload(env: Bindings, workerId: string): Promise<PermissionsPayload> {
+  const grants = await listActiveGrants(env, workerId);
+  return { permissions: grants.map((g) => g.permission), grants };
+}
+
 export async function getWorkerPermissions(
   env: Bindings,
   workerId: string,
-): Promise<{ permissions: AppPermission[] }> {
+): Promise<PermissionsPayload> {
   if (!UUID_RE.test(workerId) || !(await getWorkerUserId(env, workerId))) throw notFound();
-  return { permissions: await listActivePermissions(env, workerId) };
+  return permissionsPayload(env, workerId);
 }
 
 /** Hanya owner. Menerima daftar lengkap izin yang diinginkan dan menghitung selisihnya. */
@@ -151,7 +162,7 @@ export async function setWorkerPermissions(
   ownerUserId: string,
   workerId: string,
   desired: AppPermission[],
-): Promise<{ permissions: AppPermission[] }> {
+): Promise<PermissionsPayload> {
   if (!UUID_RE.test(workerId) || !(await getWorkerUserId(env, workerId))) throw notFound();
 
   const wanted = new Set(desired);
@@ -171,5 +182,5 @@ export async function setWorkerPermissions(
       metadata: { granted: toGrant, revoked: toRevoke },
     });
   }
-  return { permissions: await listActivePermissions(env, workerId) };
+  return permissionsPayload(env, workerId);
 }

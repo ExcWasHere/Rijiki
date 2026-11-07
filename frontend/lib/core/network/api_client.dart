@@ -69,6 +69,15 @@ class ApiClient {
     return _send('PATCH', path, body: body, auth: auth, extraHeaders: headers);
   }
 
+  Future<Json> put(
+    String path, {
+    Json? body,
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('PUT', path, body: body, auth: auth, extraHeaders: headers);
+  }
+
   Future<Json> delete(
     String path, {
     bool auth = false,
@@ -151,6 +160,7 @@ class ApiClient {
           'GET' => _client.get(uri, headers: headers),
           'DELETE' => _client.delete(uri, headers: headers),
           'PATCH' => _client.patch(uri, headers: jsonHeaders, body: encoded),
+          'PUT' => _client.put(uri, headers: jsonHeaders, body: encoded),
           _ => _client.post(uri, headers: jsonHeaders, body: encoded),
         };
       },

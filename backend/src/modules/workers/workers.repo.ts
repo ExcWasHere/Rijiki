@@ -359,3 +359,38 @@ export async function revokePermissions(
     .is('revoked_at', null);
   if (error) throw failed('mencabut izin worker', error.message);
 }
+
+export interface PermissionGrantView {
+  permission: AppPermission;
+  granted_at: string;
+  granted_by_name: string | null;
+}
+
+/** Izin aktif beserta waktu pemberian dan nama pemberinya (satu baris per izin). */
+export async function listActiveGrants(
+  env: Bindings,
+  workerId: string,
+): Promise<PermissionGrantView[]> {
+  const admin = getSupabaseAdmin(env);
+  const { data, error } = await admin
+    .from('worker_permissions')
+    .select('permission, granted_at, granter:users!worker_permissions_granted_by_fkey(full_name)')
+    .eq('worker_id', workerId)
+    .is('revoked_at', null)
+    .order('granted_at', { ascending: true });
+  if (error) throw failed('memuat izin worker', error.message);
+
+  const seen = new Set<string>();
+  const result: PermissionGrantView[] = [];
+  for (const row of data ?? []) {
+    const permission = row.permission as AppPermission;
+    if (seen.has(permission)) continue;
+    seen.add(permission);
+    result.push({
+      permission,
+      granted_at: row.granted_at as string,
+      granted_by_name: (one(row.granter)?.full_name as string | null) ?? null,
+    });
+  }
+  return result;
+}
