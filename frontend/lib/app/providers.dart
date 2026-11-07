@@ -49,6 +49,7 @@ import 'package:rijiki/features/service/data/mock_service_repository.dart';
 import 'package:rijiki/features/service/data/service_repository_impl.dart';
 import 'package:rijiki/features/service/domain/service_repository.dart';
 import 'package:rijiki/features/worker_management/data/mock_worker_repository.dart';
+import 'package:rijiki/features/worker_management/data/worker_repository_impl.dart';
 import 'package:rijiki/features/worker_management/domain/worker_repository.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
@@ -168,9 +169,12 @@ final financeRepositoryProvider = Provider<FinanceRepository>(
   ),
 );
 
-final workerRepositoryProvider = Provider<WorkerRepository>(
-  (ref) => MockWorkerRepository(scenario: ref.watch(mockScenarioProvider)),
-);
+final workerRepositoryProvider = Provider<WorkerRepository>((ref) {
+  final mock = MockWorkerRepository(scenario: ref.watch(mockScenarioProvider));
+  if (AppConstants.useMockOrders) return mock;
+  // Daftar/tambah/ubah karyawan dari backend; ulasan dan KPI masih mock.
+  return WorkerRepositoryImpl(api: ref.watch(apiClientProvider), fallback: mock);
+});
 
 final permissionRepositoryProvider = Provider<PermissionRepository>(
   (ref) => MockPermissionRepository(scenario: ref.watch(mockScenarioProvider)),

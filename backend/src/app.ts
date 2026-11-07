@@ -9,7 +9,7 @@ import { profileRoutes } from './modules/profile/profile.routes';
 import { promosRoutes } from './modules/promos/promos.routes';
 import { managementTestimonialsRoutes, testimonialsRoutes } from './modules/ratings/ratings.routes';
 import { servicesRoutes } from './modules/services/services.routes';
-import { workersRoutes } from './modules/workers/workers.routes';
+import { ownerWorkersRoutes, workersRoutes } from './modules/workers/workers.routes';
 import { AppError } from './shared/errors';
 import type { AppEnv } from './shared/types/env';
 
@@ -40,6 +40,7 @@ export function createApp() {
   app.route('/api/management/testimonials', managementTestimonialsRoutes);
   app.route('/api/management/point-rules', pointRulesRoutes);
   app.route('/api/workers', workersRoutes);
+  app.route('/api/owner/workers', ownerWorkersRoutes);
 
   app.notFound((c) =>
     c.json({ error: { code: 'not_found', message: 'Endpoint tidak ditemukan' } }, 404),

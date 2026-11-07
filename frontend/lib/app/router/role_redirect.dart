@@ -14,6 +14,11 @@ abstract final class RoleRedirect {
     ..._authRoutes,
   };
 
+  /// Halaman manajemen (CMS, Karyawan) dipakai owner dan worker berizin, di
+  /// luar shell. Izin per fitur dicek backend dan disembunyikan di menu;
+  /// guard ini hanya menutup akses customer lewat tautan langsung.
+  static const String _managementPrefix = '/management';
+
   static bool needsOnboarding(AppUser user) {
     return user.role == UserRole.customer && !user.profileCompleted;
   }
@@ -60,6 +65,12 @@ abstract final class RoleRedirect {
         return roleHome(user);
       }
       return null;
+    }
+
+    if (user.role == UserRole.customer &&
+        (location == _managementPrefix ||
+            location.startsWith('$_managementPrefix/'))) {
+      return roleHome(user);
     }
 
     return null;
