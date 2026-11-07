@@ -39,6 +39,10 @@ abstract final class ApiEndpoints {
       '$managementTestimonials/$id/featured';
 
   static const String workers = '/api/workers';
+  static const String workersKpiOverview = '/api/workers/kpi-overview';
+  static String workerReviews(String id) => '$workers/$id/reviews';
+  static String workerKpi(String id) => '$workers/$id/kpi';
+  static String workerPermissions(String id) => '/api/owner/workers/$id/permissions';
 
   static const String avatar = '/api/media/avatar';
   static String privateMedia(String key) => '/api/media/private/$key';

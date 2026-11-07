@@ -9,69 +9,77 @@ import 'package:rijiki/features/worker_management/domain/worker_profile.dart';
 import 'package:rijiki/features/worker_management/domain/worker_repository.dart';
 import 'package:rijiki/features/worker_management/domain/worker_review.dart';
 
-/// Data karyawan dari backend: daftar, tambah, dan ubah.
+/// Data karyawan dari backend: daftar, tambah, ubah, ulasan, KPI, dan penilaian.
 ///
-/// TODO(segmen-4b): ulasan, KPI, dan penilaian belum punya endpoint, jadi
-/// sementara didelegasikan ke [fallback] (mock). Id worker asli tidak dikenal
-/// mock, sehingga bagian itu bisa kosong atau galat untuk worker asli.
+/// Catatan: `onTimeCompletionPct` selalu kosong karena definisi "tepat waktu"
+/// belum ditetapkan di PRD (formula KPI: TBD dengan Rijiki).
 class WorkerRepositoryImpl implements WorkerRepository {
-  WorkerRepositoryImpl({required this.api, required this.fallback});
+  WorkerRepositoryImpl({required this.api});
 
   final ApiClient api;
-  final WorkerRepository fallback;
 
   @override
-  Future<List<WorkerSummary>> fetchWorkers() async {
-    try {
-      final json = await api.get('${ApiEndpoints.workers}/manage', auth: true);
-      final raw = json['items'] as List<dynamic>? ?? const [];
-      return [
-        for (final item in raw) _summaryFromJson(item as Map<String, dynamic>),
-      ];
-    } on AppException catch (e) {
-      throw _toFailure(e);
-    }
-  }
+  Future<List<WorkerSummary>> fetchWorkers() => _guard(() async {
+    final json = await api.get('${ApiEndpoints.workers}/manage', auth: true);
+    final raw = json['items'] as List<dynamic>? ?? const [];
+    return [
+      for (final item in raw) _summaryFromJson(item as Map<String, dynamic>),
+    ];
+  });
 
   @override
-  Future<WorkerProfile> createWorker(WorkerInput input) async {
-    try {
-      final json = await api.post(
-        ApiEndpoints.workers,
-        auth: true,
-        body: _bodyOf(input),
-      );
-      return _profileFromJson(json);
-    } on AppException catch (e) {
-      throw _toFailure(e);
-    }
-  }
+  Future<WorkerProfile> createWorker(WorkerInput input) => _guard(() async {
+    final json = await api.post(
+      ApiEndpoints.workers,
+      auth: true,
+      body: _bodyOf(input),
+    );
+    return _profileFromJson(json);
+  });
 
   @override
-  Future<WorkerProfile> updateWorker(String id, WorkerInput input) async {
-    try {
-      final json = await api.patch(
-        '${ApiEndpoints.workers}/$id',
-        auth: true,
-        body: _bodyOf(input),
-      );
-      return _profileFromJson(json);
-    } on AppException catch (e) {
-      throw _toFailure(e);
-    }
-  }
+  Future<WorkerProfile> updateWorker(String id, WorkerInput input) =>
+      _guard(() async {
+        final json = await api.patch(
+          '${ApiEndpoints.workers}/$id',
+          auth: true,
+          body: _bodyOf(input),
+        );
+        return _profileFromJson(json);
+      });
 
   @override
-  Future<List<WorkerReview>> fetchReviews(String workerId) =>
-      fallback.fetchReviews(workerId);
+  Future<List<WorkerReview>> fetchReviews(String workerId) => _guard(() async {
+    final json = await api.get(ApiEndpoints.workerReviews(workerId), auth: true);
+    final raw = json['items'] as List<dynamic>? ?? const [];
+    return [
+      for (final item in raw) _reviewFromJson(item as Map<String, dynamic>),
+    ];
+  });
 
   @override
   Future<WorkerKpi> fetchKpi(String workerId, KpiPeriod period) =>
-      fallback.fetchKpi(workerId, period);
+      _guard(() async {
+        final path = Uri(
+          path: ApiEndpoints.workerKpi(workerId),
+          queryParameters: _periodQuery(period),
+        ).toString();
+        return _kpiFromJson(await api.get(path, auth: true));
+      });
 
   @override
   Future<List<WorkerKpi>> fetchKpiOverview(KpiPeriod period) =>
-      fallback.fetchKpiOverview(period);
+      _guard(() async {
+        final path = Uri(
+          path: ApiEndpoints.workersKpiOverview,
+          queryParameters: _periodQuery(period),
+        ).toString();
+        final json = await api.get(path, auth: true);
+        final raw = json['items'] as List<dynamic>? ?? const [];
+        return [
+          for (final item in raw) _kpiFromJson(item as Map<String, dynamic>),
+        ];
+      });
 
   @override
   Future<WorkerKpi> saveAssessment({
@@ -79,12 +87,35 @@ class WorkerRepositoryImpl implements WorkerRepository {
     required KpiPeriod period,
     required Map<KpiAspect, int> scores,
     String? note,
-  }) => fallback.saveAssessment(
-    workerId: workerId,
-    period: period,
-    scores: scores,
-    note: note,
-  );
+  }) => _guard(() async {
+    final cleaned = note?.trim() ?? '';
+    final json = await api.put(
+      ApiEndpoints.workerKpi(workerId),
+      auth: true,
+      body: {
+        'month': period.month,
+        'year': period.year,
+        'scores': {
+          for (final aspect in KpiAspect.values) aspect.name: scores[aspect],
+        },
+        if (cleaned.isNotEmpty) 'note': cleaned,
+      },
+    );
+    return _kpiFromJson(json);
+  });
+
+  Future<T> _guard<T>(Future<T> Function() run) async {
+    try {
+      return await run();
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
+  }
+
+  static Map<String, String> _periodQuery(KpiPeriod period) => {
+    'month': '${period.month}',
+    'year': '${period.year}',
+  };
 
   static String _date(DateTime d) {
     final month = d.month.toString().padLeft(2, '0');
@@ -127,6 +158,47 @@ class WorkerRepositoryImpl implements WorkerRepository {
     );
   }
 
+  static WorkerReview _reviewFromJson(Map<String, dynamic> json) {
+    return WorkerReview(
+      id: json['id'] as String,
+      customerName: json['customer_name'] as String? ?? 'Pelanggan Rijiki',
+      ratingValue: (json['rating_value'] as num).toInt(),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+      orderNumber: json['order_number'] as String? ?? '-',
+      comment: json['comment'] as String?,
+      serviceName: json['service_name'] as String?,
+    );
+  }
+
+  static WorkerKpi _kpiFromJson(Map<String, dynamic> json) {
+    KpiAssessment? assessment;
+    final raw = json['assessment'] as Map<String, dynamic>?;
+    if (raw != null) {
+      final rawScores = raw['scores'] as Map<String, dynamic>? ?? const {};
+      final scores = <KpiAspect, int>{};
+      for (final aspect in KpiAspect.values) {
+        final value = rawScores[aspect.name];
+        if (value is num) scores[aspect] = value.toInt();
+      }
+      assessment = KpiAssessment(
+        scores: scores,
+        note: raw['note'] as String?,
+        updatedAt: DateTime.parse(raw['updated_at'] as String).toLocal(),
+      );
+    }
+    return WorkerKpi(
+      workerId: json['worker_id'] as String,
+      period: KpiPeriod(
+        (json['period_month'] as num).toInt(),
+        (json['period_year'] as num).toInt(),
+      ),
+      totalOrdersHandled: (json['total_orders_handled'] as num?)?.toInt() ?? 0,
+      avgRating: (json['avg_rating'] as num?)?.toDouble(),
+      onTimeCompletionPct: (json['on_time_completion_pct'] as num?)?.toDouble(),
+      assessment: assessment,
+    );
+  }
+
   Failure _toFailure(AppException e) {
     switch (e.code) {
       case AppException.networkCode:
@@ -139,6 +211,7 @@ class WorkerRepositoryImpl implements WorkerRepository {
         return Failure(FailureType.validation, e.message, code: e.code);
       case 'email_taken':
       case 'employee_code_taken':
+      case 'period_closed':
         return Failure(FailureType.conflict, e.message, code: e.code);
     }
     if ((e.statusCode ?? 0) >= 500) {

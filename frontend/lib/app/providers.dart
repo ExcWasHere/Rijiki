@@ -5,6 +5,7 @@ import 'package:rijiki/core/network/api_client.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/storage/token_storage.dart';
 import 'package:rijiki/features/access_control/data/mock_permission_repository.dart';
+import 'package:rijiki/features/access_control/data/permission_repository_impl.dart';
 import 'package:rijiki/features/access_control/domain/permission_repository.dart';
 import 'package:rijiki/features/auth/data/auth_repository_impl.dart';
 import 'package:rijiki/features/auth/data/google_sign_in_service.dart';
@@ -170,12 +171,15 @@ final financeRepositoryProvider = Provider<FinanceRepository>(
 );
 
 final workerRepositoryProvider = Provider<WorkerRepository>((ref) {
-  final mock = MockWorkerRepository(scenario: ref.watch(mockScenarioProvider));
-  if (AppConstants.useMockOrders) return mock;
-  // Daftar/tambah/ubah karyawan dari backend; ulasan dan KPI masih mock.
-  return WorkerRepositoryImpl(api: ref.watch(apiClientProvider), fallback: mock);
+  if (AppConstants.useMockOrders) {
+    return MockWorkerRepository(scenario: ref.watch(mockScenarioProvider));
+  }
+  return WorkerRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
-final permissionRepositoryProvider = Provider<PermissionRepository>(
-  (ref) => MockPermissionRepository(scenario: ref.watch(mockScenarioProvider)),
-);
+final permissionRepositoryProvider = Provider<PermissionRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockPermissionRepository(scenario: ref.watch(mockScenarioProvider));
+  }
+  return PermissionRepositoryImpl(api: ref.watch(apiClientProvider));
+});

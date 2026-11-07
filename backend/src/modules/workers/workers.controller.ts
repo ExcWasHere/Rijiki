@@ -2,8 +2,11 @@ import type { Context } from 'hono';
 import type { AppEnv } from '../../shared/types/env';
 import { parseInput } from '../../shared/utils/validate';
 import { listActiveWorkers } from './workers.repo';
+import { getKpiOverview, getWorkerKpi, listWorkerReviews, saveAssessment } from './workers.kpi.service';
 import {
   createWorkerSchema,
+  kpiQuerySchema,
+  saveAssessmentSchema,
   setPermissionsSchema,
   updateWorkerSchema,
 } from './workers.schema';
@@ -66,4 +69,31 @@ export async function setPermissionsHandler(c: Context<AppEnv>) {
   return c.json(
     await setWorkerPermissions(c.env, ctx.user.id, c.req.param('id') ?? '', input.permissions),
   );
+}
+
+/** GET /api/workers/:id/reviews */
+export async function reviewsHandler(c: Context<AppEnv>) {
+  c.header('Cache-Control', 'no-store');
+  return c.json(await listWorkerReviews(c.env, c.req.param('id') ?? ''));
+}
+
+/** GET /api/workers/:id/kpi?month=&year= */
+export async function getKpiHandler(c: Context<AppEnv>) {
+  const query = parseInput(kpiQuerySchema, c.req.query());
+  c.header('Cache-Control', 'no-store');
+  return c.json(await getWorkerKpi(c.env, c.req.param('id') ?? '', query));
+}
+
+/** GET /api/workers/kpi-overview?month=&year= */
+export async function kpiOverviewHandler(c: Context<AppEnv>) {
+  const query = parseInput(kpiQuerySchema, c.req.query());
+  c.header('Cache-Control', 'no-store');
+  return c.json(await getKpiOverview(c.env, query));
+}
+
+/** PUT /api/workers/:id/kpi: penilaian owner untuk bulan berjalan. */
+export async function saveAssessmentHandler(c: Context<AppEnv>) {
+  const ctx = c.get('user');
+  const input = parseInput(saveAssessmentSchema, await c.req.json().catch(() => null));
+  return c.json(await saveAssessment(c.env, ctx.user.id, c.req.param('id') ?? '', input));
 }
