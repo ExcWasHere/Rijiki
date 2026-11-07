@@ -31,6 +31,9 @@ import 'package:rijiki/features/order/domain/order_repository.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
 import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
 import 'package:rijiki/features/payment/domain/payment_repository.dart';
+import 'package:rijiki/features/points/data/mock_point_rule_repository.dart';
+import 'package:rijiki/features/points/data/point_rule_repository_impl.dart';
+import 'package:rijiki/features/points/domain/point_rule_repository.dart';
 import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
 import 'package:rijiki/features/profile/data/profile_repository_impl.dart';
 import 'package:rijiki/features/profile/domain/profile_repository.dart';
@@ -89,6 +92,13 @@ final promoRepositoryProvider = Provider<PromoRepository>((ref) {
     return MockPromoRepository(scenario: ref.watch(mockScenarioProvider));
   }
   return PromoRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
+final pointRuleRepositoryProvider = Provider<PointRuleRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockPointRuleRepository(scenario: ref.watch(mockScenarioProvider));
+  }
+  return PointRuleRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final merchandiseRepositoryProvider = Provider<MerchandiseRepository>(

@@ -11,10 +11,14 @@ import 'package:rijiki/shared/widgets/empty_state.dart';
 
 class CmsHubPage extends ConsumerWidget {
   const CmsHubPage({super.key});
+
+  // Bagian tanpa rute (testimoni) tampil "Segera" sampai halamannya jadi.
   static const Map<CmsSectionId, String> _routes = {
     CmsSectionId.services: RoutePaths.ownerCmsServices,
     CmsSectionId.events: RoutePaths.ownerCmsEvents,
+    CmsSectionId.promos: RoutePaths.ownerCmsPromos,
     CmsSectionId.merchandise: RoutePaths.ownerCmsMerchandise,
+    CmsSectionId.points: RoutePaths.ownerCmsPoints,
   };
 
   @override

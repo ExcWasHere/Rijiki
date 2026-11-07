@@ -5,6 +5,7 @@ import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { logActivity } from '../../shared/utils/activity-log';
 import { parseInput } from '../../shared/utils/validate';
+import { awardOrderCompletedPoints } from '../points/points.service';
 import { isUuid, loadVisibleOrder, orderNotFound, resolveAccess } from './orders.access';
 import type { OrderAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
@@ -251,7 +252,7 @@ export async function changeOrderStatus(
   // Koreksi owner sengaja tidak memeriksa foto: catatannya sudah menjadi jejak audit.
   if (kind === 'forward') assertDocumentationComplete(row, info, target);
 
-  // TODO(tahap-B): setelah QRIS Duitku asli, wajibkan payment_status = 'paid'
+  // TODO(tahap-B): setelah QRIS asli (Midtrans), wajibkan payment_status = 'paid'
   // sebelum order boleh pindah dari `order` ke `pickup`.
 
   await changeOrderStatusRpc(env, {
@@ -269,6 +270,11 @@ export async function changeOrderStatus(
     entityId: orderId,
     metadata: { from: info.status, to: target, kind, notes },
   });
+
+  // Order selesai -> poin untuk customer. Galatnya hanya dicatat (status sudah
+  // tersimpan) dan pemberiannya idempoten, jadi aman diulang lewat SQL bila perlu.
+  if (target === 'completed') await awardOrderCompletedPoints(env, orderId);
+
   return freshView(env, access, orderId);
 }
 

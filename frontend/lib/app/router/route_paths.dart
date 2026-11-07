@@ -88,6 +88,8 @@ abstract final class RoutePaths {
   static String ownerCmsMerchandiseEditFor(String merchandiseId) =>
       '$ownerCmsMerchandise/$merchandiseId/edit';
 
+  static const String ownerCmsPoints = '/owner/management/cms/points';
+
   static String verifyEmailFor(String email) {
     return Uri(path: verifyEmail, queryParameters: {'email': email}).toString();
   }

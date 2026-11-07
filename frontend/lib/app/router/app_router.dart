@@ -24,6 +24,7 @@ import 'package:rijiki/features/cms/presentation/owner/event_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/event_manage_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/merchandise_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/merchandise_manage_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/point_rule_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/promo_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/promo_manage_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_form_page.dart';
@@ -475,6 +476,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                             ),
                           ),
                         ],
+                      ),
+                      GoRoute(
+                        path: 'points',
+                        builder: (context, state) => const PointRulePage(),
                       ),
                     ],
                   ),
