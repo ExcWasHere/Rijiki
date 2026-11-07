@@ -50,9 +50,11 @@ abstract final class RoutePaths {
   static const String ownerManagementRepeatCustomers =
       '/owner/management/repeat-customers';
 
-  static const String ownerWorkers = '/owner/management/workers';
-  static const String ownerWorkerNew = '/owner/management/workers/new';
-  static const String ownerWorkerKpiOverview = '/owner/management/workers/kpi';
+  // Halaman Karyawan dan CMS ada di luar shell owner (tanpa bottom navbar),
+  // dipakai owner dan worker berizin. Nama konstanta dipertahankan.
+  static const String ownerWorkers = '/management/workers';
+  static const String ownerWorkerNew = '/management/workers/new';
+  static const String ownerWorkerKpiOverview = '/management/workers/kpi';
 
   static String ownerWorkerDetailFor(String workerId) =>
       '$ownerWorkers/$workerId';
@@ -66,33 +68,35 @@ abstract final class RoutePaths {
         queryParameters: {'month': '$month', 'year': '$year'},
       ).toString();
 
-  static const String ownerCms = '/owner/management/cms';
-  static const String ownerCmsServices = '/owner/management/cms/services';
-  static const String ownerCmsServiceNew = '/owner/management/cms/services/new';
+  static const String ownerCms = '/management/cms';
+  static const String ownerCmsServices = '/management/cms/services';
+  static const String ownerCmsServiceNew = '/management/cms/services/new';
 
   static String ownerCmsServiceEditFor(String serviceId) =>
       '$ownerCmsServices/$serviceId/edit';
 
-  static const String ownerCmsEvents = '/owner/management/cms/events';
-  static const String ownerCmsEventNew = '/owner/management/cms/events/new';
+  static const String ownerCmsEvents = '/management/cms/events';
+  static const String ownerCmsEventNew = '/management/cms/events/new';
 
   static String ownerCmsEventEditFor(String eventId) =>
       '$ownerCmsEvents/$eventId/edit';
 
-  static const String ownerCmsPromos = '/owner/management/cms/promos';
-  static const String ownerCmsPromoNew = '/owner/management/cms/promos/new';
+  static const String ownerCmsPromos = '/management/cms/promos';
+  static const String ownerCmsPromoNew = '/management/cms/promos/new';
 
   static String ownerCmsPromoEditFor(String promoId) =>
       '$ownerCmsPromos/$promoId/edit';
 
-  static const String ownerCmsMerchandise = '/owner/management/cms/merchandise';
+  static const String ownerCmsMerchandise = '/management/cms/merchandise';
   static const String ownerCmsMerchandiseNew =
-      '/owner/management/cms/merchandise/new';
+      '/management/cms/merchandise/new';
 
   static String ownerCmsMerchandiseEditFor(String merchandiseId) =>
       '$ownerCmsMerchandise/$merchandiseId/edit';
 
-  static const String ownerCmsPoints = '/owner/management/cms/points';
+  static const String ownerCmsPoints = '/management/cms/points';
+  static const String ownerCmsTestimonials =
+      '/management/cms/testimonials';
 
   static String verifyEmailFor(String email) {
     return Uri(path: verifyEmail, queryParameters: {'email': email}).toString();
@@ -114,6 +118,8 @@ abstract final class RoutePaths {
       '$customerOrders/$orderId/receipt';
   static String deliveryMapFor(String orderId) =>
       '$customerOrders/$orderId/map';
+  static String ratingFor(String orderId) =>
+      '$customerOrders/$orderId/rating';
 
   static String paymentResultFor(String orderId, String status) => Uri(
     path: '$customerOrders/$orderId/pay/result',

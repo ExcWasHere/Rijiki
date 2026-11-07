@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../../middleware/auth';
 import type { AppEnv } from '../../shared/types/env';
+import { createRatingHandler } from '../ratings/ratings.controller';
 import {
   assignOrderHandler,
   claimOrderHandler,
@@ -22,6 +23,7 @@ ordersRoutes.use('*', authMiddleware);
 // Customer
 ordersRoutes.post('/quote', quoteOrderHandler);
 ordersRoutes.post('/', createOrderHandler);
+ordersRoutes.post('/:id/rating', createRatingHandler);
 
 // Semua peran (hasilnya dibatasi per peran di service)
 ordersRoutes.get('/', listOrdersHandler);

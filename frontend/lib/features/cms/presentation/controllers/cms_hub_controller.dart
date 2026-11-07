@@ -7,6 +7,7 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/features/cms/domain/cms_section.dart';
 import 'package:rijiki/features/cms/presentation/utils/point_format.dart';
 import 'package:rijiki/features/cms/presentation/utils/promo_format.dart';
+import 'package:rijiki/features/rating/domain/managed_rating.dart';
 
 const List<CmsSection> _allSections = [
   CmsSection(
@@ -121,6 +122,19 @@ final cmsPointSummaryProvider = FutureProvider.autoDispose<String>((ref) async {
   return parts.isEmpty ? 'Aturan poin belum aktif' : parts.join(' · ');
 });
 
+final cmsTestimonialSummaryProvider = FutureProvider.autoDispose<String>((
+  ref,
+) async {
+  final page = await ref
+      .watch(testimonialManageRepositoryProvider)
+      .fetchRatings(RatingListFilter.all, limit: 1);
+  final summary = page.summary;
+  if (summary.total == 0) return 'Belum ada rating';
+  final average = summary.average;
+  final stars = average == null ? '' : '${average.toStringAsFixed(1)} ★ · ';
+  return '$stars${summary.total} rating · ${summary.featured} pilihan';
+});
+
 final cmsSectionSummaryProvider = Provider.autoDispose
     .family<AsyncValue<String?>, CmsSectionId>((ref, id) {
       return switch (id) {
@@ -139,7 +153,9 @@ final cmsSectionSummaryProvider = Provider.autoDispose
         CmsSectionId.points => ref
             .watch(cmsPointSummaryProvider)
             .whenData<String?>((text) => text),
-        _ => const AsyncData<String?>(null),
+        CmsSectionId.testimonials => ref
+            .watch(cmsTestimonialSummaryProvider)
+            .whenData<String?>((text) => text),
       };
     });
 
@@ -149,6 +165,7 @@ Future<void> refreshCmsHub(WidgetRef ref) async {
   ref.invalidate(cmsPromoSummaryProvider);
   ref.invalidate(cmsMerchandiseSummaryProvider);
   ref.invalidate(cmsPointSummaryProvider);
+  ref.invalidate(cmsTestimonialSummaryProvider);
   try {
     await Future.wait<Object?>([
       ref.read(cmsServiceSummaryProvider.future),
@@ -156,6 +173,7 @@ Future<void> refreshCmsHub(WidgetRef ref) async {
       ref.read(cmsPromoSummaryProvider.future),
       ref.read(cmsMerchandiseSummaryProvider.future),
       ref.read(cmsPointSummaryProvider.future),
+      ref.read(cmsTestimonialSummaryProvider.future),
     ]);
   } catch (_) {
   }

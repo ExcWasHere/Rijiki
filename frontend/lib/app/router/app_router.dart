@@ -29,6 +29,7 @@ import 'package:rijiki/features/cms/presentation/owner/promo_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/promo_manage_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_form_page.dart';
 import 'package:rijiki/features/cms/presentation/owner/service_manage_page.dart';
+import 'package:rijiki/features/cms/presentation/owner/testimonial_manage_page.dart';
 import 'package:rijiki/features/event/presentation/event_page.dart';
 import 'package:rijiki/features/finance/presentation/pages/expense_ai_input_page.dart';
 import 'package:rijiki/features/finance/presentation/pages/expense_draft_review_page.dart';
@@ -56,6 +57,7 @@ import 'package:rijiki/features/profile/presentation/shared/change_email_page.da
 import 'package:rijiki/features/profile/presentation/shared/change_password_page.dart';
 import 'package:rijiki/features/profile/presentation/shared/edit_profile_page.dart';
 import 'package:rijiki/features/profile/presentation/worker/worker_profile_page.dart';
+import 'package:rijiki/features/rating/presentation/customer/rating_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_analyzing_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_page.dart';
 import 'package:rijiki/features/scan/presentation/customer/scan_result_page.dart';
@@ -128,6 +130,148 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
+      // Halaman manajemen untuk owner dan worker berizin. Di luar shell supaya
+      // bottom navbar tersembunyi; izin dicek backend dan disaring di menu.
+      GoRoute(
+        path: RoutePaths.ownerWorkers,
+        builder: (context, state) => const WorkerListPage(),
+        routes: [
+          GoRoute(
+            path: 'new',
+            builder: (context, state) => const WorkerFormPage(),
+          ),
+          GoRoute(
+            path: 'kpi',
+            builder: (context, state) => const KpiOverviewPage(),
+          ),
+          GoRoute(
+            path: ':id',
+            builder: (context, state) => WorkerDetailPage(
+              workerId: state.pathParameters['id']!,
+            ),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                builder: (context, state) => WorkerFormPage(
+                  workerId: state.pathParameters['id']!,
+                ),
+              ),
+              GoRoute(
+                path: 'kpi',
+                builder: (context, state) {
+                  final now = KpiPeriod.current();
+                  final month =
+                      int.tryParse(
+                        state.uri.queryParameters['month'] ?? '',
+                      ) ??
+                      now.month;
+                  final year =
+                      int.tryParse(
+                        state.uri.queryParameters['year'] ?? '',
+                      ) ??
+                      now.year;
+                  return KpiAssessmentPage(
+                    workerId: state.pathParameters['id']!,
+                    period: KpiPeriod(
+                      month.clamp(1, 12).toInt(),
+                      year,
+                    ),
+                  );
+                },
+              ),
+              GoRoute(
+                path: 'access',
+                builder: (context, state) => WorkerPermissionPage(
+                  workerId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: RoutePaths.ownerCms,
+        builder: (context, state) => const CmsHubPage(),
+        routes: [
+          GoRoute(
+            path: 'services',
+            builder: (context, state) => const ServiceManagePage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) =>
+                    const ServiceFormPage(),
+              ),
+              GoRoute(
+                path: ':id/edit',
+                builder: (context, state) => ServiceFormPage(
+                  serviceId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'events',
+            builder: (context, state) => const EventManagePage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const EventFormPage(),
+              ),
+              GoRoute(
+                path: ':id/edit',
+                builder: (context, state) => EventFormPage(
+                  eventId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'promos',
+            builder: (context, state) => const PromoManagePage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const PromoFormPage(),
+              ),
+              GoRoute(
+                path: ':id/edit',
+                builder: (context, state) => PromoFormPage(
+                  promoId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'merchandise',
+            builder: (context, state) =>
+                const MerchandiseManagePage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) =>
+                    const MerchandiseFormPage(),
+              ),
+              GoRoute(
+                path: ':id/edit',
+                builder: (context, state) => MerchandiseFormPage(
+                  merchandiseId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'points',
+            builder: (context, state) => const PointRulePage(),
+          ),
+          GoRoute(
+            path: 'testimonials',
+            builder: (context, state) =>
+                const TestimonialManagePage(),
+          ),
+        ],
+      ),
+
       // Cust
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -180,6 +324,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'map',
                         builder: (context, state) => DeliveryMapPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'rating',
+                        builder: (context, state) => RatingPage(
                           orderId: state.pathParameters['orderId']!,
                         ),
                       ),
@@ -365,140 +515,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'repeat-customers',
                     builder: (context, state) => const RepeatCustomerPage(),
-                  ),
-                  GoRoute(
-                    path: 'workers',
-                    builder: (context, state) => const WorkerListPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'new',
-                        builder: (context, state) => const WorkerFormPage(),
-                      ),
-                      GoRoute(
-                        path: 'kpi',
-                        builder: (context, state) => const KpiOverviewPage(),
-                      ),
-                      GoRoute(
-                        path: ':id',
-                        builder: (context, state) => WorkerDetailPage(
-                          workerId: state.pathParameters['id']!,
-                        ),
-                        routes: [
-                          GoRoute(
-                            path: 'edit',
-                            builder: (context, state) => WorkerFormPage(
-                              workerId: state.pathParameters['id']!,
-                            ),
-                          ),
-                          GoRoute(
-                            path: 'kpi',
-                            builder: (context, state) {
-                              final now = KpiPeriod.current();
-                              final month =
-                                  int.tryParse(
-                                    state.uri.queryParameters['month'] ?? '',
-                                  ) ??
-                                  now.month;
-                              final year =
-                                  int.tryParse(
-                                    state.uri.queryParameters['year'] ?? '',
-                                  ) ??
-                                  now.year;
-                              return KpiAssessmentPage(
-                                workerId: state.pathParameters['id']!,
-                                period: KpiPeriod(
-                                  month.clamp(1, 12).toInt(),
-                                  year,
-                                ),
-                              );
-                            },
-                          ),
-                          GoRoute(
-                            path: 'access',
-                            builder: (context, state) => WorkerPermissionPage(
-                              workerId: state.pathParameters['id']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  GoRoute(
-                    path: 'cms',
-                    builder: (context, state) => const CmsHubPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'services',
-                        builder: (context, state) => const ServiceManagePage(),
-                        routes: [
-                          GoRoute(
-                            path: 'new',
-                            builder: (context, state) =>
-                                const ServiceFormPage(),
-                          ),
-                          GoRoute(
-                            path: ':id/edit',
-                            builder: (context, state) => ServiceFormPage(
-                              serviceId: state.pathParameters['id']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                      GoRoute(
-                        path: 'events',
-                        builder: (context, state) => const EventManagePage(),
-                        routes: [
-                          GoRoute(
-                            path: 'new',
-                            builder: (context, state) => const EventFormPage(),
-                          ),
-                          GoRoute(
-                            path: ':id/edit',
-                            builder: (context, state) => EventFormPage(
-                              eventId: state.pathParameters['id']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                      GoRoute(
-                        path: 'promos',
-                        builder: (context, state) => const PromoManagePage(),
-                        routes: [
-                          GoRoute(
-                            path: 'new',
-                            builder: (context, state) => const PromoFormPage(),
-                          ),
-                          GoRoute(
-                            path: ':id/edit',
-                            builder: (context, state) => PromoFormPage(
-                              promoId: state.pathParameters['id']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                      GoRoute(
-                        path: 'merchandise',
-                        builder: (context, state) =>
-                            const MerchandiseManagePage(),
-                        routes: [
-                          GoRoute(
-                            path: 'new',
-                            builder: (context, state) =>
-                                const MerchandiseFormPage(),
-                          ),
-                          GoRoute(
-                            path: ':id/edit',
-                            builder: (context, state) => MerchandiseFormPage(
-                              merchandiseId: state.pathParameters['id']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                      GoRoute(
-                        path: 'points',
-                        builder: (context, state) => const PointRulePage(),
-                      ),
-                    ],
                   ),
                 ],
               ),

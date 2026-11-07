@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
+import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/features/worker_management/domain/worker_input.dart';
 import 'package:rijiki/features/worker_management/domain/worker_profile.dart';
 
@@ -100,10 +101,13 @@ class WorkerFormNotifier extends Notifier<WorkerFormState> {
       ref.invalidate(workersProvider);
       state = const WorkerFormState();
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!ref.mounted) return false;
-      state = const WorkerFormState(
-        errorMessage: 'Gagal menyimpan data worker. Coba lagi ya.',
+      // Pesan dari backend (mis. "email sudah terdaftar") ditampilkan apa adanya.
+      state = WorkerFormState(
+        errorMessage: e is Failure && e.message.trim().isNotEmpty
+            ? e.message
+            : 'Gagal menyimpan data worker. Coba lagi ya.',
       );
       return false;
     }

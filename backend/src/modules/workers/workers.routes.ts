@@ -1,26 +1,31 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../../middleware/auth';
-import { AppError } from '../../shared/errors';
+import { requireOwner, requirePermission } from '../../middleware/permission';
 import type { AppEnv } from '../../shared/types/env';
-import { listActiveWorkers } from './workers.repo';
+import {
+  createWorkerHandler,
+  getPermissionsHandler,
+  listAssignableHandler,
+  listManagedHandler,
+  setPermissionsHandler,
+  updateWorkerHandler,
+} from './workers.controller';
 
+/** /api/workers */
 export const workersRoutes = new Hono<AppEnv>();
-
 workersRoutes.use('*', authMiddleware);
 
-// Daftar worker aktif untuk memilih worker saat meng-assign order.
-// Hanya owner atau worker berizin manage_orders_all / manage_workers.
-// Endpoint manajemen worker lengkap (CRUD, KPI) menyusul di modul worker management.
-workersRoutes.get('/', async (c) => {
-  const ctx = c.get('user');
-  const allowed =
-    ctx.ownerBypass ||
-    (ctx.user.role === 'worker' &&
-      (ctx.permissions.includes('manage_orders_all') || ctx.permissions.includes('manage_workers')));
+// Daftar ringkas worker aktif untuk memilih worker saat assign (izin dicek di handler).
+workersRoutes.get('/', listAssignableHandler);
 
-  if (!allowed) {
-    throw new AppError(403, 'forbidden', 'Tidak punya izin melihat daftar worker');
-  }
+// Manajemen karyawan: owner atau worker berizin manage_workers.
+workersRoutes.get('/manage', requirePermission('manage_workers'), listManagedHandler);
+workersRoutes.post('/', requirePermission('manage_workers'), createWorkerHandler);
+workersRoutes.patch('/:id', requirePermission('manage_workers'), updateWorkerHandler);
 
-  return c.json({ items: await listActiveWorkers(c.env) });
-});
+/** /api/owner/workers: izin delegasi, hanya owner yang boleh menulis (PRD 5.1). */
+export const ownerWorkersRoutes = new Hono<AppEnv>();
+ownerWorkersRoutes.use('*', authMiddleware);
+ownerWorkersRoutes.use('*', requireOwner());
+ownerWorkersRoutes.get('/:id/permissions', getPermissionsHandler);
+ownerWorkersRoutes.put('/:id/permissions', setPermissionsHandler);

@@ -12,6 +12,14 @@ import 'package:rijiki/core/storage/token_storage.dart';
 
 typedef Json = Map<String, dynamic>;
 
+/// Hasil unduhan berkas: isi dan header respons (nama header huruf kecil).
+class ApiFile {
+  const ApiFile({required this.bytes, required this.headers});
+
+  final Uint8List bytes;
+  final Map<String, String> headers;
+}
+
 class ApiClient {
   ApiClient({
     required this.baseUrl,
@@ -29,6 +37,10 @@ class ApiClient {
 
   static const Duration uploadTimeout = Duration(seconds: 60);
 
+  /// Unduhan besar (mis. rekap ZIP) lebih lama dari request biasa.
+  static const Duration downloadTimeout = Duration(seconds: 120);
+
+  /// Nama header idempotency yang dibaca backend.
   static const String idempotencyHeader = 'Idempotency-Key';
 
   Future<Json> get(
@@ -75,11 +87,29 @@ class ApiClient {
     return response.bodyBytes;
   }
 
+  Future<ApiFile> getFile(
+    String path, {
+    bool auth = false,
+    Map<String, String>? headers,
+  }) async {
+    final response = await _request(
+      method: 'GET',
+      path: path,
+      auth: auth,
+      extraHeaders: headers,
+      timeout: downloadTimeout,
+      send: (uri, requestHeaders) => _client.get(uri, headers: requestHeaders),
+    );
+    return ApiFile(bytes: response.bodyBytes, headers: response.headers);
+  }
+
+  /// Upload multipart. [fileField] dan [filePath] boleh kosong untuk request
+  /// yang hanya berisi field teks (mis. rating tanpa foto).
   Future<Json> postMultipart(
     String path, {
     required Map<String, String> fields,
-    required String fileField,
-    required String filePath,
+    String? fileField,
+    String? filePath,
     bool auth = false,
   }) async {
     final response = await _request(
@@ -90,8 +120,12 @@ class ApiClient {
       send: (uri, headers) async {
         final request = http.MultipartRequest('POST', uri)
           ..headers.addAll(headers)
-          ..fields.addAll(fields)
-          ..files.add(await http.MultipartFile.fromPath(fileField, filePath));
+          ..fields.addAll(fields);
+        if (fileField != null && filePath != null) {
+          request.files.add(
+            await http.MultipartFile.fromPath(fileField, filePath),
+          );
+        }
         return http.Response.fromStream(await _client.send(request));
       },
     );
