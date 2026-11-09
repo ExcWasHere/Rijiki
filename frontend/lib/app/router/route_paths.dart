@@ -46,11 +46,20 @@ abstract final class RoutePaths {
   static const String ownerManagementRepeatCustomers =
       '/owner/management/repeat-customers';
 
-  // Halaman Karyawan dan CMS ada di luar shell owner (tanpa bottom navbar),
-  // dipakai owner dan worker berizin. Nama konstanta dipertahankan.
+  // Halaman Karyawan, CMS, Pelanggan Setia, dan Poin ada di luar shell
+  // (tanpa bottom navbar), dipakai owner dan worker berizin. Nama konstanta
+  // ownerWorkers/ownerCms dipertahankan.
   static const String ownerWorkers = '/management/workers';
   static const String ownerWorkerNew = '/management/workers/new';
   static const String ownerWorkerKpiOverview = '/management/workers/kpi';
+
+  static const String managementRepeatCustomers =
+      '/management/repeat-customers';
+
+  static const String managementPoints = '/management/points';
+  static const String managementPointRedemptions =
+      '/management/points/redemptions';
+  static const String managementPointAdjust = '/management/points/adjust';
 
   static String ownerWorkerDetailFor(String workerId) =>
       '$ownerWorkers/$workerId';

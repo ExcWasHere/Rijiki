@@ -14,6 +14,7 @@ import 'package:rijiki/features/auth/domain/auth_repo.dart';
 import 'package:rijiki/features/finance/data/mock_finance_repository.dart';
 import 'package:rijiki/features/finance/domain/finance_repository.dart';
 import 'package:rijiki/features/home/owner/data/mock_dashboard_repository.dart';
+import 'package:rijiki/features/home/owner/data/remote_dashboard_repository.dart';
 import 'package:rijiki/features/home/owner/domain/dashboard_repository.dart';
 import 'package:rijiki/features/event/data/mock_event_repository.dart';
 import 'package:rijiki/features/event/data/mock_promo_repository.dart';
@@ -32,8 +33,11 @@ import 'package:rijiki/features/order/domain/order_repository.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
 import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
 import 'package:rijiki/features/payment/domain/payment_repository.dart';
+import 'package:rijiki/features/points/data/mock_point_management_repository.dart';
 import 'package:rijiki/features/points/data/mock_point_rule_repository.dart';
+import 'package:rijiki/features/points/data/point_management_repository_impl.dart';
 import 'package:rijiki/features/points/data/point_rule_repository_impl.dart';
+import 'package:rijiki/features/points/domain/point_management_repository.dart';
 import 'package:rijiki/features/points/domain/point_rule_repository.dart';
 import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
 import 'package:rijiki/features/profile/data/profile_repository_impl.dart';
@@ -107,6 +111,17 @@ final pointRuleRepositoryProvider = Provider<PointRuleRepository>((ref) {
   return PointRuleRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
+final pointManagementRepositoryProvider = Provider<PointManagementRepository>((
+  ref,
+) {
+  if (AppConstants.useMockOrders) {
+    return MockPointManagementRepository(
+      scenario: ref.watch(mockScenarioProvider),
+    );
+  }
+  return PointManagementRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
 final merchandiseRepositoryProvider = Provider<MerchandiseRepository>(
   (ref) => MockMerchandiseRepository(scenario: ref.watch(mockScenarioProvider)),
 );
@@ -160,9 +175,16 @@ final paymentRepositoryProvider = Provider<PaymentRepository>(
   ),
 );
 
-final dashboardRepositoryProvider = Provider<DashboardRepository>(
-  (ref) => MockDashboardRepository(),
-);
+/// Repeat customer sudah dari backend; ringkasan dan order terbaru dashboard
+/// masih mock (lihat [RemoteDashboardRepository]).
+final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
+  final mock = MockDashboardRepository();
+  if (AppConstants.useMockOrders) return mock;
+  return RemoteDashboardRepository(
+    api: ref.watch(apiClientProvider),
+    fallback: mock,
+  );
+});
 
 final financeRepositoryProvider = Provider<FinanceRepository>(
   (ref) => MockFinanceRepository(

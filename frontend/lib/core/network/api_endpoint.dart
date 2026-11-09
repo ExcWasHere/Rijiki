@@ -18,6 +18,16 @@ abstract final class ApiEndpoints {
   static const String pointRules = '/api/management/point-rules';
   static String pointRuleById(String id) => '$pointRules/$id';
 
+  static const String managementPointRedemptions =
+      '/api/management/points/redemptions';
+  static String managementPointRedemption(String id) =>
+      '$managementPointRedemptions/$id';
+  static const String managementPointCustomers =
+      '/api/management/points/customers';
+  static const String managementPointAdjust = '/api/management/points/adjust';
+
+  static const String repeatCustomers = '/api/management/customers/repeat';
+
   static const String orders = '/api/orders';
   static const String orderQuote = '/api/orders/quote';
   static String orderById(String id) => '$orders/$id';

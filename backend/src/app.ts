@@ -2,9 +2,14 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { validateEnv } from './config/env';
 import { authRoutes } from './modules/auth/auth.routes';
+import { managementCustomersRoutes } from './modules/customers/customers.routes';
 import { mediaRoutes } from './modules/media/media.routes';
 import { ordersRoutes } from './modules/orders/orders.routes';
-import { pointRulesRoutes, pointsRoutes } from './modules/points/points.routes';
+import {
+  managementPointsRoutes,
+  pointRulesRoutes,
+  pointsRoutes,
+} from './modules/points/points.routes';
 import { profileRoutes } from './modules/profile/profile.routes';
 import { promosRoutes } from './modules/promos/promos.routes';
 import { managementTestimonialsRoutes, testimonialsRoutes } from './modules/ratings/ratings.routes';
@@ -39,6 +44,8 @@ export function createApp() {
   app.route('/api/testimonials', testimonialsRoutes);
   app.route('/api/management/testimonials', managementTestimonialsRoutes);
   app.route('/api/management/point-rules', pointRulesRoutes);
+  app.route('/api/management/points', managementPointsRoutes);
+  app.route('/api/management/customers', managementCustomersRoutes);
   app.route('/api/workers', workersRoutes);
   app.route('/api/owner/workers', ownerWorkersRoutes);
 

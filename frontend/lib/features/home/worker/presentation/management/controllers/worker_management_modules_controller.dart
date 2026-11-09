@@ -6,9 +6,10 @@ import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/features/home/owner/presentation/management/domain/management_module.dart';
 
-// Modul tanpa `route` tampil "segera hadir" saat diketuk. Halaman CMS dan
-// Karyawan berada di luar shell owner (tanpa bottom navbar) agar bisa dibuka
-// worker berizin; backend tetap memeriksa izin di setiap endpoint.
+// Modul tanpa `route` tampil "segera hadir" saat diketuk. Halaman CMS,
+// Karyawan, Pelanggan Setia, dan Poin berada di luar shell owner (tanpa
+// bottom navbar) agar bisa dibuka worker berizin; backend tetap memeriksa
+// izin di setiap endpoint.
 const List<ManagementModule> _workerModules = [
   ManagementModule(
     id: 'orders_all',
@@ -33,6 +34,7 @@ const List<ManagementModule> _workerModules = [
     icon: Icons.favorite_rounded,
     color: AppColors.rijikiOrange,
     permissions: {AppPermission.viewAnalytics},
+    route: RoutePaths.managementRepeatCustomers,
   ),
   ManagementModule(
     id: 'workers',
@@ -62,11 +64,11 @@ const List<ManagementModule> _workerModules = [
   ManagementModule(
     id: 'points',
     title: 'Poin',
-    subtitle: 'Penukaran dan aturan poin',
+    subtitle: 'Penukaran, penyesuaian, dan aturan poin',
     icon: Icons.stars_rounded,
     color: AppColors.rijikiOrange,
     permissions: {AppPermission.managePoints},
-    route: RoutePaths.ownerCmsPoints,
+    route: RoutePaths.managementPoints,
   ),
 ];
 const bool _showAllModulesForWorker = false;
