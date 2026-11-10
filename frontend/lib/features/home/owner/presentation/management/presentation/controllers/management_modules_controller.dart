@@ -52,9 +52,10 @@ const List<ManagementModule> _allModules = [
   ManagementModule(
     id: 'points',
     title: 'Poin',
-    subtitle: 'Aturan poin dan penukaran',
+    subtitle: 'Penukaran, penyesuaian, dan aturan poin',
     icon: Icons.stars_rounded,
     color: AppColors.success,
+    route: RoutePaths.managementPoints,
     permissions: {AppPermission.managePoints},
   ),
 ];

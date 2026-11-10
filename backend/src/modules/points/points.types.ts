@@ -34,5 +34,49 @@ export interface PointBalanceView {
   recent: LedgerEntryView[];
 }
 
+export type RedemptionStatus = 'pending' | 'approved' | 'rejected' | 'fulfilled';
+
+export interface RedemptionView {
+  id: string;
+  customer_id: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  /** Saldo customer saat ini (bukan saat diajukan). */
+  customer_balance: number;
+  reward_name: string;
+  merchandise_id: string | null;
+  points_used: number;
+  status: RedemptionStatus;
+  notes: string | null;
+  requested_at: string;
+  processed_at: string | null;
+  processed_by_name: string | null;
+}
+
+export interface RewardView {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  points_cost: number;
+  in_stock: boolean;
+}
+
+export interface PointCustomerView {
+  /** customer_profiles.id */
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  avatar_url: string | null;
+  points_balance: number;
+}
+
+export interface AdjustResultView {
+  customer_id: string;
+  points_amount: number;
+  points_balance: number;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type PointRow = Record<string, any>;

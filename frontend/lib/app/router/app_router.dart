@@ -50,6 +50,9 @@ import 'package:rijiki/features/order/presentation/customer/order_tracking_page.
 import 'package:rijiki/features/order/presentation/customer/receipt_page.dart';
 import 'package:rijiki/features/payment/presentation/customer/payment_result_page.dart';
 import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.dart';
+import 'package:rijiki/features/points/presentation/management/point_adjust_page.dart';
+import 'package:rijiki/features/points/presentation/management/points_hub_page.dart';
+import 'package:rijiki/features/points/presentation/management/redemption_manage_page.dart';
 import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
 import 'package:rijiki/features/profile/presentation/owner/owner_profile_page.dart';
 import 'package:rijiki/features/profile/presentation/shared/account_security_page.dart';
@@ -186,6 +189,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: RoutePaths.managementRepeatCustomers,
+        builder: (context, state) => const RepeatCustomerPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.managementPoints,
+        builder: (context, state) => const PointsHubPage(),
+        routes: [
+          GoRoute(
+            path: 'redemptions',
+            builder: (context, state) => const RedemptionManagePage(),
+          ),
+          GoRoute(
+            path: 'adjust',
+            builder: (context, state) => const PointAdjustPage(),
           ),
         ],
       ),
