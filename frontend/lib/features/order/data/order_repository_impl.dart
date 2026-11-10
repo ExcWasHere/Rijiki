@@ -1,10 +1,8 @@
 import 'package:rijiki/core/constants/app_strings.dart';
-import 'package:rijiki/core/enums/order_payment_status.dart';
 import 'package:rijiki/core/error/app_exception.dart';
 import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/network/api_client.dart';
 import 'package:rijiki/core/network/api_endpoint.dart';
-import 'package:rijiki/features/order/data/mock_order_store.dart';
 import 'package:rijiki/features/order/data/order_mapper.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/new_order.dart';
@@ -34,7 +32,7 @@ class OrderRepositoryImpl implements OrderRepository {
   Future<CustomerOrder> fetchOrderById(String id) async {
     try {
       final json = await api.get(ApiEndpoints.orderById(id), auth: true);
-      return _withMockPayment(customerOrderFromJson(json));
+      return customerOrderFromJson(json);
     } on AppException catch (e) {
       throw _toFailure(e);
     }
@@ -116,22 +114,11 @@ class OrderRepositoryImpl implements OrderRepository {
       final json = await api.get(path, auth: true);
       final raw = json['items'] as List<dynamic>? ?? const [];
       return [
-        for (final item in raw)
-          _withMockPayment(customerOrderFromJson(item as Json)),
+        for (final item in raw) customerOrderFromJson(item as Json),
       ];
     } on AppException catch (e) {
       throw _toFailure(e);
     }
-  }
-
-  // TODO(tahap-B): hapus overlay ini begitu pembayaran QRIS asli (Midtrans)
-  // terhubung. Selama QRIS masih mock, "lunas" hanya hidup di memori aplikasi
-  // (MockOrderStore) dan tidak pernah ditulis ke backend.
-  CustomerOrder _withMockPayment(CustomerOrder order) {
-    if (!order.isPaid && MockOrderStore.paidOrderIds.contains(order.id)) {
-      return order.copyWith(paymentStatus: OrderPaymentStatus.paid);
-    }
-    return order;
   }
 
   Failure _toFailure(AppException e) {

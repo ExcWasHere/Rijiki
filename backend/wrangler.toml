@@ -6,6 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "development"
 PUBLIC_ASSET_BASE_URL = "https://pub-5f21fb1a2c4245bba64085187a0fabc7.r2.dev"
+MIDTRANS_ENV = "sandbox"
 
 [[r2_buckets]]
 binding = "PUBLIC_BUCKET"

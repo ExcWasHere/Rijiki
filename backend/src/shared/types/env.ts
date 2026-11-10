@@ -7,8 +7,10 @@ export interface Bindings {
   PUBLIC_ASSET_BASE_URL: string;
   PUBLIC_BUCKET: R2Bucket;
   PRIVATE_BUCKET: R2Bucket;
-  DUITKU_MERCHANT_CODE?: string;
-  DUITKU_API_KEY?: string;
+  /** Secret: wrangler secret put MIDTRANS_SERVER_KEY (lokal: .dev.vars). */
+  MIDTRANS_SERVER_KEY?: string;
+  /** "sandbox" (default) atau "production". */
+  MIDTRANS_ENV?: string;
   ENVIRONMENT?: string;
 }
 

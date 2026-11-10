@@ -41,6 +41,12 @@ abstract final class ApiEndpoints {
   static String orderTracking(String id) => '$orders/$id/tracking';
   static String orderRating(String id) => '$orders/$id/rating';
 
+  /// Membuat QR QRIS untuk order (idempoten: QR aktif dipakai lagi).
+  static String orderPayment(String id) => '$orders/$id/payment';
+
+  /// Status pembayaran; dipakai polling halaman QRIS.
+  static String paymentById(String id) => '/api/payments/$id';
+
   static const String testimonialsFeatured = '/api/testimonials/featured';
   static const String managementTestimonials = '/api/management/testimonials';
   static const String managementTestimonialsExport =
