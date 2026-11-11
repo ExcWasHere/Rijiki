@@ -1,6 +1,5 @@
 export type PaymentStatusValue = 'pending' | 'paid' | 'failed' | 'expired';
 
-/** Baris tabel payments (kolom yang dipakai backend). */
 export interface PaymentRow {
   id: string;
   order_id: string;
@@ -16,7 +15,6 @@ export interface PaymentRow {
   created_at: string;
 }
 
-/** Bagian order yang dibutuhkan untuk membuat/memeriksa pembayaran. */
 export interface PaymentOrderRow {
   id: string;
   order_number: string;
@@ -26,7 +24,6 @@ export interface PaymentOrderRow {
   total_price: number;
 }
 
-/** Bentuk JSON yang diterima aplikasi Flutter. */
 export interface PaymentView {
   id: string;
   order_id: string;

@@ -7,6 +7,4 @@ export const paymentsRoutes = new Hono<AppEnv>();
 
 paymentsRoutes.use('*', authMiddleware);
 
-// Status pembayaran (polling dari app). Jika masih pending, backend ikut
-// menanyakan ke Midtrans sebagai cadangan webhook.
 paymentsRoutes.get('/:id', getPaymentHandler);

@@ -25,13 +25,6 @@ const quoteItemSchema = z.object({
     .max(10, 'Jumlah maksimal 10 per item'),
 });
 
-/**
- * Quote bersifat informatif untuk layar ringkasan. Bila `items` dikirim,
- * subtotal dihitung server dari harga di database (dan `subtotal` klien
- * diabaikan), sehingga promo per layanan bisa dicek. `subtotal` saja masih
- * diterima untuk klien lama dan alur offline; harga final order tetap
- * dihitung ulang dari database saat order dibuat.
- */
 export const quoteOrderSchema = z.object({
   subtotal: z
     .number()
@@ -78,6 +71,40 @@ export const createOrderSchema = z.object({
   promo_code: promoCode.nullish(),
 });
 
+/** 08xx / 628xx / +628xx -> +628xx. */
+function normalizeIdPhone(raw: string): string {
+  let digits = raw.replace(/[^\d]/g, '');
+  if (digits.startsWith('0')) digits = `62${digits.slice(1)}`;
+  else if (digits.startsWith('8')) digits = `62${digits}`;
+  return `+${digits}`;
+}
+
+const walkInPhone = z
+  .string()
+  .trim()
+  .min(1, 'Nomor HP wajib diisi')
+  .transform(normalizeIdPhone)
+  .refine((v) => /^\+62\d{8,12}$/.test(v), 'Nomor HP tidak valid');
+
+/** Order offline (POS) di outlet: customer tanpa akun, dicatat worker atau owner. */
+export const createOfflineOrderSchema = z.object({
+  walk_in_customer_name: z
+    .string()
+    .trim()
+    .min(2, 'Nama pelanggan terlalu pendek')
+    .max(80, 'Nama pelanggan maksimal 80 karakter'),
+  walk_in_customer_phone: walkInPhone,
+  items: z
+    .array(orderItemSchema)
+    .min(1, 'Pilih minimal satu layanan')
+    .max(5, 'Maksimal 5 item per order'),
+  promo_code: promoCode.nullish(),
+  /** worker_profiles.id; kosong = worker yang login (owner: tanpa worker). */
+  assigned_worker_id: z.string().uuid('Worker tidak valid').nullish(),
+  payment_method: z.enum(['qris', 'cash']),
+  delivery_method: z.enum(['self_pickup', 'delivery']).default('self_pickup'),
+});
+
 export const listOrdersQuerySchema = z.object({
   status: z.enum(ORDER_STATUSES).optional(),
   active: z.enum(['true', 'false']).optional(),
@@ -105,6 +132,7 @@ export const documentationFieldsSchema = z.object({
 
 export type QuoteOrderInput = z.infer<typeof quoteOrderSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type CreateOfflineOrderInput = z.infer<typeof createOfflineOrderSchema>;
 export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
 export type UpdateStatusInput = z.infer<typeof updateStatusSchema>;
 export type AssignOrderInput = z.infer<typeof assignOrderSchema>;

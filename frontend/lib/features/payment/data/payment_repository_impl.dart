@@ -7,7 +7,6 @@ import 'package:rijiki/core/network/api_endpoint.dart';
 import 'package:rijiki/features/payment/domain/payment.dart';
 import 'package:rijiki/features/payment/domain/payment_repository.dart';
 
-/// Memetakan JSON backend (`/api/orders/:id/payment`, `/api/payments/:id`).
 Payment paymentFromJson(Json json) {
   return Payment(
     id: json['id'] as String,

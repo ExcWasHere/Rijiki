@@ -30,6 +30,9 @@ abstract final class ApiEndpoints {
 
   static const String orders = '/api/orders';
   static const String orderQuote = '/api/orders/quote';
+
+  /// Order offline (POS) di outlet; worker atau owner.
+  static const String orderOffline = '/api/orders/offline';
   static String orderById(String id) => '$orders/$id';
   static String orderClaim(String id) => '$orders/$id/claim';
   static String orderAssign(String id) => '$orders/$id/assign';

@@ -39,7 +39,7 @@ async function callMidtrans(
   method: 'GET' | 'POST',
   path: string,
   body?: unknown,
-): Promise<Record<string, unknown>> {
+): Promise<{ httpStatus: number; json: Record<string, unknown> }> {
   const { serverKey, baseUrl } = getProviderConfig(env);
 
   let response: Response;
@@ -62,7 +62,12 @@ async function callMidtrans(
   if (!json || typeof json !== 'object') {
     throw providerError(`${method} ${path} balasan bukan JSON`, response.status);
   }
-  return json;
+  if (response.status === 401) {
+    console.error(
+      'midtrans: Server Key ditolak (HTTP 401). Periksa secret MIDTRANS_SERVER_KEY dan var MIDTRANS_ENV (sandbox/production harus sepasang dengan key).',
+    );
+  }
+  return { httpStatus: response.status, json };
 }
 
 /** Midtrans memakai format "YYYY-MM-DD HH:mm:ss" dalam WIB (GMT+7). */
@@ -86,7 +91,7 @@ export async function chargeQris(
   env: Bindings,
   params: { providerOrderId: string; amount: number },
 ): Promise<QrisCharge> {
-  const json = await callMidtrans(env, 'POST', '/v2/charge', {
+  const { httpStatus, json } = await callMidtrans(env, 'POST', '/v2/charge', {
     payment_type: 'qris',
     transaction_details: {
       order_id: params.providerOrderId,
@@ -101,11 +106,8 @@ export async function chargeQris(
   const transactionId = typeof json['transaction_id'] === 'string' ? json['transaction_id'] : '';
 
   if ((statusCode !== '200' && statusCode !== '201') || !qrString || !transactionId) {
-    throw providerError('charge QRIS ditolak', {
-      status_code: statusCode,
-      status_message: json['status_message'],
-      validation_messages: json['validation_messages'],
-    });
+    // Body balasan error Midtrans tidak berisi rahasia, jadi aman dicatat utuh.
+    throw providerError('charge QRIS ditolak', { http_status: httpStatus, body: json });
   }
 
   const actions = Array.isArray(json['actions']) ? (json['actions'] as unknown[]) : [];
@@ -141,15 +143,16 @@ export async function fetchTransactionStatus(
   env: Bindings,
   providerOrderId: string,
 ): Promise<ProviderStatus | null> {
-  const json = await callMidtrans(env, 'GET', `/v2/${encodeURIComponent(providerOrderId)}/status`);
+  const { httpStatus, json } = await callMidtrans(
+    env,
+    'GET',
+    `/v2/${encodeURIComponent(providerOrderId)}/status`,
+  );
 
-  if (String(json['status_code'] ?? '') === '404') return null;
+  if (String(json['status_code'] ?? '') === '404' || httpStatus === 404) return null;
   const transactionStatus = json['transaction_status'];
   if (typeof transactionStatus !== 'string') {
-    throw providerError('status transaksi tidak terbaca', {
-      status_code: json['status_code'],
-      status_message: json['status_message'],
-    });
+    throw providerError('status transaksi tidak terbaca', { http_status: httpStatus, body: json });
   }
 
   return {

@@ -20,6 +20,7 @@ import {
   saveChargeResult,
   touchProviderChecked,
 } from './payments.repo';
+import { findOrderStaffInfo } from './payments.staff';
 import type {
   PaymentOrderRow,
   PaymentRow,
@@ -28,15 +29,12 @@ import type {
 } from './payments.types';
 
 const PAYMENT_LIFETIME_MS = PAYMENT_EXPIRY_MINUTES * 60_000;
-/** Batas bawah jarak antar pengecekan ke Midtrans per payment (polling app tiap 3 dtk). */
 const PROVIDER_CHECK_INTERVAL_MS = 10_000;
-/** Percobaan tanpa QR yang lebih muda dari ini dianggap masih diproses request lain. */
 const IN_FLIGHT_WINDOW_MS = 60_000;
 const MAX_PROVIDER_ORDER_ID_LENGTH = 50;
 
 export interface CreatePaymentResult {
   payment: PaymentView;
-  /** false bila yang dikembalikan adalah QR aktif yang sudah ada. */
   created: boolean;
 }
 
@@ -51,16 +49,30 @@ function paymentNotFound(): AppError {
   return new AppError(404, 'not_found', 'Pembayaran tidak ditemukan');
 }
 
-/** Saat ini hanya customer pemilik order. Order offline (QR di perangkat worker) menyusul. */
-function assertOwnsOrder(access: OrderAccess, order: PaymentOrderRow): void {
-  const scope = access.scope;
-  if (
-    access.viewer.role !== 'customer' ||
-    scope.kind !== 'customer' ||
-    scope.customerProfileId !== order.customer_id
-  ) {
-    throw orderNotFound();
+/**
+ * Siapa yang boleh membuat / memantau pembayaran sebuah order:
+ * - customer: hanya pemilik order (order dari aplikasi);
+ * - worker/owner: hanya order offline (channel staff_manual), yaitu owner,
+ *   worker dengan izin manage_orders_all, pembuat order, atau worker penangan.
+ */
+async function canAccessPayment(
+  env: Bindings,
+  ctx: AuthContextUser,
+  access: OrderAccess,
+  order: PaymentOrderRow,
+): Promise<boolean> {
+  const { scope, viewer } = access;
+
+  if (viewer.role === 'customer') {
+    return scope.kind === 'customer' && scope.customerProfileId === order.customer_id;
   }
+
+  const info = await findOrderStaffInfo(env, order.id);
+  if (!info || info.channel !== 'staff_manual') return false;
+
+  if (viewer.manageAll) return true;
+  if (info.created_by === ctx.user.id) return true;
+  return viewer.workerProfileId !== null && info.assigned_worker_id === viewer.workerProfileId;
 }
 
 function expiresAtOf(row: PaymentRow): Date {
@@ -148,7 +160,7 @@ export async function createPayment(
   const access = await resolveAccess(env, ctx);
   const order = await findOrderForPayment(env, orderId);
   if (!order) throw orderNotFound();
-  assertOwnsOrder(access, order);
+  if (!(await canAccessPayment(env, ctx, access, order))) throw orderNotFound();
 
   if (order.status === 'cancelled') {
     throw new AppError(409, 'order_cancelled', 'Order ini sudah dibatalkan.');
@@ -243,11 +255,7 @@ export async function getPaymentStatus(
 
   const order = await findOrderForPayment(env, row.order_id);
   if (!order) throw paymentNotFound();
-  try {
-    assertOwnsOrder(access, order);
-  } catch {
-    throw paymentNotFound();
-  }
+  if (!(await canAccessPayment(env, ctx, access, order))) throw paymentNotFound();
 
   if (row.status === 'pending') {
     const now = Date.now();

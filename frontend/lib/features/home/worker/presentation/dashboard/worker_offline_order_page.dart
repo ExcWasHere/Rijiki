@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/enums/user_role.dart';
+import 'package:rijiki/core/error/failure.dart';
+import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/idempotency_key.dart';
+import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/domain/delivery_method.dart';
+import 'package:rijiki/features/order/domain/new_offline_order.dart';
+import 'package:rijiki/features/order/domain/new_order.dart';
+import 'package:rijiki/features/order/presentation/controllers/staff_order_controller.dart';
 import 'package:rijiki/features/order/presentation/widgets/service_picker_sheet.dart';
 import 'package:rijiki/features/service/domain/care_service.dart';
 import 'package:rijiki/shared/widgets/app_card.dart';
 import 'package:rijiki/shared/widgets/section_header.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-
-enum WorkerPaymentMethod {
-  cash,
-  qris,
-}
 
 class WorkerOfflineOrderPage extends ConsumerStatefulWidget {
   const WorkerOfflineOrderPage({super.key});
@@ -33,11 +37,24 @@ class _WorkerOfflineOrderPageState
   final _brandController = TextEditingController();
   final _notesController = TextEditingController();
   final _promoController = TextEditingController();
-  final _workerController = TextEditingController();
 
-  WorkerPaymentMethod _paymentMethod = WorkerPaymentMethod.cash;
+  OfflinePaymentMethod _paymentMethod = OfflinePaymentMethod.cash;
+
+  /// Pengantaran untuk order offline masih maintenance (PRD Open Question #54).
+  static const DeliveryMethod _deliveryMethod = DeliveryMethod.selfPickup;
+
   CareService? _selectedService;
   int _quantity = 1;
+
+  /// worker_profiles.id pilihan; null = worker yang login.
+  String? _workerId;
+
+  bool _submitting = false;
+
+  /// Kunci dipakai ulang bila upaya simpan diulang dengan isi yang sama
+  /// (mis. gagal jaringan), supaya order tidak terbuat dua kali.
+  String? _attemptKey;
+  String? _attemptSignature;
 
   @override
   void dispose() {
@@ -46,8 +63,13 @@ class _WorkerOfflineOrderPageState
     _brandController.dispose();
     _notesController.dispose();
     _promoController.dispose();
-    _workerController.dispose();
     super.dispose();
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _pickService() async {
@@ -63,121 +85,131 @@ class _WorkerOfflineOrderPageState
     });
   }
 
- Future<void> _saveOrder() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _saveOrder() async {
+    if (_submitting) return;
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) return;
 
-  if (_selectedService == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Silakan pilih layanan perawatan sepatu'),
-      ),
+    final service = _selectedService;
+    if (service == null) {
+      _snack('Silakan pilih layanan perawatan sepatu');
+      return;
+    }
+
+    final promo = _promoController.text.trim().toUpperCase();
+    final item = OrderDraftItem(
+      id: 'offline-1',
+      shoeBrand: _brandController.text.trim(),
+      quantity: _quantity,
+      service: service,
+      notes: _notesController.text.trim(),
     );
-    return;
+
+    final signature = [
+      _nameController.text.trim(),
+      _phoneController.text.trim(),
+      item.shoeBrand,
+      item.quantity,
+      service.id,
+      item.notes,
+      promo,
+      _workerId ?? '',
+      _paymentMethod.json,
+    ].join('|');
+    if (_attemptKey == null || _attemptSignature != signature) {
+      _attemptKey = generateIdempotencyKey();
+      _attemptSignature = signature;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final order = await ref
+          .read(staffOrderCommandsProvider)
+          .createOffline(
+            NewOfflineOrder(
+              customerName: _nameController.text.trim(),
+              phone: _phoneController.text.trim(),
+              items: [item],
+              paymentMethod: _paymentMethod,
+              deliveryMethod: _deliveryMethod,
+              promoCode: promo.isEmpty ? null : promo,
+              assignedWorkerId: _workerId,
+              idempotencyKey: _attemptKey,
+            ),
+          );
+      _attemptKey = null;
+      _attemptSignature = null;
+      if (!mounted) return;
+      await _onCreated(order);
+    } catch (e) {
+      if (mounted) _snack(Failure.messageOf(e));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
-  final total = _selectedService!.basePrice * _quantity;
+  Future<void> _onCreated(CustomerOrder order) async {
+    final isOwner = ref.read(sessionProvider)?.role == UserRole.owner;
 
-  if (_paymentMethod == WorkerPaymentMethod.qris) {
-    await _showQrisDialog(total);
-    return;
+    if (_paymentMethod == OfflinePaymentMethod.qris) {
+      context.pushReplacement(
+        isOwner
+            ? RoutePaths.ownerOrderPaymentFor(order.id)
+            : RoutePaths.workerOrderPaymentFor(order.id),
+      );
+      return;
+    }
+
+    await _showCashSuccess(order);
+    if (!mounted) return;
+
+    if (order.assignedToMe || isOwner) {
+      context.pushReplacement(
+        isOwner
+            ? RoutePaths.ownerOrderDetailFor(order.id)
+            : RoutePaths.workerOrderDetailFor(order.id),
+      );
+    } else {
+      // Ditangani worker lain: pembuat tidak punya akses ke detailnya.
+      context.pop();
+    }
   }
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text(
-        'Data valid. Proses penyimpanan backend belum dihubungkan.',
-      ),
-    ),
-  );
-}
+  Future<void> _showCashSuccess(CustomerOrder order) {
+    final textTheme = Theme.of(context).textTheme;
+    final discount = order.price.discount;
 
-Future<void> _showQrisDialog(int total) async {
-  await showDialog<void>(
-    context: context,
-    builder: (dialogContext) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: const Icon(
+          Icons.check_circle_rounded,
+          size: 48,
+          color: AppColors.primary,
         ),
-        title: const Text(
-          'Pembayaran QRIS',
-          textAlign: TextAlign.center,
-        ),
+        title: const Text('Pesanan tersimpan', textAlign: TextAlign.center),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Silakan pindai kode QR berikut '
-              'untuk melakukan pembayaran.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-
-            // Placeholder QRIS
-            Container(
-              width: 220,
-              height: 220,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(
-                  color: AppColors.outline.withValues(alpha: 0.4),
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  QrImageView(
-                    data: 'RIJIKI_QRIS',
-                    version: QrVersions.auto,
-                    backgroundColor: Colors.white,
-                    errorCorrectionLevel: QrErrorCorrectLevel.M,
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
-                    ),
-                    color: Colors.white,
-                    child: const Text(
-                      'QRIS',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
+            Text(order.orderNumber, style: textTheme.titleMedium),
             const SizedBox(height: 12),
-
-            const Text(
-              'QRIS RIJIKI',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text('Total pembayaran'),
-
+            const Text('Pembayaran tunai diterima'),
             const SizedBox(height: 4),
-
             Text(
-              CurrencyFormatter.rupiah(total),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              CurrencyFormatter.rupiah(order.totalPrice),
+              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
-
-            const SizedBox(height: 8),
-
+            if (discount > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Sudah termasuk diskon ${CurrencyFormatter.rupiah(discount)}',
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ),
         actions: [
@@ -185,18 +217,23 @@ Future<void> _showQrisDialog(int total) async {
             width: double.infinity,
             child: FilledButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Tutup'),
+              child: const Text('Selesai'),
             ),
           ),
         ],
-      );
-    },
-  );
-}
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isOwner = ref.watch(sessionProvider)?.role == UserRole.owner;
+    final workers = ref.watch(assignableWorkersProvider);
+    final workerList = workers.value ?? const [];
+    final selectedWorker = workerList.any((w) => w.id == _workerId)
+        ? _workerId
+        : null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -221,9 +258,9 @@ Future<void> _showQrisDialog(int total) async {
                       labelText: 'Nama pelanggan',
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Nama pelanggan wajib diisi';
-                      }
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) return 'Nama pelanggan wajib diisi';
+                      if (text.length < 2) return 'Nama pelanggan terlalu pendek';
                       return null;
                     },
                   ),
@@ -232,12 +269,11 @@ Future<void> _showQrisDialog(int total) async {
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'[0-9+]'),
-                      ),
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
                     ],
                     decoration: const InputDecoration(
                       labelText: 'Nomor HP',
+                      hintText: 'Contoh: 081234567890',
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -277,40 +313,37 @@ Future<void> _showQrisDialog(int total) async {
                   ),
 
                   const SizedBox(height: AppSpacing.md),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Jumlah sepatu',
-                              style: textTheme.bodyMedium,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: _quantity > 1
-                                ? () => setState(() => _quantity--)
-                                : null,
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Text(
-                            '$_quantity',
-                            style: textTheme.titleMedium,
-                          ),
-                          IconButton(
-                            onPressed: _quantity < 10
-                                ? () => setState(() => _quantity++)
-                                : null,
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
-                        ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Jumlah sepatu',
+                          style: textTheme.bodyMedium,
+                        ),
                       ),
+                      IconButton(
+                        onPressed: _quantity > 1
+                            ? () => setState(() => _quantity--)
+                            : null,
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      Text('$_quantity', style: textTheme.titleMedium),
+                      IconButton(
+                        onPressed: _quantity < 10
+                            ? () => setState(() => _quantity++)
+                            : null,
+                        icon: const Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: AppSpacing.sm),
                   TextFormField(
                     controller: _notesController,
                     maxLines: 3,
+                    maxLength: 300,
                     decoration: const InputDecoration(
                       labelText: 'Catatan kondisi sepatu',
-                      hintText:
-                          'Contoh: sepatu menguning atau kotor berat',
+                      hintText: 'Contoh: sepatu menguning atau kotor berat',
                       alignLabelWithHint: true,
                     ),
                   ),
@@ -396,19 +429,73 @@ Future<void> _showQrisDialog(int total) async {
             const SizedBox(height: AppSpacing.sm),
 
             AppCard(
-              child: TextFormField(
-                controller: _workerController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Nama worker',
-                  hintText: 'Pilih worker yang menangani pesanan',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<String?>(
+                    key: ValueKey('worker-$selectedWorker-${workerList.length}'),
+                    initialValue: selectedWorker,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Worker yang menangani',
+                    ),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(isOwner ? 'Belum ditentukan' : 'Saya sendiri'),
+                      ),
+                      for (final w in workerList)
+                        DropdownMenuItem<String?>(
+                          value: w.id,
+                          child: Text(
+                            '${w.fullName} · ${w.division}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: _submitting
+                        ? null
+                        : (value) => setState(() => _workerId = value),
+                  ),
+                  if (workers.isLoading || workers.hasError) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      workers.isLoading
+                          ? 'Memuat daftar worker...'
+                          : 'Daftar worker belum bisa dimuat.',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.lg),
+
+            const SectionHeader(title: 'Serah-terima'),
+            const SizedBox(height: AppSpacing.sm),
+            AppCard(
+              child: RadioGroup<DeliveryMethod>(
+                groupValue: _deliveryMethod,
+                onChanged: (_) {},
+                child: const Column(
+                  children: [
+                    RadioListTile<DeliveryMethod>(
+                      value: DeliveryMethod.selfPickup,
+                      title: Text('Ambil sendiri di outlet'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    RadioListTile<DeliveryMethod>(
+                      value: DeliveryMethod.delivery,
+                      enabled: false,
+                      title: Text('Diantar ke alamat'),
+                      subtitle: Text('Masih dalam maintenance'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ],
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Nama worker wajib diisi';
-                  }
-                  return null;
-                },
               ),
             ),
 
@@ -428,23 +515,25 @@ Future<void> _showQrisDialog(int total) async {
                   ),
                   const SizedBox(height: AppSpacing.sm),
 
-                  RadioGroup<WorkerPaymentMethod>(
+                  RadioGroup<OfflinePaymentMethod>(
                     groupValue: _paymentMethod,
                     onChanged: (value) {
-                      if (value != null) {
+                      if (value != null && !_submitting) {
                         setState(() => _paymentMethod = value);
                       }
                     },
                     child: const Column(
                       children: [
-                        RadioListTile<WorkerPaymentMethod>(
-                          value: WorkerPaymentMethod.cash,
+                        RadioListTile<OfflinePaymentMethod>(
+                          value: OfflinePaymentMethod.cash,
                           title: Text('Tunai'),
+                          subtitle: Text('Uang diterima, pesanan langsung lunas'),
                           contentPadding: EdgeInsets.zero,
                         ),
-                        RadioListTile<WorkerPaymentMethod>(
-                          value: WorkerPaymentMethod.qris,
+                        RadioListTile<OfflinePaymentMethod>(
+                          value: OfflinePaymentMethod.qris,
                           title: Text('QRIS'),
+                          subtitle: Text('QR ditampilkan setelah pesanan disimpan'),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ],
@@ -456,15 +545,13 @@ Future<void> _showQrisDialog(int total) async {
 
             const SizedBox(height: AppSpacing.lg),
 
-            if (_selectedService != null)
+            if (_selectedService != null) ...[
               Text(
                 'Subtotal layanan',
                 style: textTheme.bodySmall?.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),
               ),
-
-            if (_selectedService != null) ...[
               const SizedBox(height: 4),
               Text(
                 CurrencyFormatter.rupiah(
@@ -474,6 +561,15 @@ Future<void> _showQrisDialog(int total) async {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              if (_promoController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Diskon promo dihitung saat pesanan disimpan.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
 
             const SizedBox(height: AppSpacing.md),
@@ -487,16 +583,24 @@ Future<void> _showQrisDialog(int total) async {
           decoration: BoxDecoration(
             color: AppColors.surface,
             border: Border(
-              top: BorderSide(
-                color: AppColors.outline.withValues(alpha: 0.25),
-              ),
+              top: BorderSide(color: AppColors.outline.withValues(alpha: 0.25)),
             ),
           ),
           child: SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _saveOrder,
-              child: const Text('Simpan Pesanan'),
+              onPressed: _submitting ? null : _saveOrder,
+              child: _submitting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : Text(
+                      _paymentMethod == OfflinePaymentMethod.qris
+                          ? 'Simpan & Tampilkan QRIS'
+                          : 'Simpan Pesanan',
+                    ),
             ),
           ),
         ),
