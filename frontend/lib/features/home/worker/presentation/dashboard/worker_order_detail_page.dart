@@ -28,6 +28,7 @@ import 'package:rijiki/shared/widgets/image_source_sheet.dart';
 import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 import 'package:rijiki/shared/widgets/section_header.dart';
 import 'package:rijiki/shared/widgets/status_chip.dart';
+import 'package:rijiki/features/order/presentation/widgets/offline_qris_button.dart';
 
 void _snack(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
@@ -49,8 +50,7 @@ class WorkerOrderDetailPage extends ConsumerWidget {
       ref.invalidate(staffOrderDetailProvider(orderId));
       try {
         await ref.read(staffOrderDetailProvider(orderId).future);
-      } catch (_) {
-      }
+      } catch (_) {}
     }
 
     return Scaffold(
@@ -171,6 +171,10 @@ class _DetailBody extends StatelessWidget {
           promoCode: order.promoCode,
           showPaymentStatus: order.status != OrderStatus.cancelled,
         ),
+        if (order.isOffline && order.canPay) ...[
+          const SizedBox(height: AppSpacing.md),
+          OfflineQrisButton(orderId: order.id),
+        ],
         if (order.statusHistory.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
           const SectionHeader(title: 'Riwayat status'),
@@ -229,7 +233,10 @@ class _HeaderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text('Dibuat ${DateFormatter.dateTime(order.createdAt)}', style: muted),
+          Text(
+            'Dibuat ${DateFormatter.dateTime(order.createdAt)}',
+            style: muted,
+          ),
           const SizedBox(height: 14),
           _InfoRow(
             icon: Icons.person_outline_rounded,
@@ -290,7 +297,10 @@ class _ItemCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${item.shoeName} · ${item.serviceName}', style: textTheme.titleSmall),
+          Text(
+            '${item.shoeName} · ${item.serviceName}',
+            style: textTheme.titleSmall,
+          ),
           if (item.itemCode != null) ...[
             const SizedBox(height: 2),
             Text('Kode ${item.itemCode}', style: muted),
@@ -706,7 +716,9 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
     );
     if (choice == null) return;
     await _run(
-      () => ref.read(staffOrderCommandsProvider).assign(_order.id, choice.workerId),
+      () => ref
+          .read(staffOrderCommandsProvider)
+          .assign(_order.id, choice.workerId),
       success: choice.workerId == null
           ? 'Assign dilepas.'
           : 'Worker berhasil di-assign.',

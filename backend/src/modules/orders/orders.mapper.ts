@@ -9,8 +9,6 @@ import type {
   OrderView,
 } from './orders.types';
 
-/** PostgREST mengembalikan relasi to-one sebagai objek, tapi jaga-jaga bila array. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function one(value: any): any {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
@@ -21,9 +19,6 @@ function itemSuffix(code: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/**
- * @param viewer pemanggil; null untuk customer sehingga blok `staff` kosong.
- */
 export function toOrderView(row: OrderRow, viewer: Viewer | null): OrderView {
   const customer = one(row.customer);
   const customerUser = one(customer?.users);
@@ -45,7 +40,6 @@ export function toOrderView(row: OrderRow, viewer: Viewer | null): OrderView {
     notes: (item.notes as string | null) ?? null,
   }));
 
-  // Dokumentasi di-embed pada level order karena proof of delivery tidak punya item.
   const rawDocs: OrderRow[] = Array.isArray(row.order_documentations)
     ? row.order_documentations
     : [];
@@ -84,7 +78,6 @@ export function toOrderView(row: OrderRow, viewer: Viewer | null): OrderView {
     promo_code: (promo?.code as string | undefined) ?? null,
     pickup_address: (row.pickup_address as string | null) ?? null,
     delivery_address: (row.delivery_address as string | null) ?? null,
-    // Order offline tanpa akun memakai nama/HP walk-in dari form kasir.
     customer_name:
       (customerUser?.full_name as string | undefined) ??
       (row.walk_in_customer_name as string | null | undefined) ??

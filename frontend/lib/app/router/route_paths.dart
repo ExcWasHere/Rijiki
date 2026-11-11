@@ -6,7 +6,6 @@ abstract final class RoutePaths {
   static const String verifyEmail = '/verify-email';
   static const String onboarding = '/onboarding';
 
-  // Di luar shell supaya bottom navbar tersembunyi; dipakai semua role.
   static const String editProfile = '/profile/edit';
   
   static const String accountSecurity = '/profile/security';
@@ -50,9 +49,6 @@ abstract final class RoutePaths {
   static const String ownerManagementRepeatCustomers =
       '/owner/management/repeat-customers';
 
-  // Halaman Karyawan, CMS, Pelanggan Setia, dan Poin ada di luar shell
-  // (tanpa bottom navbar), dipakai owner dan worker berizin. Nama konstanta
-  // ownerWorkers/ownerCms dipertahankan.
   static const String ownerWorkers = '/management/workers';
   static const String ownerWorkerNew = '/management/workers/new';
   static const String ownerWorkerKpiOverview = '/management/workers/kpi';
@@ -136,6 +132,10 @@ abstract final class RoutePaths {
   ).toString();
 
   static String workerOrderDetailFor(String orderId) =>
-      '$workerOrders/$orderId';
+    '$workerOrders/$orderId';
+  static String workerOrderPaymentFor(String orderId) =>
+    '$workerOrders/$orderId/pay';
+  static String ownerOrderPaymentFor(String orderId) =>
+    '$ownerOrders/$orderId/pay';
   static String ownerOrderDetailFor(String orderId) => '$ownerOrders/$orderId';
 }

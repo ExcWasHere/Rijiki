@@ -249,11 +249,23 @@ export async function changeOrderStatus(
     kind = 'correction';
   }
 
+  // Order online wajib lunas (QRIS Midtrans) sebelum dijemput. Koreksi owner
+  // sengaja tidak diperiksa: catatannya sudah menjadi jejak audit.
+  if (
+    kind === 'forward' &&
+    info.status === 'order' &&
+    target === 'pickup' &&
+    info.payment_status !== 'paid'
+  ) {
+    throw new AppError(
+      409,
+      'payment_required',
+      'Order ini belum dibayar. Jemput setelah pembayaran QRIS masuk.',
+    );
+  }
+
   // Koreksi owner sengaja tidak memeriksa foto: catatannya sudah menjadi jejak audit.
   if (kind === 'forward') assertDocumentationComplete(row, info, target);
-
-  // TODO(tahap-B): setelah QRIS asli (Midtrans), wajibkan payment_status = 'paid'
-  // sebelum order boleh pindah dari `order` ke `pickup`.
 
   await changeOrderStatusRpc(env, {
     orderId,

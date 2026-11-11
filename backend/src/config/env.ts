@@ -6,8 +6,10 @@ const envSchema = z.object({
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   PUBLIC_ASSET_BASE_URL: z.string().url(),
-  DUITKU_MERCHANT_CODE: z.string().optional(),
-  DUITKU_API_KEY: z.string().optional(),
+  // Opsional di sini supaya fitur lain tetap jalan bila belum diset;
+  // endpoint pembayaran memeriksanya sendiri dan menolak dengan jelas.
+  MIDTRANS_SERVER_KEY: z.string().optional(),
+  MIDTRANS_ENV: z.string().optional(),
   ENVIRONMENT: z.string().optional(),
 });
 

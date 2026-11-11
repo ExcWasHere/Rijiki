@@ -32,6 +32,7 @@ import 'package:rijiki/features/order/domain/courier_tracking_repository.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
 import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
+import 'package:rijiki/features/payment/data/payment_repository_impl.dart';
 import 'package:rijiki/features/payment/domain/payment_repository.dart';
 import 'package:rijiki/features/points/data/mock_point_management_repository.dart';
 import 'package:rijiki/features/points/data/mock_point_rule_repository.dart';
@@ -168,12 +169,17 @@ final scanRepositoryProvider = Provider<ScanRepository>(
   (ref) => MockScanRepository(scenario: ref.watch(mockScenarioProvider)),
 );
 
-final paymentRepositoryProvider = Provider<PaymentRepository>(
-  (ref) => MockPaymentRepository(
-    orders: ref.watch(orderRepositoryProvider),
-    scenario: ref.watch(mockScenarioProvider),
-  ),
-);
+/// Mock hanya untuk mode demo (USE_MOCK_AUTH / USE_MOCK_ORDERS); selain itu
+/// QRIS dinamis asli lewat backend + Midtrans Core API.
+final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockPaymentRepository(
+      orders: ref.watch(orderRepositoryProvider),
+      scenario: ref.watch(mockScenarioProvider),
+    );
+  }
+  return PaymentRepositoryImpl(api: ref.watch(apiClientProvider));
+});
 
 /// Repeat customer sudah dari backend; ringkasan dan order terbaru dashboard
 /// masih mock (lihat [RemoteDashboardRepository]).

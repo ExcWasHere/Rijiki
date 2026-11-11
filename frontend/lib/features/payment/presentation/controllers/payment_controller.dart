@@ -6,6 +6,7 @@ import 'package:rijiki/app/providers.dart';
 import 'package:rijiki/core/enums/payment_status.dart';
 import 'package:rijiki/features/order/presentation/controllers/order_detail_controller.dart';
 import 'package:rijiki/features/order/presentation/controllers/order_list_controller.dart';
+import 'package:rijiki/features/order/presentation/controllers/staff_order_controller.dart';
 import 'package:rijiki/features/payment/domain/payment.dart';
 
 enum PaymentPhase { creating, pending, paid, failed, expired, error }
@@ -78,8 +79,7 @@ class PaymentController extends Notifier<PaymentState> {
         case PaymentStatus.paid:
           _poll?.cancel();
           state = PaymentState(phase: PaymentPhase.paid, payment: updated);
-          ref.invalidate(ordersProvider);
-          ref.invalidate(orderDetailProvider(orderId));
+          _refreshOrders();
           return true;
         case PaymentStatus.failed:
           _poll?.cancel();
@@ -95,6 +95,15 @@ class PaymentController extends Notifier<PaymentState> {
     } finally {
       _checking = false;
     }
+  }
+
+  /// Segarkan daftar dan detail order, baik tampilan customer maupun staff
+  /// (order offline dibayar dari perangkat worker).
+  void _refreshOrders() {
+    ref.invalidate(ordersProvider);
+    ref.invalidate(orderDetailProvider(orderId));
+    ref.invalidate(staffOrdersProvider);
+    ref.invalidate(staffOrderDetailProvider(orderId));
   }
 }
 

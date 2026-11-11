@@ -5,6 +5,7 @@ import 'package:rijiki/app/providers.dart';
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/features/order/domain/assignable_worker.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/domain/new_offline_order.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
 import 'package:rijiki/features/order/presentation/controllers/courier_tracking_sender.dart';
@@ -47,6 +48,14 @@ class StaffOrderCommands {
     final order = await _repo.assign(orderId, workerId);
     _refresh(orderId);
     return order;
+  }
+
+  /// Mencatat order offline (POS). Daftar order disegarkan agar order baru
+  /// langsung muncul bagi worker penangannya.
+  Future<CustomerOrder> createOffline(NewOfflineOrder order) async {
+    final created = await _repo.createOfflineOrder(order);
+    _refresh(created.id);
+    return created;
   }
 
   Future<CustomerOrder> updateStatus(

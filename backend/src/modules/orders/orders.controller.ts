@@ -6,11 +6,13 @@ import { parseIdempotencyKey } from '../../shared/utils/idempotency';
 import { parseInput } from '../../shared/utils/validate';
 import {
   assignOrderSchema,
+  createOfflineOrderSchema,
   createOrderSchema,
   listOrdersQuerySchema,
   quoteOrderSchema,
   updateStatusSchema,
 } from './orders.schema';
+import { createOfflineOrder } from './orders.offline.service';
 import { createOrder, getOrder, listOrders, quoteOrder } from './orders.service';
 import { trackingPointSchema } from './orders.tracking.schema';
 import { getTracking, recordTrackingPoint } from './orders.tracking.service';
@@ -47,6 +49,21 @@ export async function createOrderHandler(c: Context<AppEnv>) {
   const key = parseIdempotencyKey(c.req.header('Idempotency-Key'));
 
   const result = await createOrder(c.env, ctx.user.id, input, key);
+  if (result.replayed) {
+    c.header('Idempotent-Replayed', 'true');
+    return c.json(result.order, 200);
+  }
+  return c.json(result.order, 201);
+}
+
+/** Order offline (POS): peran dicek di service (hanya worker atau owner). */
+export async function createOfflineOrderHandler(c: Context<AppEnv>) {
+  const ctx = c.get('user');
+
+  const input = parseInput(createOfflineOrderSchema, await c.req.json().catch(() => null));
+  const key = parseIdempotencyKey(c.req.header('Idempotency-Key'));
+
+  const result = await createOfflineOrder(c.env, ctx, input, key);
   if (result.replayed) {
     c.header('Idempotent-Replayed', 'true');
     return c.json(result.order, 200);

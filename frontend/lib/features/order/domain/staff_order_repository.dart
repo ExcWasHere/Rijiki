@@ -1,6 +1,7 @@
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/features/order/domain/assignable_worker.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/domain/new_offline_order.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 
 enum StaffOrderList { primary, unassigned }
@@ -10,6 +11,9 @@ abstract interface class StaffOrderRepository {
   Future<CustomerOrder> fetchOrder(String id);
   Future<CustomerOrder> claim(String id);
   Future<CustomerOrder> assign(String id, String? workerId);
+
+  /// Order offline (POS): customer tanpa akun, dicatat di outlet.
+  Future<CustomerOrder> createOfflineOrder(NewOfflineOrder order);
 
   Future<CustomerOrder> updateStatus(
     String id,

@@ -46,7 +46,6 @@ function requireCoordinates(profile: CustomerProfileRow | null): Coordinates {
   return { lat: profile.default_lat, lng: profile.default_lng };
 }
 
-/** Ongkir dihitung dari koordinat default di profil (alamat order boleh diubah, titiknya belum). */
 async function loadShipping(
   env: Bindings,
   coords: Coordinates,
@@ -58,8 +57,7 @@ async function loadShipping(
   return { fee: calculateShippingFee(route.km, rate), distanceKm: route.km };
 }
 
-/** Harga selalu dari database, bukan dari klien. */
-async function priceItems(
+export async function priceItems(
   env: Bindings,
   items: Array<{ service_id: string; quantity: number }>,
 ): Promise<{ subtotal: number; lines: PricedLine[] }> {

@@ -7,6 +7,8 @@ import 'package:rijiki/core/network/api_endpoint.dart';
 import 'package:rijiki/features/order/data/order_mapper.dart';
 import 'package:rijiki/features/order/domain/assignable_worker.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/domain/delivery_method.dart';
+import 'package:rijiki/features/order/domain/new_offline_order.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
 
@@ -57,6 +59,41 @@ class StaffOrderRepositoryImpl implements StaffOrderRepository {
         ApiEndpoints.orderAssign(id),
         auth: true,
         body: {'worker_id': workerId},
+      );
+      return customerOrderFromJson(json);
+    });
+  }
+
+  @override
+  Future<CustomerOrder> createOfflineOrder(NewOfflineOrder order) {
+    return _guard(() async {
+      final key = order.idempotencyKey;
+      final promo = order.promoCode?.trim() ?? '';
+      final workerId = order.assignedWorkerId;
+
+      final json = await api.post(
+        ApiEndpoints.orderOffline,
+        auth: true,
+        headers: key == null ? null : {ApiClient.idempotencyHeader: key},
+        body: {
+          'walk_in_customer_name': order.customerName.trim(),
+          'walk_in_customer_phone': order.phone.trim(),
+          'items': [
+            for (final item in order.items)
+              {
+                'service_id': item.service!.id,
+                'shoe_brand': item.shoeBrand.trim(),
+                'quantity': item.quantity,
+                if (item.notes.trim().isNotEmpty) 'notes': item.notes.trim(),
+              },
+          ],
+          if (promo.isNotEmpty) 'promo_code': promo,
+          if (workerId != null) 'assigned_worker_id': workerId,
+          'payment_method': order.paymentMethod.json,
+          'delivery_method': order.deliveryMethod == DeliveryMethod.selfPickup
+              ? 'self_pickup'
+              : 'delivery',
+        },
       );
       return customerOrderFromJson(json);
     });

@@ -5,6 +5,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { managementCustomersRoutes } from './modules/customers/customers.routes';
 import { mediaRoutes } from './modules/media/media.routes';
 import { ordersRoutes } from './modules/orders/orders.routes';
+import { paymentsRoutes } from './modules/payments/payments.routes';
 import {
   managementPointsRoutes,
   pointRulesRoutes,
@@ -14,6 +15,7 @@ import { profileRoutes } from './modules/profile/profile.routes';
 import { promosRoutes } from './modules/promos/promos.routes';
 import { managementTestimonialsRoutes, testimonialsRoutes } from './modules/ratings/ratings.routes';
 import { servicesRoutes } from './modules/services/services.routes';
+import { webhooksRoutes } from './modules/webhooks/webhooks.routes';
 import { ownerWorkersRoutes, workersRoutes } from './modules/workers/workers.routes';
 import { AppError } from './shared/errors';
 import type { AppEnv } from './shared/types/env';
@@ -40,6 +42,7 @@ export function createApp() {
   app.route('/api/services', servicesRoutes);
   app.route('/api/promos', promosRoutes);
   app.route('/api/orders', ordersRoutes);
+  app.route('/api/payments', paymentsRoutes);
   app.route('/api/points', pointsRoutes);
   app.route('/api/testimonials', testimonialsRoutes);
   app.route('/api/management/testimonials', managementTestimonialsRoutes);
@@ -48,6 +51,8 @@ export function createApp() {
   app.route('/api/management/customers', managementCustomersRoutes);
   app.route('/api/workers', workersRoutes);
   app.route('/api/owner/workers', ownerWorkersRoutes);
+  // Tanpa auth Bearer: dipanggil Midtrans, dilindungi verifikasi signature_key.
+  app.route('/api/webhooks', webhooksRoutes);
 
   app.notFound((c) =>
     c.json({ error: { code: 'not_found', message: 'Endpoint tidak ditemukan' } }, 404),

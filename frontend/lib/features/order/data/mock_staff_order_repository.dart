@@ -2,6 +2,7 @@ import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/features/order/domain/assignable_worker.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/domain/new_offline_order.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
@@ -31,6 +32,10 @@ class MockStaffOrderRepository implements StaffOrderRepository {
 
   @override
   Future<CustomerOrder> assign(String id, String? workerId) async =>
+      _unsupported();
+
+  @override
+  Future<CustomerOrder> createOfflineOrder(NewOfflineOrder order) async =>
       _unsupported();
 
   @override

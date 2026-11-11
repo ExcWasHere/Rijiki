@@ -71,6 +71,7 @@ import 'package:rijiki/features/worker_management/presentation/owner/kpi_overvie
 import 'package:rijiki/features/worker_management/presentation/owner/worker_detail_page.dart';
 import 'package:rijiki/features/worker_management/presentation/owner/worker_form_page.dart';
 import 'package:rijiki/features/worker_management/presentation/owner/worker_list_page.dart';
+import 'package:rijiki/features/payment/presentation/worker/worker_qris_payment_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -118,7 +119,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.editProfile,
         builder: (context, state) => const EditProfilePage(),
       ),
-            GoRoute(
+      GoRoute(
         path: RoutePaths.accountSecurity,
         builder: (context, state) => const AccountSecurityPage(),
         routes: [
@@ -133,8 +134,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // Halaman manajemen untuk owner dan worker berizin. Di luar shell supaya
-      // bottom navbar tersembunyi; izin dicek backend dan disaring di menu.
       GoRoute(
         path: RoutePaths.ownerWorkers,
         builder: (context, state) => const WorkerListPage(),
@@ -149,44 +148,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: ':id',
-            builder: (context, state) => WorkerDetailPage(
-              workerId: state.pathParameters['id']!,
-            ),
+            builder: (context, state) =>
+                WorkerDetailPage(workerId: state.pathParameters['id']!),
             routes: [
               GoRoute(
                 path: 'edit',
-                builder: (context, state) => WorkerFormPage(
-                  workerId: state.pathParameters['id']!,
-                ),
+                builder: (context, state) =>
+                    WorkerFormPage(workerId: state.pathParameters['id']!),
               ),
               GoRoute(
                 path: 'kpi',
                 builder: (context, state) {
                   final now = KpiPeriod.current();
                   final month =
-                      int.tryParse(
-                        state.uri.queryParameters['month'] ?? '',
-                      ) ??
+                      int.tryParse(state.uri.queryParameters['month'] ?? '') ??
                       now.month;
                   final year =
-                      int.tryParse(
-                        state.uri.queryParameters['year'] ?? '',
-                      ) ??
+                      int.tryParse(state.uri.queryParameters['year'] ?? '') ??
                       now.year;
                   return KpiAssessmentPage(
                     workerId: state.pathParameters['id']!,
-                    period: KpiPeriod(
-                      month.clamp(1, 12).toInt(),
-                      year,
-                    ),
+                    period: KpiPeriod(month.clamp(1, 12).toInt(), year),
                   );
                 },
               ),
               GoRoute(
                 path: 'access',
-                builder: (context, state) => WorkerPermissionPage(
-                  workerId: state.pathParameters['id']!,
-                ),
+                builder: (context, state) =>
+                    WorkerPermissionPage(workerId: state.pathParameters['id']!),
               ),
             ],
           ),
@@ -220,14 +209,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'new',
-                builder: (context, state) =>
-                    const ServiceFormPage(),
+                builder: (context, state) => const ServiceFormPage(),
               ),
               GoRoute(
                 path: ':id/edit',
-                builder: (context, state) => ServiceFormPage(
-                  serviceId: state.pathParameters['id']!,
-                ),
+                builder: (context, state) =>
+                    ServiceFormPage(serviceId: state.pathParameters['id']!),
               ),
             ],
           ),
@@ -241,9 +228,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: ':id/edit',
-                builder: (context, state) => EventFormPage(
-                  eventId: state.pathParameters['id']!,
-                ),
+                builder: (context, state) =>
+                    EventFormPage(eventId: state.pathParameters['id']!),
               ),
             ],
           ),
@@ -257,21 +243,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: ':id/edit',
-                builder: (context, state) => PromoFormPage(
-                  promoId: state.pathParameters['id']!,
-                ),
+                builder: (context, state) =>
+                    PromoFormPage(promoId: state.pathParameters['id']!),
               ),
             ],
           ),
           GoRoute(
             path: 'merchandise',
-            builder: (context, state) =>
-                const MerchandiseManagePage(),
+            builder: (context, state) => const MerchandiseManagePage(),
             routes: [
               GoRoute(
                 path: 'new',
-                builder: (context, state) =>
-                    const MerchandiseFormPage(),
+                builder: (context, state) => const MerchandiseFormPage(),
               ),
               GoRoute(
                 path: ':id/edit',
@@ -287,8 +270,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'testimonials',
-            builder: (context, state) =>
-                const TestimonialManagePage(),
+            builder: (context, state) => const TestimonialManagePage(),
           ),
         ],
       ),
@@ -442,6 +424,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => WorkerOrderDetailPage(
                       orderId: state.pathParameters['orderId']!,
                     ),
+                    routes: [
+                      GoRoute(
+                        path: 'pay',
+                        builder: (context, state) => WorkerQrisPaymentPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -496,6 +486,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => WorkerOrderDetailPage(
                       orderId: state.pathParameters['orderId']!,
                     ),
+                    routes: [
+                      GoRoute(
+                        path: 'pay',
+                        builder: (context, state) => WorkerQrisPaymentPage(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

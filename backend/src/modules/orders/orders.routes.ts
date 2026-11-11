@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../../middleware/auth';
 import type { AppEnv } from '../../shared/types/env';
+import { createPaymentHandler } from '../payments/payments.controller';
 import { createRatingHandler } from '../ratings/ratings.controller';
 import {
   assignOrderHandler,
   claimOrderHandler,
+  createOfflineOrderHandler,
   createOrderHandler,
   deleteDocumentationHandler,
   getOrderHandler,
@@ -24,6 +26,12 @@ ordersRoutes.use('*', authMiddleware);
 ordersRoutes.post('/quote', quoteOrderHandler);
 ordersRoutes.post('/', createOrderHandler);
 ordersRoutes.post('/:id/rating', createRatingHandler);
+
+// Worker / owner: order offline (POS) di outlet
+ordersRoutes.post('/offline', createOfflineOrderHandler);
+
+// Customer pemilik order, atau worker/owner berwenang untuk order offline
+ordersRoutes.post('/:id/payment', createPaymentHandler);
 
 // Semua peran (hasilnya dibatasi per peran di service)
 ordersRoutes.get('/', listOrdersHandler);
