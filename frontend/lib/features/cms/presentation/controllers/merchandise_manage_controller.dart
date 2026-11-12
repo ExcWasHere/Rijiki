@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
+import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/features/cms/domain/cms_status_filter.dart';
 import 'package:rijiki/features/cms/presentation/controllers/cms_action_state.dart';
 import 'package:rijiki/features/cms/presentation/controllers/cms_hub_controller.dart';
@@ -39,6 +40,13 @@ final filteredCmsMerchandiseProvider = Provider.autoDispose<List<Merchandise>>((
   ];
 });
 
+String _messageOf(Object error, String fallback) {
+  if (error is Failure && error.message.trim().isNotEmpty) {
+    return error.message;
+  }
+  return fallback;
+}
+
 class MerchandiseManageNotifier extends Notifier<CmsActionState> {
   @override
   CmsActionState build() => const CmsActionState();
@@ -56,10 +64,13 @@ class MerchandiseManageNotifier extends Notifier<CmsActionState> {
       if (!ref.mounted) return true;
       state = const CmsActionState();
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!ref.mounted) return false;
-      state = const CmsActionState(
-        errorMessage: 'Gagal mengubah status merchandise. Coba lagi ya.',
+      state = CmsActionState(
+        errorMessage: _messageOf(
+          e,
+          'Gagal mengubah status merchandise. Coba lagi ya.',
+        ),
       );
       return false;
     }
@@ -79,10 +90,13 @@ class MerchandiseManageNotifier extends Notifier<CmsActionState> {
       _refresh();
       state = const CmsActionState();
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!ref.mounted) return false;
-      state = const CmsActionState(
-        errorMessage: 'Gagal menyimpan merchandise. Coba lagi ya.',
+      state = CmsActionState(
+        errorMessage: _messageOf(
+          e,
+          'Gagal menyimpan merchandise. Coba lagi ya.',
+        ),
       );
       return false;
     }

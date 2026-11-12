@@ -3,23 +3,28 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rijiki/features/event/presentation/controllers/events_refresh.dart';
 
-class CustomerShell extends StatelessWidget {
+class CustomerShell extends ConsumerWidget {
   const CustomerShell({super.key, required this.navigationShell});
-
   final StatefulNavigationShell navigationShell;
+  static const int _eventsBranch = 2;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: navigationShell,
       bottomNavigationBar: _CustomerBottomBar(
         currentBranch: navigationShell.currentIndex,
-        onBranchSelected: (branch) => navigationShell.goBranch(
-          branch,
-          initialLocation: branch == navigationShell.currentIndex,
-        ),
+        onBranchSelected: (branch) {
+          if (branch == _eventsBranch) refreshEventsTab(ref);
+          navigationShell.goBranch(
+            branch,
+            initialLocation: branch == navigationShell.currentIndex,
+          );
+        },
         onScan: () => context.push(RoutePaths.customerScan),
       ),
     );

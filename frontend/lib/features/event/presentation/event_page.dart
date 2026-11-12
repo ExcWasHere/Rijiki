@@ -11,9 +11,13 @@ import 'package:rijiki/core/utils/date_formatter.dart';
 import 'package:rijiki/features/event/domain/event_promo.dart';
 import 'package:rijiki/features/event/domain/promo_event.dart';
 import 'package:rijiki/features/event/presentation/controllers/customer_events_controller.dart';
+import 'package:rijiki/features/event/presentation/controllers/events_refresh.dart';
 import 'package:rijiki/features/event/presentation/utils/event_promo_format.dart';
 import 'package:rijiki/features/points/domain/point_ledger_entry.dart';
+import 'package:rijiki/features/points/domain/point_redemption.dart';
+import 'package:rijiki/features/points/domain/reward.dart';
 import 'package:rijiki/features/points/presentation/controllers/point_history_controller.dart';
+import 'package:rijiki/features/points/presentation/controllers/point_redeem_controller.dart';
 import 'package:rijiki/features/points/presentation/utils/point_history_format.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
 import 'package:rijiki/shared/widgets/loading_skeleton.dart';
@@ -32,34 +36,6 @@ class _EventPageState extends ConsumerState<EventPage>
 
   final List<String> _filters = ['Semua', 'Acara', 'Promo', 'Merch'];
 
-  // TODO(segmen-3): ganti dengan GET /api/points/rewards.
-  final List<_MerchItem> _merchItems = const [
-    _MerchItem(
-      title: 'Keychain',
-      subtitle: 'Sneaker',
-      points: 150,
-      icon: Icons.key_outlined,
-      imageUrl:
-          'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
-    ),
-    _MerchItem(
-      title: 'Stiker Set',
-      subtitle: '3 pcs',
-      points: 100,
-      icon: Icons.sticky_note_2_outlined,
-      imageUrl:
-          'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
-    ),
-    _MerchItem(
-      title: 'Tote Bag',
-      subtitle: 'Rijiki Style',
-      points: 250,
-      icon: Icons.shopping_bag_outlined,
-      imageUrl:
-          'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -77,18 +53,86 @@ class _EventPageState extends ConsumerState<EventPage>
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(customerEventsProvider);
       ref.invalidate(pointBalanceProvider);
+      ref.invalidate(rewardsProvider);
+      ref.invalidate(pendingRedemptionsProvider);
     }
   }
 
   Future<void> _refresh() async {
-    ref.invalidate(customerEventsProvider);
-    ref.invalidate(pointBalanceProvider);
+    refreshEventsTab(ref);
     try {
       await Future.wait([
         ref.read(customerEventsProvider.future),
         ref.read(pointBalanceProvider.future),
+        ref.read(rewardsProvider.future),
+        ref.read(pendingRedemptionsProvider.future),
       ]);
     } catch (_) {}
+  }
+
+  Future<void> _redeem(Reward reward) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Tukar ${reward.name}?'),
+        content: Text(
+          '${formatPoints(reward.pointsCost)} poin akan dipakai. Pengajuan '
+          'dikirim ke Rijiki dulu, dan poin baru dipotong setelah disetujui.\n\n'
+          'Setelah disetujui, hadiah bisa diambil sendiri di outlet atau '
+          'dibawa bersama order berikutnya.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Ajukan'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final ok = await ref.read(redeemProvider.notifier).redeem(reward);
+    if (!mounted) return;
+
+    final message = ok
+        ? 'Pengajuan tukar ${reward.name} terkirim. Tunggu persetujuan Rijiki ya.'
+        : (ref.read(redeemProvider).errorMessage ??
+              'Gagal mengajukan penukaran. Coba lagi ya.');
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showRejectionNotice(List<PointRedemption> items) {
+    const maxShown = 3;
+    final lines = [
+      for (final r in items.take(maxShown))
+        '• ${r.rewardName}: '
+            '${(r.notes ?? '').trim().isEmpty ? 'tidak ada alasan dicantumkan.' : r.notes!.trim()}',
+    ];
+    final more = items.length - maxShown;
+    final text = [
+      items.length == 1
+          ? 'Pengajuan tukar poin ditolak.'
+          : '${items.length} pengajuan tukar poin ditolak.',
+      ...lines,
+      if (more > 0) '+$more lainnya',
+    ].join('\n');
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(text),
+          duration: const Duration(seconds: 8),
+          showCloseIcon: true,
+        ),
+      );
   }
 
   List<PromoEvent> _applyFilter(List<PromoEvent> all) {
@@ -112,6 +156,21 @@ class _EventPageState extends ConsumerState<EventPage>
     final async = ref.watch(customerEventsProvider);
     final events = async.value;
     final balance = ref.watch(pointBalanceProvider);
+    final rewards = ref.watch(rewardsProvider);
+    final pending =
+        ref.watch(pendingRedemptionsProvider).value ?? const <PointRedemption>[];
+    final available = ref.watch(availablePointsProvider);
+    final redeem = ref.watch(redeemProvider);
+    final reserved = pending.fold<int>(0, (sum, r) => sum + r.pointsUsed);
+
+    ref.listen<AsyncValue<List<PointRedemption>>>(rejectionNoticesProvider, (
+      previous,
+      next,
+    ) {
+      final items = next.value;
+      if (items == null || items.isEmpty || !mounted) return;
+      _showRejectionNotice(items);
+    });
 
     Widget eventsBody;
     if (events != null) {
@@ -145,6 +204,48 @@ class _EventPageState extends ConsumerState<EventPage>
       );
     }
 
+    Widget rewardsBody;
+    final rewardList = rewards.value;
+    if (rewardList != null) {
+      rewardsBody = rewardList.isEmpty
+          ? const _EmptyState(message: 'Belum ada hadiah yang bisa ditukar.')
+          : SizedBox(
+              height: 270,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: rewardList.length,
+                separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                itemBuilder: (context, index) {
+                  final reward = rewardList[index];
+                  return _RewardCard(
+                    reward: reward,
+                    available: available,
+                    busy: redeem.busyId == reward.id,
+                    locked: redeem.busyId != null,
+                    onRedeem: () => _redeem(reward),
+                  );
+                },
+              ),
+            );
+    } else if (rewards.hasError) {
+      rewardsBody = ErrorState(
+        message: 'Gagal memuat hadiah.',
+        onRetry: () => ref.invalidate(rewardsProvider),
+      );
+    } else {
+      rewardsBody = const SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: NeverScrollableScrollPhysics(),
+        child: Row(
+          children: [
+            LoadingSkeleton(width: 175, height: 270, radius: 18),
+            SizedBox(width: AppSpacing.sm),
+            LoadingSkeleton(width: 175, height: 270, radius: 18),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -168,6 +269,14 @@ class _EventPageState extends ConsumerState<EventPage>
                     ? ref.invalidate(pointBalanceProvider)
                     : context.push(RoutePaths.customerPointHistory),
               ),
+              if (pending.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                _PendingStrip(
+                  count: pending.length,
+                  reserved: reserved,
+                  available: available,
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
               _FilterList(
                 filters: _filters,
@@ -184,17 +293,7 @@ class _EventPageState extends ConsumerState<EventPage>
                 const SizedBox(height: AppSpacing.md),
                 const _SectionTitle(title: 'Merch'),
                 const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  height: 245,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _merchItems.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(width: AppSpacing.sm),
-                    itemBuilder: (context, index) =>
-                        _MerchCard(item: _merchItems[index]),
-                  ),
-                ),
+                rewardsBody,
               ],
             ],
           ),
@@ -717,94 +816,6 @@ class _EventDetailSheet extends StatelessWidget {
   }
 }
 
-class _MerchCard extends StatelessWidget {
-  const _MerchCard({required this.item});
-
-  final _MerchItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 175,
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.onSurfaceVariant.withValues(alpha: 0.40),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              width: double.infinity,
-              height: 110,
-              child: Image.network(
-                item.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: AppColors.primary.withValues(alpha: 0.07),
-                  alignment: Alignment.center,
-                  child: Icon(item.icon, size: 42, color: AppColors.primary),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            item.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            item.subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              const Icon(Icons.star_rounded, size: 17, color: Color(0xFFFFB800)),
-              const SizedBox(width: 4),
-              Text(
-                '${item.points} points',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                decoration: BoxDecoration(
-                  color: AppColors.rijikiOrange.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Text(
-                  'Tukar',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.rijikiOrange,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.message});
 
@@ -836,18 +847,198 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _MerchItem {
-  const _MerchItem({
-    required this.title,
-    required this.subtitle,
-    required this.points,
-    required this.icon,
-    required this.imageUrl,
+class _PendingStrip extends StatelessWidget {
+  const _PendingStrip({
+    required this.count,
+    required this.reserved,
+    required this.available,
   });
 
-  final String title;
-  final String subtitle;
-  final int points;
-  final IconData icon;
-  final String imageUrl;
+  final int count;
+  final int reserved;
+  final int? available;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final detail = available == null
+        ? '${formatPoints(reserved)} poin ditahan'
+        : '${formatPoints(reserved)} poin ditahan · tersedia ${formatPoints(available!)}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.rijikiOrange.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.rijikiOrange.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(
+              Icons.hourglass_top_rounded,
+              size: 18,
+              color: AppColors.rijikiOrange,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$count pengajuan tukar poin menunggu persetujuan',
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RewardCard extends StatelessWidget {
+  const _RewardCard({
+    required this.reward,
+    required this.available,
+    required this.busy,
+    required this.locked,
+    required this.onRedeem,
+  });
+
+  final Reward reward;
+
+  /// Poin yang masih bisa dipakai; null bila saldo belum termuat.
+  final int? available;
+  final bool busy;
+  final bool locked;
+  final VoidCallback onRedeem;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final image = reward.imageUrl;
+    final shortOfPoints = available != null && available! < reward.pointsCost;
+    final canRedeem = reward.inStock && !shortOfPoints;
+    final label = !reward.inStock
+        ? 'Stok habis'
+        : (shortOfPoints ? 'Poin kurang' : 'Tukar');
+
+    return Container(
+      width: 175,
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.40),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (image != null && image.isNotEmpty)
+            NetworkImageBox(
+              url: image,
+              width: double.infinity,
+              height: 110,
+              radius: 14,
+            )
+          else
+            Container(
+              width: double.infinity,
+              height: 110,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.card_giftcard_rounded,
+                size: 42,
+                color: AppColors.primary,
+              ),
+            ),
+          const SizedBox(height: 10),
+          Text(
+            reward.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            reward.description ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              const Icon(Icons.star_rounded, size: 17, color: Color(0xFFFFB800)),
+              const SizedBox(width: 4),
+              Text(
+                '${formatPoints(reward.pointsCost)} poin',
+                style: textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 34,
+            child: FilledButton(
+              onPressed: canRedeem && !locked ? onRedeem : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.rijikiOrange,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.zero,
+                textStyle: textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: busy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(label),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
