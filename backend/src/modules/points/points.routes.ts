@@ -16,7 +16,6 @@ import {
   updateRuleHandler,
 } from './points.controller';
 
-/** Customer: saldo, riwayat, hadiah, dan pengajuan tukar poin. Dipasang di /api/points. */
 export const pointsRoutes = new Hono<AppEnv>();
 pointsRoutes.use('*', authMiddleware);
 pointsRoutes.get('/balance', balanceHandler);

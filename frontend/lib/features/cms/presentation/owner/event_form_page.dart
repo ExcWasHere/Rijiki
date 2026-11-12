@@ -11,6 +11,7 @@ import 'package:rijiki/features/cms/presentation/widgets/cms_date_field.dart';
 import 'package:rijiki/features/cms/presentation/widgets/cms_state_card.dart';
 import 'package:rijiki/features/event/domain/promo_event.dart';
 import 'package:rijiki/features/event/domain/promo_event_input.dart';
+import 'package:rijiki/features/event/domain/promo_option.dart';
 import 'package:rijiki/shared/widgets/empty_state.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
 import 'package:rijiki/shared/widgets/image_picker_field.dart';
@@ -90,6 +91,7 @@ class _EventFormState extends ConsumerState<_EventForm> {
   DateTime? _start;
   DateTime? _end;
   String? _banner;
+  String? _promoId;
 
   bool get _isEdit => widget.event != null;
 
@@ -104,6 +106,7 @@ class _EventFormState extends ConsumerState<_EventForm> {
     _start = e?.startDate;
     _end = e?.endDate;
     _banner = e?.bannerImageUrl;
+    _promoId = e?.relatedPromoId;
   }
 
   @override
@@ -152,6 +155,7 @@ class _EventFormState extends ConsumerState<_EventForm> {
       startDate: _start,
       endDate: _end,
       isPublished: _published,
+      relatedPromoId: _promoId,
     );
 
     final ok = await ref
@@ -166,6 +170,67 @@ class _EventFormState extends ConsumerState<_EventForm> {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
     if (ok) router.pop();
+  }
+
+  Widget _promoField(bool saving) {
+    final async = ref.watch(cmsEventPromoOptionsProvider);
+    final textTheme = Theme.of(context).textTheme;
+
+    return async.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: LinearProgressIndicator(),
+      ),
+      error: (_, _) => Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Gagal memuat daftar promo.',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+            ),
+          ),
+          TextButton(
+            onPressed: () => ref.invalidate(cmsEventPromoOptionsProvider),
+            child: const Text('Coba lagi'),
+          ),
+        ],
+      ),
+      data: (options) {
+        final selected = options.where((o) => o.id == _promoId).firstOrNull;
+        final note = selected?.statusNote;
+
+        return DropdownButtonFormField<String?>(
+          value: selected?.id,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: 'Terhubung ke promo (opsional)',
+            helperMaxLines: 3,
+            helperText: note == null
+                ? 'Kartu event akan menampilkan kode dan syarat promo.'
+                : 'Promo ini $note, jadi event tidak tampil ke customer '
+                      'sampai promonya bisa dipakai lagi.',
+          ),
+          items: [
+            const DropdownMenuItem<String?>(
+              value: null,
+              child: Text('Tanpa promo'),
+            ),
+            for (final option in options)
+              DropdownMenuItem<String?>(
+                value: option.id,
+                child: Text(
+                  option.statusNote == null
+                      ? option.label
+                      : '${option.label} (${option.statusNote})',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+          onChanged: saving ? null : (value) => setState(() => _promoId = value),
+        );
+      },
+    );
   }
 
   @override
@@ -261,6 +326,8 @@ class _EventFormState extends ConsumerState<_EventForm> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
+                _promoField(saving),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   'Masa tayang (opsional)',
                   style: textTheme.labelLarge?.copyWith(

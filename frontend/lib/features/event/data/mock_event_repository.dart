@@ -3,6 +3,7 @@ import 'package:rijiki/core/mock/mock_scenario.dart';
 import 'package:rijiki/features/event/domain/event_repository.dart';
 import 'package:rijiki/features/event/domain/promo_event.dart';
 import 'package:rijiki/features/event/domain/promo_event_input.dart';
+import 'package:rijiki/features/event/domain/promo_option.dart';
 
 class MockEventRepository implements EventRepository {
   MockEventRepository({this.scenario = MockScenario.data});
@@ -29,6 +30,33 @@ class MockEventRepository implements EventRepository {
     return scenario.resolve<List<PromoEvent>>(
       empty: const [],
       data: List.of(_events),
+    );
+  }
+
+  @override
+  Future<List<PromoOption>> fetchPromoOptions() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return scenario.resolve<List<PromoOption>>(
+      empty: const [],
+      data: [
+        PromoOption(
+          id: 'promo-1',
+          code: 'DEEP20',
+          title: 'Diskon 20% Deep Clean',
+          isActive: true,
+          startDate: today.subtract(const Duration(days: 7)),
+          endDate: today.add(const Duration(days: 14)),
+        ),
+        PromoOption(
+          id: 'promo-2',
+          code: 'ONGKIR10',
+          title: 'Potongan Ongkir',
+          isActive: false,
+          startDate: today.subtract(const Duration(days: 30)),
+          endDate: today.add(const Duration(days: 30)),
+        ),
+      ],
     );
   }
 
@@ -84,6 +112,7 @@ class MockEventRepository implements EventRepository {
       startDate: input.startDate,
       endDate: input.endDate,
       isPublished: input.isPublished,
+      relatedPromoId: input.relatedPromoId,
     );
   }
 

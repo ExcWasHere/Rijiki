@@ -1,10 +1,13 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../../middleware/auth';
+import { requirePermission } from '../../middleware/permission';
 import { AppError } from '../../shared/errors';
 import type { AppEnv } from '../../shared/types/env';
 import * as mediaService from './media.service';
 
-const MAX_AVATAR_REQUEST_BYTES = mediaService.AVATAR_MAX_BYTES + 64 * 1024;
+const MULTIPART_OVERHEAD = 64 * 1024;
+const MAX_AVATAR_REQUEST_BYTES = mediaService.AVATAR_MAX_BYTES + MULTIPART_OVERHEAD;
+const MAX_EVENT_BANNER_REQUEST_BYTES = mediaService.EVENT_BANNER_MAX_BYTES + MULTIPART_OVERHEAD;
 
 export const mediaRoutes = new Hono<AppEnv>();
 
@@ -21,6 +24,18 @@ mediaRoutes.post('/avatar', async (c) => {
 
   const result = await mediaService.uploadAvatar(c.env, user.id, user.avatar_url, body['image']);
   return c.json(result, 201);
+});
+
+mediaRoutes.post('/event-banner', requirePermission('manage_cms_events'), async (c) => {
+  const declaredLength = Number(c.req.header('Content-Length') ?? 0);
+  if (declaredLength > MAX_EVENT_BANNER_REQUEST_BYTES) {
+    throw new AppError(413, 'file_too_large', 'Ukuran gambar terlalu besar');
+  }
+
+  const body = await c.req.parseBody().catch(() => ({}) as Record<string, unknown>);
+  const { user } = c.get('user');
+
+  return c.json(await mediaService.uploadEventBanner(c.env, user.id, body['image']), 201);
 });
 
 mediaRoutes.get('/private/:key{.+}', async (c) => {

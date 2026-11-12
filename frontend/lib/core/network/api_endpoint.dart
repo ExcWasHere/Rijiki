@@ -15,6 +15,18 @@ abstract final class ApiEndpoints {
   static const String promos = '/api/promos';
   static String promoById(String id) => '$promos/$id';
 
+  /// Customer: event/promo/kolaborasi yang sedang tayang.
+  static const String events = '/api/events';
+
+  /// Owner atau worker berizin manage_cms_events.
+  static const String managementEvents = '/api/management/events';
+  static String managementEventById(String id) => '$managementEvents/$id';
+  static const String managementEventPromoOptions =
+      '$managementEvents/promo-options';
+
+  /// Unggah banner event ke R2 (multipart, field `image`).
+  static const String eventBanner = '/api/media/event-banner';
+
   static const String pointRules = '/api/management/point-rules';
   static String pointRuleById(String id) => '$pointRules/$id';
 
@@ -65,5 +77,4 @@ abstract final class ApiEndpoints {
 
   static const String avatar = '/api/media/avatar';
   static String privateMedia(String key) => '/api/media/private/$key';
-
 }

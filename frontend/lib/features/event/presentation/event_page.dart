@@ -1,187 +1,213 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rijiki/core/enums/event_type.dart';
+import 'package:rijiki/core/extensions/enum_ui_x.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
+import 'package:rijiki/core/utils/date_formatter.dart';
+import 'package:rijiki/features/event/domain/event_promo.dart';
+import 'package:rijiki/features/event/domain/promo_event.dart';
+import 'package:rijiki/features/event/presentation/controllers/customer_events_controller.dart';
+import 'package:rijiki/features/event/presentation/utils/event_promo_format.dart';
+import 'package:rijiki/shared/widgets/error_state.dart';
+import 'package:rijiki/shared/widgets/loading_skeleton.dart';
+import 'package:rijiki/shared/widgets/network_image_box.dart';
 
-
-class EventPage extends StatefulWidget {
+class EventPage extends ConsumerStatefulWidget {
   const EventPage({super.key});
 
   @override
-  State<EventPage> createState() => _EventPageState();
+  ConsumerState<EventPage> createState() => _EventPageState();
 }
 
-
-class _EventPageState extends State<EventPage> {
+class _EventPageState extends ConsumerState<EventPage>
+    with WidgetsBindingObserver {
   String _selectedFilter = 'Semua';
 
-  final List<String> _filters = [
-    'Semua',
-    'Acara',
-    'Promo',
-    'Merch',
+  final List<String> _filters = ['Semua', 'Acara', 'Promo', 'Merch'];
+
+  // TODO(segmen-3): ganti dengan GET /api/points/rewards.
+  final List<_MerchItem> _merchItems = const [
+    _MerchItem(
+      title: 'Keychain',
+      subtitle: 'Sneaker',
+      points: 150,
+      icon: Icons.key_outlined,
+      imageUrl:
+          'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
+    ),
+    _MerchItem(
+      title: 'Stiker Set',
+      subtitle: '3 pcs',
+      points: 100,
+      icon: Icons.sticky_note_2_outlined,
+      imageUrl:
+          'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
+    ),
+    _MerchItem(
+      title: 'Tote Bag',
+      subtitle: 'Rijiki Style',
+      points: 250,
+      icon: Icons.shopping_bag_outlined,
+      imageUrl:
+          'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
+    ),
   ];
 
-  final List<_EventItem> _items = [
-  const _EventItem(
-    type: 'Promo',
-    title: 'Diskon 20% Deep Clean',
-    description: 'Khusus order pertama kamu bulan ini.',
-    date: 'Sampai 22 Okt 2026',
-    icon: Icons.local_offer_outlined,
-  ),
-  const _EventItem(
-    type: 'Acara',
-    title: 'Sneaker Care Day',
-    description: 'Belajar cara merawat sepatu dengan benar bersama Rijiki.',
-    date: '09.00 - 16.00 WIB',
-    icon: Icons.event_outlined,
-  ),
-  const _EventItem(
-    type: 'Acara',
-    title: 'Rijiki x Komunitas Sepatu Malang',
-    description: 'Cuci bareng dan ngobrol soal cara merawat sneakers.',
-    date: '25 Okt 2026',
-    icon: Icons.groups_outlined,
-  ),
-  const _EventItem(
-    type: 'Promo',
-    title: 'Promo Antar-Jemput',
-    description: 'Nikmati layanan antar-jemput untuk area tertentu.',
-    date: 'Sampai 30 Okt 2026',
-    icon: Icons.local_shipping_outlined,
-  ),
-];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
-  final List<_MerchItem> _merchItems = [
-  const _MerchItem(
-    title: 'Keychain',
-    subtitle: 'Sneaker',
-    points: 150,
-    icon: Icons.key_outlined,
-    imageUrl: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
-  ),
-  const _MerchItem(
-    title: 'Stiker Set',
-    subtitle: '3 pcs',
-    points: 100,
-    icon: Icons.sticky_note_2_outlined,
-    imageUrl: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
-  ),
-  const _MerchItem(
-    title: 'Tote Bag',
-    subtitle: 'Rijiki Style',
-    points: 250,
-    icon: Icons.shopping_bag_outlined,
-    imageUrl: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400',
-  ),
-];
-  List<_EventItem> get _filteredEvents {
-    if (_selectedFilter == 'Semua') {
-      return _items;
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(customerEventsProvider);
     }
+  }
 
-    return _items
-        .where((item) => item.type == _selectedFilter)
-        .toList();
+  Future<void> _refresh() async {
+    ref.invalidate(customerEventsProvider);
+    try {
+      await ref.read(customerEventsProvider.future);
+    } catch (_) {}
+  }
+
+  List<PromoEvent> _applyFilter(List<PromoEvent> all) {
+    return switch (_selectedFilter) {
+      'Promo' => [
+        for (final e in all)
+          if (e.type == EventType.promo) e,
+      ],
+      'Acara' => [
+        for (final e in all)
+          if (e.type != EventType.promo) e,
+      ],
+      _ => all,
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    final showEvents =
-        _selectedFilter == 'Semua' ||
-        _selectedFilter == 'Acara' ||
-        _selectedFilter == 'Promo';
+    final showEvents = _selectedFilter != 'Merch';
+    final showMerch = _selectedFilter == 'Semua' || _selectedFilter == 'Merch';
+    final async = ref.watch(customerEventsProvider);
+    final events = async.value;
 
-    final showMerch =
-        _selectedFilter == 'Semua' ||
-        _selectedFilter == 'Merch';
+    Widget eventsBody;
+    if (events != null) {
+      final filtered = _applyFilter(events);
+      eventsBody = filtered.isEmpty
+          ? const _EmptyState(message: 'Belum ada promo atau acara.')
+          : Column(
+              children: [
+                for (final item in filtered)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: _PromoEventCard(
+                      event: item,
+                      onTap: () => _showDetail(context, item),
+                    ),
+                  ),
+              ],
+            );
+    } else if (async.hasError) {
+      eventsBody = ErrorState(
+        message: 'Gagal memuat promo dan acara.',
+        onRetry: () => ref.invalidate(customerEventsProvider),
+      );
+    } else {
+      eventsBody = const Column(
+        children: [
+          LoadingSkeleton(height: 140, radius: 18),
+          SizedBox(height: AppSpacing.sm),
+          LoadingSkeleton(height: 140, radius: 18),
+        ],
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.only(
-            left: AppSpacing.md,
-            right: AppSpacing.md,
-            top: AppSpacing.md,
-            bottom: 32,
-          ),
-          children: [
-            const _EventHeader(),
-
-            const SizedBox(height: AppSpacing.md),
-
-            const _PointCard(
-              points: 320,
+        child: RefreshIndicator(
+          color: AppColors.primaryDark,
+          onRefresh: _refresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(
+              left: AppSpacing.md,
+              right: AppSpacing.md,
+              top: AppSpacing.md,
+              bottom: 32,
             ),
-
-            const SizedBox(height: AppSpacing.lg),
-
-            _FilterList(
-              filters: _filters,
-              selectedFilter: _selectedFilter,
-              onSelected: (value) {
-                setState(() {
-                  _selectedFilter = value;
-                });
-              },
-            ),
-
-            if (showEvents) ...[
-              const SizedBox(height: AppSpacing.xl),
-
-              const _SectionTitle(
-                title: 'Promo & acara',
+            children: [
+              const _EventHeader(),
+              const SizedBox(height: AppSpacing.md),
+              // TODO(segmen-2): ganti dengan GET /api/points/balance.
+              const _PointCard(points: 320),
+              const SizedBox(height: AppSpacing.lg),
+              _FilterList(
+                filters: _filters,
+                selectedFilter: _selectedFilter,
+                onSelected: (value) => setState(() => _selectedFilter = value),
               ),
-
-              const SizedBox(height: AppSpacing.sm),
-
-              if (_filteredEvents.isEmpty)
-                const _EmptyState(
-                  message: 'Belum ada promo atau acara.',
-                )
-              else
-                ..._filteredEvents.map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: AppSpacing.sm,
-                    ),
-                    child: _PromoEventCard(
-                      item: item,
-                    ),
+              if (showEvents) ...[
+                const SizedBox(height: AppSpacing.xl),
+                const _SectionTitle(title: 'Promo & acara'),
+                const SizedBox(height: AppSpacing.sm),
+                eventsBody,
+              ],
+              if (showMerch) ...[
+                const SizedBox(height: AppSpacing.md),
+                const _SectionTitle(title: 'Merch'),
+                const SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  height: 245,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _merchItems.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: AppSpacing.sm),
+                    itemBuilder: (context, index) =>
+                        _MerchCard(item: _merchItems[index]),
                   ),
                 ),
+              ],
             ],
-
-            if (showMerch) ...[
-              const SizedBox(height: AppSpacing.md),
-
-              const _SectionTitle(
-                title: 'Merch',
-              ),
-
-              const SizedBox(height: AppSpacing.sm),
-
-              SizedBox(
-                height: 245,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _merchItems.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(width: AppSpacing.sm),
-                  itemBuilder: (context, index) {
-                    return _MerchCard(
-                      item: _merchItems[index],
-                    );
-                  },
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+String? _period(PromoEvent event) {
+  final start = event.startDate;
+  final end = event.endDate;
+  if (start != null && end != null) {
+    return '${DateFormatter.shortDate(start)} - ${DateFormatter.shortDate(end)}';
+  }
+  return DateFormatter.validity(start, end);
+}
+
+void _showDetail(BuildContext context, PromoEvent event) {
+  final messenger = ScaffoldMessenger.of(context);
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: AppColors.surface,
+    builder: (sheetContext) =>
+        _EventDetailSheet(event: event, messenger: messenger),
+  );
 }
 
 class _EventHeader extends StatelessWidget {
@@ -192,31 +218,19 @@ class _EventHeader extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          onPressed: () {
-            Navigator.of(context).maybePop();
-          },
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-          ),
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded),
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(
-            minWidth: 40,
-            minHeight: 40,
-          ),
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
         ),
-
         const SizedBox(width: 4),
-
         Expanded(
           child: Text(
             'Acara & Promo',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
           ),
         ),
       ],
@@ -224,12 +238,8 @@ class _EventHeader extends StatelessWidget {
   }
 }
 
-
 class _PointCard extends StatelessWidget {
-  const _PointCard({
-    
-    required this.points,
-  });
+  const _PointCard({required this.points});
 
   final int points;
 
@@ -237,18 +247,14 @@ class _PointCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(
-        color: AppColors.onSurfaceVariant.withOpacity(0.40),
-        width: 1,
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.40),
+        ),
       ),
-    ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -256,7 +262,7 @@ class _PointCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFC83D).withOpacity(0.15),
+              color: const Color(0xFFFFC83D).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
@@ -265,35 +271,25 @@ class _PointCard extends StatelessWidget {
               color: Color(0xFFFFB800),
             ),
           ),
-
           const SizedBox(width: AppSpacing.sm),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '$points Point',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   'Kumpulkan point dari tiap transaksi untuk mendapatkan hadiah yang menarik.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                        height: 1.4,
-                      ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -322,48 +318,31 @@ class _FilterList extends StatelessWidget {
       child: Row(
         children: filters.map((filter) {
           final isSelected = filter == selectedFilter;
-
           return Padding(
-            padding: const EdgeInsets.only(
-              right: AppSpacing.xs,
-            ),
+            padding: const EdgeInsets.only(right: AppSpacing.xs),
             child: GestureDetector(
-              onTap: () {
-                onSelected(filter);
-              },
+              onTap: () => onSelected(filter),
               child: AnimatedContainer(
-                duration: const Duration(
-                  milliseconds: 180,
-                ),
+                duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 9,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.background,
+                  color: isSelected ? AppColors.primary : AppColors.background,
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
                     color: isSelected
                         ? AppColors.primary
-                        : AppColors.onSurfaceVariant
-                            .withOpacity(0.25),
+                        : AppColors.onSurfaceVariant.withValues(alpha: 0.25),
                   ),
                 ),
                 child: Text(
                   filter,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelMedium
-                      ?.copyWith(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.onSurface,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                      ),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: isSelected ? Colors.white : AppColors.onSurface,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -374,11 +353,8 @@ class _FilterList extends StatelessWidget {
   }
 }
 
-
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-  });
+  const _SectionTitle({required this.title});
 
   final String title;
 
@@ -386,80 +362,96 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
-          ?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
-          ),
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: AppColors.onSurface,
+      ),
     );
   }
 }
 
+class _Pill extends StatelessWidget {
+  const _Pill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
 
 class _PromoEventCard extends StatelessWidget {
-  const _PromoEventCard({
-    required this.item,
-  });
+  const _PromoEventCard({required this.event, required this.onTap});
 
-  final _EventItem item;
+  final PromoEvent event;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final isPromo = item.type == 'Promo';
-
-    final accentColor = isPromo
-        ? AppColors.rijikiOrange
-        : AppColors.primary;
-
-    final cardColor = Color.lerp(
-      AppColors.surface,
-      accentColor,
-      0.06,
-    )!;
+    final accent = event.type.accent;
+    final cardColor = Color.lerp(AppColors.surface, accent, 0.06)!;
+    final promo = event.promo;
+    final period = _period(event);
+    final banner = event.bannerImageUrl;
 
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () {
-        },
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: AppColors.onSurfaceVariant.withOpacity(0.40),
-              width: 1,
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.40),
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 4,
+              if (banner != null && banner.isNotEmpty) ...[
+                NetworkImageBox(
+                  url: banner,
+                  width: double.infinity,
+                  height: 120,
+                  radius: 14,
                 ),
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  item.type,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: accentColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                const SizedBox(height: 10),
+              ],
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _Pill(label: event.type.label, color: accent),
+                  if (promo != null)
+                    _Pill(
+                      label: promo.discountLabel,
+                      color: AppColors.rijikiOrange,
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
-                item.title,
+                event.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.titleSmall?.copyWith(
@@ -467,36 +459,54 @@ class _PromoEventCard extends StatelessWidget {
                   color: AppColors.onSurface,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                item.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(
-                    Icons.access_time_rounded,
-                    size: 14,
-                    color: accentColor,
+              if (event.description != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  event.description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      item.date,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: accentColor,
+                ),
+              ],
+              if (promo != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.confirmation_number_outlined,
+                      size: 15,
+                      color: accent,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Kode ${promo.code}',
+                      style: textTheme.labelMedium?.copyWith(
+                        color: AppColors.onSurface,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
+              if (period != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.access_time_rounded, size: 14, color: accent),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        period,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.labelSmall?.copyWith(color: accent),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -505,11 +515,146 @@ class _PromoEventCard extends StatelessWidget {
   }
 }
 
+class _EventDetailSheet extends StatelessWidget {
+  const _EventDetailSheet({required this.event, required this.messenger});
+
+  final PromoEvent event;
+  final ScaffoldMessengerState messenger;
+
+  Future<void> _copy(BuildContext context, EventPromo promo) async {
+    await Clipboard.setData(ClipboardData(text: promo.code));
+    if (context.mounted) Navigator.pop(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Kode ${promo.code} disalin. Pakai saat membuat order.'),
+        ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final accent = event.type.accent;
+    final promo = event.promo;
+    final period = _period(event);
+    final banner = event.bannerImageUrl;
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.lg,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (banner != null && banner.isNotEmpty) ...[
+              NetworkImageBox(
+                url: banner,
+                width: double.infinity,
+                height: 160,
+                radius: 16,
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            _Pill(label: event.type.label, color: accent),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              event.title,
+              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            if (period != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                period,
+                style: textTheme.labelMedium?.copyWith(color: accent),
+              ),
+            ],
+            if (event.description != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                event.description!,
+                style: textTheme.bodyMedium?.copyWith(height: 1.45),
+              ),
+            ],
+            if (promo != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.rijikiOrange.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(
+                    color: AppColors.rijikiOrange.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      promo.discountLabel,
+                      style: textTheme.titleMedium?.copyWith(
+                        color: AppColors.rijikiOrange,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Berlaku sampai ${DateFormatter.shortDate(promo.endDate)}',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    for (final line in promo.conditions)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('• '),
+                            Expanded(
+                              child: Text(line, style: textTheme.bodySmall),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            promo.code,
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => _copy(context, promo),
+                          icon: const Icon(Icons.copy_rounded, size: 18),
+                          label: const Text('Salin kode'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _MerchCard extends StatelessWidget {
-  const _MerchCard({
-    required this.item,
-  });
+  const _MerchCard({required this.item});
 
   final _MerchItem item;
 
@@ -517,17 +662,14 @@ class _MerchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 175,
-      padding: const EdgeInsets.all(
-        AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(
-        color: AppColors.onSurfaceVariant.withOpacity(0.40),
-        width: 1,
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.40),
+        ),
       ),
-    ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -539,94 +681,56 @@ class _MerchCard extends StatelessWidget {
               child: Image.network(
                 item.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppColors.primary.withOpacity(0.07),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      item.icon,
-                      size: 42,
-                      color: AppColors.primary,
-                    ),
-                  );
-                },
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: AppColors.primary.withValues(alpha: 0.07),
+                  alignment: Alignment.center,
+                  child: Icon(item.icon, size: 42, color: AppColors.primary),
+                ),
               ),
             ),
           ),
-
           const SizedBox(height: 10),
-
           Text(
             item.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            item.subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              const Icon(Icons.star_rounded, size: 17, color: Color(0xFFFFB800)),
+              const SizedBox(width: 4),
+              Text(
+                '${item.points} points',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppColors.onSurface,
                 ),
-          ),
-
-          const SizedBox(height: 3),
-
-          Text(
-            item.subtitle,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-          ),
-
-          const Spacer(),
-
-          Row(
-            children: [
-              const Icon(
-                Icons.star_rounded,
-                size: 17,
-                color: Color(0xFFFFB800),
               ),
-
-              const SizedBox(width: 4),
-
-              Text(
-                '${item.points} points',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelMedium
-                    ?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
-                    ),
-              ),
-
               const Spacer(),
-
               Container(
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
-                  color: AppColors.rijikiOrange
-                      .withOpacity(0.08),
-                  borderRadius:
-                      BorderRadius.circular(9),
+                  color: AppColors.rijikiOrange.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(9),
                 ),
                 child: Text(
                   'Tukar',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(
-                        color: AppColors.rijikiOrange,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.rijikiOrange,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -637,11 +741,8 @@ class _MerchCard extends StatelessWidget {
   }
 }
 
-
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.message,
-  });
+  const _EmptyState({required this.message});
 
   final String message;
 
@@ -656,39 +757,19 @@ class _EmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.onSurfaceVariant
-              .withOpacity(0.20),
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.20),
         ),
       ),
       child: Center(
         child: Text(
           message,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: AppColors.onSurfaceVariant,
+          ),
         ),
       ),
     );
   }
-}
-
-class _EventItem {
-  const _EventItem({
-    required this.type,
-    required this.title,
-    required this.description,
-    required this.date,
-    required this.icon,
-  });
-
-  final String type;
-  final String title;
-  final String description;
-  final String date;
-  final IconData icon;
 }
 
 class _MerchItem {

@@ -9,11 +9,6 @@ const dateOnly = (label: string) =>
       return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
     }, `${label} tidak valid`);
 
-/**
- * Sengaja tanpa `.default()` dan tanpa transform pada field opsional: skema yang
- * sama dipakai untuk PATCH (semua field opsional), dan default/transform akan
- * ikut menimpa nilai yang tidak dikirim. Default diterapkan di service.
- */
 const promoShape = {
   code: z
     .string()

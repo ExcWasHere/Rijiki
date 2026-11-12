@@ -12,7 +12,6 @@ export interface PointRuleView {
   source: PointRuleSource;
   calculation_type: PointCalculationType;
   points_value: number;
-  /** Rupiah per satuan; hanya terisi bila calculation_type = per_amount. */
   amount_unit: number | null;
   is_active: boolean;
   updated_at: string;
