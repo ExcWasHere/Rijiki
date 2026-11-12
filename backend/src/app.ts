@@ -5,6 +5,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { managementCustomersRoutes } from './modules/customers/customers.routes';
 import { eventsRoutes, managementEventsRoutes } from './modules/events/events.routes';
 import { mediaRoutes } from './modules/media/media.routes';
+import { managementMerchandiseRoutes } from './modules/merchandise/merchandise.routes';
 import { ordersRoutes } from './modules/orders/orders.routes';
 import { paymentsRoutes } from './modules/payments/payments.routes';
 import {
@@ -48,6 +49,7 @@ export function createApp() {
   app.route('/api/points', pointsRoutes);
   app.route('/api/testimonials', testimonialsRoutes);
   app.route('/api/management/events', managementEventsRoutes);
+  app.route('/api/management/merchandise', managementMerchandiseRoutes);
   app.route('/api/management/testimonials', managementTestimonialsRoutes);
   app.route('/api/management/point-rules', pointRulesRoutes);
   app.route('/api/management/points', managementPointsRoutes);

@@ -35,6 +35,14 @@ abstract final class ApiEndpoints {
   static const String pointRewards = '/api/points/rewards';
   static const String pointRedemptions = '/api/points/redemptions';
 
+  /// Owner atau worker berizin manage_cms_merchandise.
+  static const String managementMerchandise = '/api/management/merchandise';
+  static String managementMerchandiseById(String id) =>
+      '$managementMerchandise/$id';
+
+  /// Unggah foto merchandise ke R2 (multipart, field `image`).
+  static const String merchandiseImage = '/api/media/merchandise-image';
+
   static const String pointRules = '/api/management/point-rules';
   static String pointRuleById(String id) => '$pointRules/$id';
 

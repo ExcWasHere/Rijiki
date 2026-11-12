@@ -61,6 +61,7 @@ import 'package:rijiki/features/event/data/event_repository_impl.dart';
 import 'package:rijiki/features/points/data/customer_points_repository_impl.dart';
 import 'package:rijiki/features/points/data/mock_customer_points_repository.dart';
 import 'package:rijiki/features/points/domain/customer_points_repository.dart';
+import 'package:rijiki/features/merchandise/data/merchandise_repository_impl.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -141,9 +142,14 @@ final pointManagementRepositoryProvider = Provider<PointManagementRepository>((
   return PointManagementRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
-final merchandiseRepositoryProvider = Provider<MerchandiseRepository>(
-  (ref) => MockMerchandiseRepository(scenario: ref.watch(mockScenarioProvider)),
-);
+final merchandiseRepositoryProvider = Provider<MerchandiseRepository>((ref) {
+      if (AppConstants.useMockOrders) {
+        return MockMerchandiseRepository(
+          scenario: ref.watch(mockScenarioProvider),
+        );
+      }
+      return MerchandiseRepositoryImpl(api: ref.watch(apiClientProvider));
+    });
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   if (AppConstants.useMockOrders) {
