@@ -72,6 +72,7 @@ import 'package:rijiki/features/worker_management/presentation/owner/worker_deta
 import 'package:rijiki/features/worker_management/presentation/owner/worker_form_page.dart';
 import 'package:rijiki/features/worker_management/presentation/owner/worker_list_page.dart';
 import 'package:rijiki/features/payment/presentation/worker/worker_qris_payment_page.dart';
+import 'package:rijiki/features/points/presentation/customer/point_history_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -364,6 +365,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: RoutePaths.customerEvents,
                 builder: (context, state) => const EventPage(),
+                routes: [
+                  GoRoute(
+                    path: 'points',
+                    builder: (context, state) => const PointHistoryPage(),
+                  ),
+                ],
               ),
             ],
           ),

@@ -15,6 +15,7 @@ abstract final class RoutePaths {
   static const String customerHome = '/customer';
   static const String customerOrders = '/customer/orders';
   static const String customerEvents = '/customer/events';
+  static const String customerPointHistory = '/customer/events/points';
   static const String customerProfile = '/customer/profile';
 
   static const String customerScan = '/customer/scan';
