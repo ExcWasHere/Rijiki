@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// [maxSize] = sisi terpanjang (px), [quality] = kualitas JPG 0-100.
-/// Default sama seperti sebelumnya; avatar memakai 512 / 85 (PRD #30).
 Future<String?> pickImageFromSheet(
   BuildContext context, {
   int maxSize = 1600,

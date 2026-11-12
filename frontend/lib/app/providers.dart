@@ -57,6 +57,7 @@ import 'package:rijiki/features/service/domain/service_repository.dart';
 import 'package:rijiki/features/worker_management/data/mock_worker_repository.dart';
 import 'package:rijiki/features/worker_management/data/worker_repository_impl.dart';
 import 'package:rijiki/features/worker_management/domain/worker_repository.dart';
+import 'package:rijiki/features/event/data/event_repository_impl.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -94,9 +95,12 @@ final serviceRepositoryProvider = Provider<ServiceRepository>((ref) {
   return ServiceRepositoryImpl(api: ref.watch(apiClientProvider), cms: mock);
 });
 
-final eventRepositoryProvider = Provider<EventRepository>(
-  (ref) => MockEventRepository(scenario: ref.watch(mockScenarioProvider)),
-);
+final eventRepositoryProvider = Provider<EventRepository>((ref) {
+      if (AppConstants.useMockOrders) {
+        return MockEventRepository(scenario: ref.watch(mockScenarioProvider));
+      }
+      return EventRepositoryImpl(api: ref.watch(apiClientProvider));
+    });
 
 final promoRepositoryProvider = Provider<PromoRepository>((ref) {
   if (AppConstants.useMockOrders) {

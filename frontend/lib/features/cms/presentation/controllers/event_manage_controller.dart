@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
+import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/features/cms/domain/cms_status_filter.dart';
 import 'package:rijiki/features/cms/presentation/controllers/cms_action_state.dart';
 import 'package:rijiki/features/cms/presentation/controllers/cms_hub_controller.dart';
 import 'package:rijiki/features/cms/presentation/controllers/cms_list_filter.dart';
 import 'package:rijiki/features/event/domain/promo_event.dart';
 import 'package:rijiki/features/event/domain/promo_event_input.dart';
+import 'package:rijiki/features/event/domain/promo_option.dart';
 
 final eventManageFilterProvider =
     NotifierProvider.autoDispose<CmsListFilterNotifier, CmsListFilter>(
@@ -15,6 +17,12 @@ final eventManageFilterProvider =
 final cmsEventsProvider = FutureProvider.autoDispose<List<PromoEvent>>((ref) {
   return ref.watch(eventRepositoryProvider).fetchAllEvents();
 });
+
+/// Pilihan promo untuk dropdown di form event.
+final cmsEventPromoOptionsProvider =
+    FutureProvider.autoDispose<List<PromoOption>>((ref) {
+      return ref.watch(eventRepositoryProvider).fetchPromoOptions();
+    });
 
 final cmsEventCountsProvider = Provider.autoDispose<CmsCounts>((ref) {
   final events = ref.watch(cmsEventsProvider).value ?? const [];
@@ -35,9 +43,17 @@ final filteredCmsEventsProvider = Provider.autoDispose<List<PromoEvent>>((ref) {
   ];
 });
 
+String _messageOf(Object error, String fallback) {
+  if (error is Failure && error.message.trim().isNotEmpty) {
+    return error.message;
+  }
+  return fallback;
+}
+
 class EventManageNotifier extends Notifier<CmsActionState> {
   @override
   CmsActionState build() => const CmsActionState();
+
   Future<bool> setPublished(PromoEvent event, bool published) async {
     if (state.busyId != null) return false;
     state = CmsActionState(busyId: event.id, busyValue: published);
@@ -51,10 +67,13 @@ class EventManageNotifier extends Notifier<CmsActionState> {
       if (!ref.mounted) return true;
       state = const CmsActionState();
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!ref.mounted) return false;
-      state = const CmsActionState(
-        errorMessage: 'Gagal mengubah status event. Coba lagi ya.',
+      state = CmsActionState(
+        errorMessage: _messageOf(
+          e,
+          'Gagal mengubah status event. Coba lagi ya.',
+        ),
       );
       return false;
     }
@@ -74,10 +93,10 @@ class EventManageNotifier extends Notifier<CmsActionState> {
       _refresh();
       state = const CmsActionState();
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!ref.mounted) return false;
-      state = const CmsActionState(
-        errorMessage: 'Gagal menyimpan event. Coba lagi ya.',
+      state = CmsActionState(
+        errorMessage: _messageOf(e, 'Gagal menyimpan event. Coba lagi ya.'),
       );
       return false;
     }

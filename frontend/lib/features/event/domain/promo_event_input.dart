@@ -7,10 +7,14 @@ class PromoEventInput {
     required this.title,
     required this.type,
     this.description,
+
+    /// Path berkas lokal (baru dipilih) atau URL http (banner lama). Berkas
+    /// lokal diunggah ke R2 oleh repository sebelum event disimpan.
     this.bannerImageUrl,
     this.startDate,
     this.endDate,
     this.isPublished = true,
+    this.relatedPromoId,
   });
 
   final String title;
@@ -20,4 +24,5 @@ class PromoEventInput {
   final DateTime? startDate;
   final DateTime? endDate;
   final bool isPublished;
+  final String? relatedPromoId;
 }
