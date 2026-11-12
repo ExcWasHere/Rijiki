@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:rijiki/app/router/route_paths.dart';
 import 'package:rijiki/core/enums/event_type.dart';
 import 'package:rijiki/core/extensions/enum_ui_x.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
@@ -10,6 +12,9 @@ import 'package:rijiki/features/event/domain/event_promo.dart';
 import 'package:rijiki/features/event/domain/promo_event.dart';
 import 'package:rijiki/features/event/presentation/controllers/customer_events_controller.dart';
 import 'package:rijiki/features/event/presentation/utils/event_promo_format.dart';
+import 'package:rijiki/features/points/domain/point_ledger_entry.dart';
+import 'package:rijiki/features/points/presentation/controllers/point_history_controller.dart';
+import 'package:rijiki/features/points/presentation/utils/point_history_format.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
 import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 import 'package:rijiki/shared/widgets/network_image_box.dart';
@@ -71,13 +76,18 @@ class _EventPageState extends ConsumerState<EventPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(customerEventsProvider);
+      ref.invalidate(pointBalanceProvider);
     }
   }
 
   Future<void> _refresh() async {
     ref.invalidate(customerEventsProvider);
+    ref.invalidate(pointBalanceProvider);
     try {
-      await ref.read(customerEventsProvider.future);
+      await Future.wait([
+        ref.read(customerEventsProvider.future),
+        ref.read(pointBalanceProvider.future),
+      ]);
     } catch (_) {}
   }
 
@@ -101,6 +111,7 @@ class _EventPageState extends ConsumerState<EventPage>
     final showMerch = _selectedFilter == 'Semua' || _selectedFilter == 'Merch';
     final async = ref.watch(customerEventsProvider);
     final events = async.value;
+    final balance = ref.watch(pointBalanceProvider);
 
     Widget eventsBody;
     if (events != null) {
@@ -151,8 +162,12 @@ class _EventPageState extends ConsumerState<EventPage>
             children: [
               const _EventHeader(),
               const SizedBox(height: AppSpacing.md),
-              // TODO(segmen-2): ganti dengan GET /api/points/balance.
-              const _PointCard(points: 320),
+              _PointCard(
+                balance: balance,
+                onTap: () => balance.hasError
+                    ? ref.invalidate(pointBalanceProvider)
+                    : context.push(RoutePaths.customerPointHistory),
+              ),
               const SizedBox(height: AppSpacing.lg),
               _FilterList(
                 filters: _filters,
@@ -239,62 +254,111 @@ class _EventHeader extends StatelessWidget {
 }
 
 class _PointCard extends StatelessWidget {
-  const _PointCard({required this.points});
+  const _PointCard({required this.balance, required this.onTap});
 
-  final int points;
+  final AsyncValue<PointBalance> balance;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.onSurfaceVariant.withValues(alpha: 0.40),
+    final textTheme = Theme.of(context).textTheme;
+    final value = balance.value;
+
+    Widget title;
+    if (value != null) {
+      title = Text(
+        '${formatPoints(value.balance)} Point',
+        style: textTheme.titleMedium?.copyWith(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w700,
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFC83D).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.star_rounded,
-              size: 27,
-              color: Color(0xFFFFB800),
+      );
+    } else if (balance.hasError) {
+      title = Text(
+        'Poin belum bisa dimuat',
+        style: textTheme.titleSmall?.copyWith(
+          color: AppColors.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+        ),
+      );
+    } else {
+      title = const LoadingSkeleton(width: 110, height: 22, radius: 8);
+    }
+
+    final hint = balance.hasError
+        ? 'Ketuk untuk coba lagi.'
+        : 'Kumpulkan point dari tiap transaksi untuk mendapatkan hadiah yang menarik.';
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.40),
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$points Point',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFC83D).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Kumpulkan point dari tiap transaksi untuk mendapatkan hadiah yang menarik.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                child: const Icon(
+                  Icons.star_rounded,
+                  size: 27,
+                  color: Color(0xFFFFB800),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    title,
+                    const SizedBox(height: 4),
+                    Text(
+                      hint,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                    if (value != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Lihat riwayat poin',
+                        style: textTheme.labelMedium?.copyWith(
+                          color: AppColors.primaryDark,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (value != null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
                     color: AppColors.onSurfaceVariant,
-                    height: 1.4,
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

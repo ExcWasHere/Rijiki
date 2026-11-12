@@ -58,6 +58,9 @@ import 'package:rijiki/features/worker_management/data/mock_worker_repository.da
 import 'package:rijiki/features/worker_management/data/worker_repository_impl.dart';
 import 'package:rijiki/features/worker_management/domain/worker_repository.dart';
 import 'package:rijiki/features/event/data/event_repository_impl.dart';
+import 'package:rijiki/features/points/data/customer_points_repository_impl.dart';
+import 'package:rijiki/features/points/data/mock_customer_points_repository.dart';
+import 'package:rijiki/features/points/domain/customer_points_repository.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -116,6 +119,17 @@ final pointRuleRepositoryProvider = Provider<PointRuleRepository>((ref) {
   return PointRuleRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
+final customerPointsRepositoryProvider = Provider<CustomerPointsRepository>((
+      ref,
+    ) {
+      if (AppConstants.useMockOrders) {
+        return MockCustomerPointsRepository(
+          scenario: ref.watch(mockScenarioProvider),
+        );
+      }
+      return CustomerPointsRepositoryImpl(api: ref.watch(apiClientProvider));
+    });
+
 final pointManagementRepositoryProvider = Provider<PointManagementRepository>((
   ref,
 ) {
@@ -173,8 +187,6 @@ final scanRepositoryProvider = Provider<ScanRepository>(
   (ref) => MockScanRepository(scenario: ref.watch(mockScenarioProvider)),
 );
 
-/// Mock hanya untuk mode demo (USE_MOCK_AUTH / USE_MOCK_ORDERS); selain itu
-/// QRIS dinamis asli lewat backend + Midtrans Core API.
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   if (AppConstants.useMockOrders) {
     return MockPaymentRepository(
@@ -185,8 +197,6 @@ final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   return PaymentRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
-/// Repeat customer sudah dari backend; ringkasan dan order terbaru dashboard
-/// masih mock (lihat [RemoteDashboardRepository]).
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
   final mock = MockDashboardRepository();
   if (AppConstants.useMockOrders) return mock;
