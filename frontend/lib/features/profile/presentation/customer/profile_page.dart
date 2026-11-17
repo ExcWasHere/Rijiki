@@ -7,7 +7,11 @@ import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:rijiki/features/notifications/presentation/controllers/notification_list_controller.dart';
+import 'package:rijiki/features/points/presentation/controllers/point_history_controller.dart';
+import 'package:rijiki/features/points/presentation/utils/point_history_format.dart';
 import 'package:rijiki/features/profile/presentation/shared/contact_sheet.dart';
+import 'package:rijiki/features/profile/presentation/shared/profile_avatar.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -18,7 +22,11 @@ class ProfilePage extends ConsumerWidget {
     final fullName = user?.fullName?.trim().isNotEmpty == true
         ? user!.fullName!.trim()
         : 'Sobat Rijiki';
-    final initials = _initials(fullName);
+    final unread = ref.watch(unreadNotificationCountProvider).value ?? 0;
+    final balance = ref.watch(pointBalanceProvider).value;
+    final pointsLabel = balance == null
+        ? null
+        : '${formatPoints(balance.balance)} poin';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -32,7 +40,7 @@ class ProfilePage extends ConsumerWidget {
               name: fullName,
               email: user?.email ?? 'email belum tersedia',
               phone: user?.phoneNumber ?? 'nomor HP belum tersedia',
-              initials: initials,
+              avatarUrl: user?.avatarUrl,
               onEdit: () => context.push(RoutePaths.editProfile),
             ),
             Padding(
@@ -60,7 +68,8 @@ class ProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.notifications_none_rounded,
                         title: 'Notifikasi',
-                        onTap: () => _showComingSoon(context, 'Notifikasi'),
+                        trailing: unread > 0 ? '$unread baru' : null,
+                        onTap: () => context.push(RoutePaths.notifications),
                       ),
                     ],
                   ),
@@ -76,13 +85,12 @@ class ProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.cleaning_services_outlined,
                         title: 'Sepatu saya',
-                        onTap: () => _showComingSoon(context, 'Sepatu saya'),
+                        onTap: () => context.push(RoutePaths.myShoes),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.star_border_rounded,
                         title: 'Rating & testimoni',
-                        onTap: () =>
-                            _showComingSoon(context, 'Rating & testimoni'),
+                        onTap: () => context.push(RoutePaths.myRatings),
                       ),
                     ],
                   ),
@@ -93,13 +101,13 @@ class ProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.monetization_on_outlined,
                         title: 'Poin saya',
-                        trailing: '320 poin',
-                        onTap: () => _showComingSoon(context, 'Poin saya'),
+                        trailing: pointsLabel,
+                        onTap: () => context.push(RoutePaths.customerPointHistory),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.card_giftcard_outlined,
                         title: 'Tukar poin',
-                        onTap: () => _showComingSoon(context, 'Tukar poin'),
+                        onTap: () => context.go(RoutePaths.customerEvents),
                       ),
                     ],
                   ),
@@ -110,7 +118,7 @@ class ProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.help_outline_rounded,
                         title: 'Pusat bantuan',
-                        onTap: () => _showComingSoon(context, 'Pusat bantuan'),
+                        onTap: () => context.push(RoutePaths.helpCenter),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.chat_bubble_outline_rounded,
@@ -120,8 +128,7 @@ class ProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.description_outlined,
                         title: 'Syarat & ketentuan',
-                        onTap: () =>
-                            _showComingSoon(context, 'Syarat & ketentuan'),
+                        onTap: () => context.push(RoutePaths.terms),
                       ),
                     ],
                   ),
@@ -148,20 +155,6 @@ class ProfilePage extends ConsumerWidget {
       ),
     );
   }
-
-  static String _initials(String name) {
-    final words = name.split(RegExp(r'\s+')).where((word) => word.isNotEmpty);
-    final values = words.toList();
-    if (values.isEmpty) return 'R';
-    if (values.length == 1) return values.first.substring(0, 1).toUpperCase();
-    return '${values.first[0]}${values.last[0]}'.toUpperCase();
-  }
-
-  static void _showComingSoon(BuildContext context, String title) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$title segera hadir')));
-  }
 }
 
 class _ProfileHero extends StatelessWidget {
@@ -169,14 +162,14 @@ class _ProfileHero extends StatelessWidget {
     required this.name,
     required this.email,
     required this.phone,
-    required this.initials,
+    required this.avatarUrl,
     required this.onEdit,
   });
 
   final String name;
   final String email;
   final String phone;
-  final String initials;
+  final String? avatarUrl;
   final VoidCallback onEdit;
 
   @override
@@ -203,7 +196,7 @@ class _ProfileHero extends StatelessWidget {
               name: name,
               email: email,
               phone: phone,
-              initials: initials,
+              avatarUrl: avatarUrl,
               onEdit: onEdit,
             ),
           ),
@@ -256,14 +249,14 @@ class _ProfileCard extends StatelessWidget {
     required this.name,
     required this.email,
     required this.phone,
-    required this.initials,
+    required this.avatarUrl,
     required this.onEdit,
   });
 
   final String name;
   final String email;
   final String phone;
-  final String initials;
+  final String? avatarUrl;
   final VoidCallback onEdit;
 
   @override
@@ -280,16 +273,10 @@ class _ProfileCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 32,
+          ProfileAvatar(
+            name: name,
+            avatarUrl: avatarUrl,
             backgroundColor: AppColors.primaryDark,
-            child: Text(
-              initials,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

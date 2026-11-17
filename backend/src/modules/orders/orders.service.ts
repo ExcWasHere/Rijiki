@@ -2,6 +2,7 @@ import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { fingerprintOf, idempotencyConflict } from '../../shared/utils/idempotency';
+import { notifyNewOrder } from '../notifications/notifications.events';
 import { loadVisibleOrder, resolveAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
 import { EMPTY_USAGE, computeTotals, evaluatePromo } from './orders.pricing';
@@ -199,6 +200,10 @@ export async function createOrder(
     console.error('orders: order baru tidak ditemukan setelah dibuat', orderId);
     throw new AppError(500, 'order_create_failed', 'Order dibuat, tetapi gagal dimuat. Cek daftar order.');
   }
+
+  // Order baru masuk antrean: kabari worker agar bisa diambil.
+  await notifyNewOrder(env, { id: orderId, order_number: String(row.order_number) });
+
   return { order: toOrderView(row, null), replayed: false };
 }
 

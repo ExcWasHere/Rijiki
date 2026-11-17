@@ -2,6 +2,10 @@ import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { logActivity } from '../../shared/utils/activity-log';
+import {
+  notifyPaymentExpired,
+  notifyPaymentPaid,
+} from '../notifications/notifications.events';
 import { isUuid, orderNotFound, resolveAccess } from '../orders/orders.access';
 import type { OrderAccess } from '../orders/orders.access';
 import {
@@ -122,6 +126,11 @@ export async function applyProviderResult(
   });
   if (mapped === 'paid' && outcome.applied) {
     console.info(`payments: ${payment.provider_order_id} lunas`);
+
+    // Hanya saat transisi benar-benar terjadi (outcome.applied) supaya
+    // notifikasi tidak berulang ketika webhook datang lebih dari sekali.
+    const order = await findOrderForPayment(env, payment.order_id);
+    if (order) await notifyPaymentPaid(env, order);
   }
   return outcome.status;
 }
@@ -142,12 +151,16 @@ async function syncWithProvider(env: Bindings, payment: PaymentRow): Promise<Pay
 }
 
 async function expirePayment(env: Bindings, payment: PaymentRow): Promise<void> {
-  await applyPaymentResultRpc(env, {
+  const outcome = await applyPaymentResultRpc(env, {
     providerOrderId: payment.provider_order_id,
     newStatus: 'expired',
     providerRef: null,
     paidAt: null,
   });
+  if (!outcome.applied) return;
+
+  const order = await findOrderForPayment(env, payment.order_id);
+  if (order) await notifyPaymentExpired(env, order);
 }
 
 export async function createPayment(

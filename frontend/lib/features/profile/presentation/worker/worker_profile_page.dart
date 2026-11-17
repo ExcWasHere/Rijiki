@@ -7,7 +7,9 @@ import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:rijiki/features/notifications/presentation/controllers/notification_list_controller.dart';
 import 'package:rijiki/features/profile/presentation/shared/contact_sheet.dart';
+import 'package:rijiki/features/profile/presentation/shared/profile_avatar.dart';
 
 class WorkerProfilePage extends ConsumerWidget {
   const WorkerProfilePage({super.key});
@@ -19,6 +21,7 @@ class WorkerProfilePage extends ConsumerWidget {
     final fullName = (rawName != null && rawName.isNotEmpty)
         ? rawName
         : 'Worker Rijiki';
+    final unread = ref.watch(unreadNotificationCountProvider).value ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -32,7 +35,7 @@ class WorkerProfilePage extends ConsumerWidget {
               name: fullName,
               email: user?.email ?? 'email belum tersedia',
               phone: user?.phoneNumber ?? 'nomor HP belum tersedia',
-              initials: _initials(fullName),
+              avatarUrl: user?.avatarUrl,
               roleLabel: 'Worker',
               onEdit: () => context.push(RoutePaths.editProfile),
             ),
@@ -41,8 +44,6 @@ class WorkerProfilePage extends ConsumerWidget {
               child: Column(
                 children: [
                   _CmsCtaCard(
-                    // TODO: ganti dengan route CMS worker, mis.
-                    // context.push(RoutePaths.workerCms)
                     onTap: () => _showComingSoon(context, 'CMS'),
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -62,7 +63,8 @@ class WorkerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.notifications_none_rounded,
                         title: 'Notifikasi',
-                        onTap: () => _showComingSoon(context, 'Notifikasi'),
+                        trailing: unread > 0 ? '$unread baru' : null,
+                        onTap: () => context.push(RoutePaths.notifications),
                       ),
                     ],
                   ),
@@ -73,7 +75,7 @@ class WorkerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.help_outline_rounded,
                         title: 'Pusat bantuan',
-                        onTap: () => _showComingSoon(context, 'Pusat bantuan'),
+                        onTap: () => context.push(RoutePaths.helpCenter),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.chat_bubble_outline_rounded,
@@ -83,8 +85,7 @@ class WorkerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.description_outlined,
                         title: 'Syarat & ketentuan',
-                        onTap: () =>
-                            _showComingSoon(context, 'Syarat & ketentuan'),
+                        onTap: () => context.push(RoutePaths.terms),
                       ),
                     ],
                   ),
@@ -112,20 +113,18 @@ class WorkerProfilePage extends ConsumerWidget {
     );
   }
 
-  static String _initials(String name) {
-    final values = name
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .toList();
-    if (values.isEmpty) return 'W';
-    if (values.length == 1) return values.first.substring(0, 1).toUpperCase();
-    return '${values.first[0]}${values.last[0]}'.toUpperCase();
-  }
-
+  /// Worker belum punya halaman CMS sendiri; modul CMS dibuka dari menu
+  /// Manajemen bila worker memegang izinnya.
   static void _showComingSoon(BuildContext context, String title) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$title segera hadir')));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '$title worker dibuka dari menu Manajemen sesuai izin yang diberikan.',
+          ),
+        ),
+      );
   }
 }
 
@@ -198,7 +197,7 @@ class _ProfileHero extends StatelessWidget {
     required this.name,
     required this.email,
     required this.phone,
-    required this.initials,
+    required this.avatarUrl,
     required this.roleLabel,
     required this.onEdit,
   });
@@ -206,7 +205,7 @@ class _ProfileHero extends StatelessWidget {
   final String name;
   final String email;
   final String phone;
-  final String initials;
+  final String? avatarUrl;
   final String roleLabel;
   final VoidCallback onEdit;
 
@@ -234,7 +233,7 @@ class _ProfileHero extends StatelessWidget {
               name: name,
               email: email,
               phone: phone,
-              initials: initials,
+              avatarUrl: avatarUrl,
               roleLabel: roleLabel,
               onEdit: onEdit,
             ),
@@ -292,7 +291,7 @@ class _ProfileCard extends StatelessWidget {
     required this.name,
     required this.email,
     required this.phone,
-    required this.initials,
+    required this.avatarUrl,
     required this.roleLabel,
     required this.onEdit,
   });
@@ -300,7 +299,7 @@ class _ProfileCard extends StatelessWidget {
   final String name;
   final String email;
   final String phone;
-  final String initials;
+  final String? avatarUrl;
   final String roleLabel;
   final VoidCallback onEdit;
 
@@ -323,16 +322,10 @@ class _ProfileCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 32,
+          ProfileAvatar(
+            name: name,
+            avatarUrl: avatarUrl,
             backgroundColor: AppColors.primaryDark,
-            child: Text(
-              initials,
-              style: textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -433,10 +426,12 @@ class _ProfileMenuItem extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
+    this.trailing,
   });
 
   final IconData icon;
   final String title;
+  final String? trailing;
   final VoidCallback onTap;
 
   @override
@@ -444,7 +439,23 @@ class _ProfileMenuItem extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: AppColors.onSurface),
       title: Text(title),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (trailing != null)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.sm),
+              child: Text(
+                trailing!,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          const Icon(Icons.chevron_right_rounded),
+        ],
+      ),
       onTap: onTap,
     );
   }

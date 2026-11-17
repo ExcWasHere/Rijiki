@@ -171,17 +171,13 @@ class MockAuthRepository implements AuthRepository {
     }
   }
 
-  @override
-  Future<bool> linkGoogle() async {
-    await Future<void>.delayed(_latency);
-    return true;
-  }
 
   @override
-  Future<void> requestEmailChange({
+  Future<bool> requestEmailChange({
     required String newEmail,
     required String password,
   }) async {
     await Future<void>.delayed(_latency);
+    return true;
   }
 }

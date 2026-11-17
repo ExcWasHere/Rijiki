@@ -4,11 +4,15 @@ import { AppError } from '../../shared/errors';
 import type { AppEnv } from '../../shared/types/env';
 import { parseInput } from '../../shared/utils/validate';
 import { getCustomerProfile } from '../profile/profile.service';
+import { loadAuthContext } from './auth.service';
 import {
+  changePasswordSchema,
+  confirmEmailChangeSchema,
   googleLoginSchema,
   loginSchema,
   refreshSchema,
   registerSchema,
+  requestEmailChangeSchema,
   resendVerificationSchema,
   verifyEmailSchema,
 } from './auth.schema';
@@ -68,4 +72,30 @@ authRoutes.post('/logout', authMiddleware, async (c) => {
   if (!token) throw new AppError(401, 'unauthorized', 'Token tidak ditemukan');
   await authService.logout(c.env, token);
   return c.json({ message: 'Berhasil keluar' });
+});
+
+authRoutes.post('/change-password', authMiddleware, async (c) => {
+  const input = parseInput(changePasswordSchema, await c.req.json().catch(() => null));
+  await authService.changePassword(c.env, c.get('user').user, input);
+  return c.json({ message: 'Kata sandi berhasil diganti' });
+});
+
+authRoutes.post('/change-email', authMiddleware, async (c) => {
+  const input = parseInput(requestEmailChangeSchema, await c.req.json().catch(() => null));
+  const { pending } = await authService.requestEmailChange(c.env, c.get('user').user, input);
+
+  return c.json({
+    pending,
+    message: pending
+      ? 'Kode verifikasi dikirim ke email baru'
+      : 'Email berhasil diganti',
+  });
+});
+
+authRoutes.post('/confirm-email-change', authMiddleware, async (c) => {
+  const input = parseInput(confirmEmailChangeSchema, await c.req.json().catch(() => null));
+  await authService.confirmEmailChange(c.env, input);
+
+  const { user } = c.get('user');
+  return c.json(await loadAuthContext(c.env, user.id));
 });

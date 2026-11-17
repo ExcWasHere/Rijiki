@@ -7,8 +7,24 @@ abstract final class ApiEndpoints {
   static const String refresh = '/api/auth/refresh';
   static const String me = '/api/auth/me';
   static const String logout = '/api/auth/logout';
+  static const String changePassword = '/api/auth/change-password';
+  static const String changeEmail = '/api/auth/change-email';
+  static const String confirmEmailChange = '/api/auth/confirm-email-change';
 
   static const String profile = '/api/profile';
+
+  /// Customer: sepatu yang pernah dicuci dan rating yang pernah diberikan.
+  static const String profileShoes = '/api/profile/shoes';
+  static const String profileRatings = '/api/profile/ratings';
+
+  /// Inbox notifikasi semua role.
+  static const String notifications = '/api/notifications';
+  static const String notificationUnreadCount = '/api/notifications/unread-count';
+  static const String notificationReadAll = '/api/notifications/read-all';
+  static String notificationRead(String id) => '$notifications/$id/read';
+
+  /// Registrasi token FCM perangkat (POST/DELETE dengan body `token`).
+  static const String devices = '/api/devices';
 
   static const String services = '/api/services';
 

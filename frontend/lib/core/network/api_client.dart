@@ -80,10 +80,11 @@ class ApiClient {
 
   Future<Json> delete(
     String path, {
+    Json? body,
     bool auth = false,
     Map<String, String>? headers,
   }) {
-    return _send('DELETE', path, auth: auth, extraHeaders: headers);
+    return _send('DELETE', path, body: body, auth: auth, extraHeaders: headers);
   }
 
   Future<Uint8List> getBytes(String path, {bool auth = false}) async {
@@ -158,7 +159,7 @@ class ApiClient {
         final encoded = jsonEncode(body ?? <String, dynamic>{});
         return switch (method) {
           'GET' => _client.get(uri, headers: headers),
-          'DELETE' => _client.delete(uri, headers: headers),
+          'DELETE' => _client.delete(uri, headers: jsonHeaders, body: encoded),
           'PATCH' => _client.patch(uri, headers: jsonHeaders, body: encoded),
           'PUT' => _client.put(uri, headers: jsonHeaders, body: encoded),
           _ => _client.post(uri, headers: jsonHeaders, body: encoded),

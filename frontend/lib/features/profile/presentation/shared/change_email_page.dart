@@ -79,10 +79,17 @@ class _ChangeEmailPageState extends ConsumerState<ChangeEmailPage> {
     FocusScope.of(context).unfocus();
 
     final newEmail = _email.text.trim();
-    final ok = await ref
+    final pending = await ref
         .read(authControllerProvider.notifier)
         .requestEmailChange(newEmail: newEmail, password: _password.text);
-    if (!mounted || !ok) return;
+    if (!mounted || pending == null) return;
+
+    // Konfirmasi email dimatikan di Supabase: alamat sudah langsung berganti.
+    if (!pending) {
+      _toast('Email berhasil diganti.');
+      context.pop();
+      return;
+    }
 
     setState(() {
       _codeSent = true;
@@ -93,10 +100,10 @@ class _ChangeEmailPageState extends ConsumerState<ChangeEmailPage> {
   }
 
   Future<void> _resend() async {
-    final ok = await ref
+    final pending = await ref
         .read(authControllerProvider.notifier)
         .requestEmailChange(newEmail: _pendingEmail, password: _password.text);
-    if (ok && mounted) _startTimer();
+    if (pending == true && mounted) _startTimer();
   }
 
   Future<void> _confirm() async {

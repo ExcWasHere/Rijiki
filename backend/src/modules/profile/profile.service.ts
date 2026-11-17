@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../../config/supabase';
 import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
-import type { CustomerProfile } from '../../shared/types/user';
+import type { AppUser, CustomerProfile } from '../../shared/types/user';
 import type { UpdateProfileInput } from './profile.schema';
 
 const CUSTOMER_PROFILE_COLUMNS = 'default_address, default_lat, default_lng';
@@ -35,26 +35,48 @@ export async function getCustomerProfile(
   };
 }
 
-export async function updateCustomerProfile(
+/**
+ * Menyimpan nama + nomor HP untuk semua role. Customer boleh sekaligus
+ * mengirim alamat default beserta titiknya; bila alamat tidak dikirim, alamat
+ * lama dibiarkan apa adanya.
+ */
+export async function updateProfile(
   env: Bindings,
-  userId: string,
+  user: AppUser,
   input: UpdateProfileInput,
 ): Promise<void> {
   const admin = getSupabaseAdmin(env);
+  const hasAddress = input.default_address !== undefined;
 
-  const { error: profileError } = await admin.from('customer_profiles').upsert(
-    {
-      user_id: userId,
-      default_address: input.default_address,
-      default_lat: input.default_lat,
-      default_lng: input.default_lng,
-    },
-    { onConflict: 'user_id' },
-  );
+  if (hasAddress && user.role !== 'customer') {
+    throw new AppError(400, 'validation_error', 'Alamat default hanya untuk customer');
+  }
 
-  if (profileError) {
-    console.error('profile: gagal menyimpan customer_profiles', profileError.message);
-    throw new AppError(500, 'profile_save_failed', 'Gagal menyimpan alamat');
+  // Profil dianggap lengkap bila nama, nomor HP, dan (untuk customer) alamat
+  // sudah terisi. Owner/worker selalu lengkap sejak dibuat.
+  let profileCompleted = user.profile_completed;
+  if (user.role === 'customer') {
+    const address = hasAddress
+      ? input.default_address!
+      : (await getCustomerProfile(env, user.id)).default_address;
+    profileCompleted = (address ?? '').trim().length > 0;
+  }
+
+  if (hasAddress) {
+    const { error: profileError } = await admin.from('customer_profiles').upsert(
+      {
+        user_id: user.id,
+        default_address: input.default_address,
+        default_lat: input.default_lat,
+        default_lng: input.default_lng,
+      },
+      { onConflict: 'user_id' },
+    );
+
+    if (profileError) {
+      console.error('profile: gagal menyimpan customer_profiles', profileError.message);
+      throw new AppError(500, 'profile_save_failed', 'Gagal menyimpan alamat');
+    }
   }
 
   const { error: userError } = await admin
@@ -62,10 +84,10 @@ export async function updateCustomerProfile(
     .update({
       full_name: input.full_name,
       phone_number: input.phone_number,
-      profile_completed: true,
+      profile_completed: profileCompleted,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', userId);
+    .eq('id', user.id);
 
   if (userError) {
     console.error('profile: gagal menyimpan users', userError.message);

@@ -10,6 +10,11 @@ export interface Bindings {
   MIDTRANS_SERVER_KEY?: string;
   MIDTRANS_ENV?: string;
   ENVIRONMENT?: string;
+  // FCM HTTP v1 (service account Firebase). Opsional: bila kosong, notifikasi
+  // tetap tersimpan di inbox dan hanya push yang dilewati.
+  FIREBASE_PROJECT_ID?: string;
+  FIREBASE_CLIENT_EMAIL?: string;
+  FIREBASE_PRIVATE_KEY?: string;
 }
 
 export interface Variables {

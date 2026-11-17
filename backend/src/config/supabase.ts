@@ -12,3 +12,4 @@ export function getSupabaseAnon(env: Bindings): SupabaseClient {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
+
