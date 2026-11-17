@@ -15,7 +15,7 @@ import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/onboarding/presentation/controllers/onboarding_controller.dart'
     show LocateResult, LocationSource;
 import 'package:rijiki/features/onboarding/presentation/pages/location_picker_page.dart';
-import 'package:rijiki/features/profile/presentation/controller/edit_profile_controller.dart';
+import 'package:rijiki/features/profile/presentation/controllers/edit_profile_controller.dart';
 import 'package:rijiki/shared/widgets/app_button.dart';
 import 'package:rijiki/shared/widgets/app_text_field.dart';
 import 'package:rijiki/shared/widgets/image_source_sheet.dart';
