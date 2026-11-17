@@ -171,7 +171,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
           PromoCodeField(
             promo: state.promo,
             onApply: controller.applyPromo,
-            onClear: controller.clearPromo,
+            onRemove: controller.removePromo,
           ),
         ],
       ),

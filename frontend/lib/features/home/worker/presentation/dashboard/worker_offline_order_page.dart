@@ -36,7 +36,9 @@ class _WorkerOfflineOrderPageState
   final _phoneController = TextEditingController();
   final _brandController = TextEditingController();
   final _notesController = TextEditingController();
-  final _promoController = TextEditingController();
+  /// Maks 1 promo layanan + 1 promo ongkir; offline tanpa ongkir, tetapi
+  /// aturannya tetap dicek server agar sama dengan order aplikasi.
+  final _promoControllers = [TextEditingController(), TextEditingController()];
 
   OfflinePaymentMethod _paymentMethod = OfflinePaymentMethod.cash;
 
@@ -62,9 +64,18 @@ class _WorkerOfflineOrderPageState
     _phoneController.dispose();
     _brandController.dispose();
     _notesController.dispose();
-    _promoController.dispose();
+    for (final controller in _promoControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
+
+  /// Kode promo terisi, huruf besar, tanpa duplikat.
+  List<String> get _promoCodes => {
+    for (final controller in _promoControllers)
+      if (controller.text.trim().isNotEmpty)
+        controller.text.trim().toUpperCase(),
+  }.toList();
 
   void _snack(String message) {
     ScaffoldMessenger.of(context)
@@ -96,7 +107,7 @@ class _WorkerOfflineOrderPageState
       return;
     }
 
-    final promo = _promoController.text.trim().toUpperCase();
+    final promoCodes = _promoCodes;
     final item = OrderDraftItem(
       id: 'offline-1',
       shoeBrand: _brandController.text.trim(),
@@ -112,7 +123,7 @@ class _WorkerOfflineOrderPageState
       item.quantity,
       service.id,
       item.notes,
-      promo,
+      promoCodes.join(','),
       _workerId ?? '',
       _paymentMethod.json,
     ].join('|');
@@ -132,7 +143,7 @@ class _WorkerOfflineOrderPageState
               items: [item],
               paymentMethod: _paymentMethod,
               deliveryMethod: _deliveryMethod,
-              promoCode: promo.isEmpty ? null : promo,
+              promoCodes: promoCodes,
               assignedWorkerId: _workerId,
               idempotencyKey: _attemptKey,
             ),
@@ -413,13 +424,31 @@ class _WorkerOfflineOrderPageState
             const SizedBox(height: AppSpacing.sm),
 
             AppCard(
-              child: TextFormField(
-                controller: _promoController,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Kode promo (opsional)',
-                  hintText: 'Masukkan kode promo',
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < _promoControllers.length; i++) ...[
+                    if (i > 0) const SizedBox(height: AppSpacing.sm),
+                    TextFormField(
+                      controller: _promoControllers[i],
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        labelText: i == 0
+                            ? 'Kode promo (opsional)'
+                            : 'Kode promo kedua (opsional)',
+                        hintText: 'Masukkan kode promo',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  Text(
+                    'Bisa gabung 1 promo layanan dan 1 promo ongkir.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -561,7 +590,7 @@ class _WorkerOfflineOrderPageState
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              if (_promoController.text.trim().isNotEmpty) ...[
+              if (_promoCodes.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   'Diskon promo dihitung saat pesanan disimpan.',

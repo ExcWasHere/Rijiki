@@ -239,15 +239,25 @@ export async function logout(env: Bindings, accessToken: string): Promise<void> 
  * cek password, jadi dipakai signInWithPassword lalu sesinya dibuang.
  */
 async function assertPassword(env: Bindings, email: string, password: string): Promise<void> {
+  const anon = await signInForAction(env, email, password);
+  await anon.auth.signOut({ scope: 'local' }).catch(() => undefined);
+}
+
+/**
+ * Masuk dengan password dan mengembalikan klien anon yang memegang sesi itu,
+ * untuk aksi yang wajib atas nama pengguna (mis. ganti email ber-OTP).
+ * Pemanggil wajib signOut lokal setelah selesai.
+ */
+async function signInForAction(env: Bindings, email: string, password: string) {
   const anon = getSupabaseAnon(env);
   const { data, error } = await anon.auth.signInWithPassword({ email, password });
 
-  if (error) {
-    const mapped = mapAuthError(error);
-    if (mapped.status === 429) throw mapped;
+  if (error || !data.session) {
+    const mapped = error ? mapAuthError(error) : null;
+    if (mapped?.status === 429) throw mapped;
     throw new AppError(401, 'invalid_credentials', 'Password saat ini salah');
   }
-  if (data.session) await anon.auth.signOut({ scope: 'local' }).catch(() => undefined);
+  return anon;
 }
 
 export async function changePassword(
@@ -266,18 +276,18 @@ export async function changePassword(
 
 /**
  * Langkah 1 ganti email: password diverifikasi, lalu Supabase Auth mengirim kode
- * OTP ke alamat baru. Email belum berubah sampai kode dikonfirmasi.
- * Memakai admin API (bukan sesi pengguna) karena permintaan ini datang dari
- * backend; hasilnya `pending = false` bila konfirmasi email dimatikan di
- * Supabase sehingga alamat sudah langsung berganti.
- * Catatan: "Secure email change" sebaiknya dimatikan agar cukup satu kode dari
- * alamat baru.
+ * OTP ke alamat baru. Email belum berubah sampai kode dikonfirmasi (langkah 2).
+ *
+ * Wajib lewat sesi pengguna (`auth.updateUser`), bukan admin API: admin API
+ * langsung mengganti email tanpa verifikasi. Syarat di Supabase Auth: "Confirm
+ * email" aktif, "Secure email change" mati (cukup satu kode dari alamat baru),
+ * dan template "Change Email Address" memuat {{ .Token }}.
  */
 export async function requestEmailChange(
   env: Bindings,
   user: AppUser,
   input: RequestEmailChangeInput,
-): Promise<{ pending: boolean }> {
+): Promise<void> {
   const admin = getSupabaseAdmin(env);
   // Email acuan dari Supabase Auth, bukan mirror users.email, supaya tetap benar
   // setelah email pernah diganti.
@@ -288,25 +298,32 @@ export async function requestEmailChange(
     throw new AppError(400, 'validation_error', 'Email baru sama dengan email saat ini');
   }
 
-  await assertPassword(env, authEmail, input.password);
+  const anon = await signInForAction(env, authEmail, input.password);
+  try {
+    const { data, error } = await anon.auth.updateUser({ email: input.new_email });
 
-  const { data, error } = await admin.auth.admin.updateUserById(user.id, {
-    email: input.new_email,
-  });
+    if (error) {
+      console.error('change-email: gagal meminta perubahan email', error.code, error.message);
+      const mapped = mapAuthError(error);
+      if (mapped.status === 429 || mapped.status === 502) throw mapped;
+      if (mapped.code === 'email_already_registered') throw mapped;
+      throw new AppError(400, 'email_change_failed', 'Gagal mengirim kode ke email baru');
+    }
 
-  if (error) {
-    console.error('change-email: gagal meminta perubahan email', error.code, error.message);
-    const mapped = mapAuthError(error);
-    if (mapped.status === 429 || mapped.status === 502) throw mapped;
-    if (mapped.code === 'email_already_registered') throw mapped;
-    throw new AppError(400, 'email_change_failed', 'Gagal mengirim kode ke email baru');
+    // Konfirmasi email mati di Supabase: alamat sudah terganti tanpa kode.
+    // Mirror disamakan agar data tetap konsisten, lalu konfigurasi dilaporkan.
+    if (data.user?.email?.toLowerCase() === input.new_email.toLowerCase()) {
+      await syncMirrorEmail(env, user.id, input.new_email);
+      console.error('change-email: konfirmasi email nonaktif di Supabase Auth');
+      throw new AppError(
+        500,
+        'config_error',
+        'Konfirmasi email belum diaktifkan di pengaturan Supabase Auth',
+      );
+    }
+  } finally {
+    await anon.auth.signOut({ scope: 'local' }).catch(() => undefined);
   }
-
-  // Supabase langsung mengganti email bila konfirmasi email dimatikan; selain
-  // itu kode verifikasi sudah dikirim ke alamat baru dan menunggu konfirmasi.
-  const pending = data.user?.email !== input.new_email;
-  if (!pending) await syncMirrorEmail(env, user.id, input.new_email);
-  return { pending };
 }
 
 /**

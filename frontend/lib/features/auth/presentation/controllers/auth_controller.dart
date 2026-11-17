@@ -105,26 +105,20 @@ class AuthController extends AsyncNotifier<void> {
     return ok ?? false;
   }
 
-  /// null = gagal; `true` = kode OTP dikirim ke email baru; `false` = email
-  /// sudah langsung berganti tanpa OTP.
-  Future<bool?> requestEmailChange({
+  /// Mengirim kode OTP ke email baru; `true` bila kode terkirim.
+  Future<bool> requestEmailChange({
     required String newEmail,
     required String password,
   }) async {
     final repository = ref.read(authRepositoryProvider);
-    final session = ref.read(sessionProvider.notifier);
-
-    final pending = await _run(
-      () => repository.requestEmailChange(
+    final sent = await _run(() async {
+      await repository.requestEmailChange(
         newEmail: newEmail,
         password: password,
-      ),
-    );
-    final current = ref.read(sessionProvider);
-    if (pending == false && current != null) {
-      session.setUser(current.copyWith(email: newEmail));
-    }
-    return pending;
+      );
+      return true;
+    });
+    return sent == true;
   }
 
   Future<bool> confirmEmailChange({

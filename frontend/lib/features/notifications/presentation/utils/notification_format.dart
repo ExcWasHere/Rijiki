@@ -5,18 +5,24 @@ import 'package:rijiki/features/notifications/domain/app_notification.dart';
 
 extension AppNotificationTypeUi on AppNotificationType {
   IconData get icon => switch (this) {
+    AppNotificationType.orderNew => Icons.add_shopping_cart_rounded,
     AppNotificationType.orderStatus => Icons.local_shipping_outlined,
     AppNotificationType.orderAssigned => Icons.assignment_ind_outlined,
     AppNotificationType.paymentPaid => Icons.payments_outlined,
+    AppNotificationType.paymentExpired => Icons.timer_off_outlined,
     AppNotificationType.pointRedemption => Icons.redeem_outlined,
+    AppNotificationType.pointRedemptionRequest => Icons.card_giftcard_rounded,
     AppNotificationType.unknown => Icons.notifications_none_rounded,
   };
 
   Color get color => switch (this) {
+    AppNotificationType.orderNew => AppColors.primaryDark,
     AppNotificationType.orderStatus => AppColors.rijikiBlue,
     AppNotificationType.orderAssigned => AppColors.primaryDark,
     AppNotificationType.paymentPaid => AppColors.success,
+    AppNotificationType.paymentExpired => AppColors.onSurfaceVariant,
     AppNotificationType.pointRedemption => AppColors.rijikiOrange,
+    AppNotificationType.pointRedemptionRequest => AppColors.rijikiOrange,
     AppNotificationType.unknown => AppColors.onSurfaceVariant,
   };
 }

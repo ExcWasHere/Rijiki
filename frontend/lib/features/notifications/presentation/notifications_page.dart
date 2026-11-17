@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:rijiki/app/router/route_paths.dart';
-import 'package:rijiki/core/enums/user_role.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/features/notifications/domain/app_notification.dart';
 import 'package:rijiki/features/notifications/presentation/controllers/notification_list_controller.dart';
 import 'package:rijiki/features/notifications/presentation/utils/notification_format.dart';
+import 'package:rijiki/features/notifications/presentation/utils/notification_route.dart';
 import 'package:rijiki/shared/widgets/empty_state.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
 import 'package:rijiki/shared/widgets/loading_skeleton.dart';
@@ -70,15 +69,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   void _open(AppNotification notification) {
     ref.read(notificationListProvider.notifier).markRead(notification);
 
-    final orderId = notification.orderId;
-    if (orderId == null) return;
-
     final role = ref.read(sessionProvider)?.role;
-    context.push(switch (role) {
-      UserRole.worker => RoutePaths.workerOrderDetailFor(orderId),
-      UserRole.owner => RoutePaths.ownerOrderDetailFor(orderId),
-      _ => RoutePaths.orderDetailFor(orderId),
-    });
+    if (role == null) return;
+    final target = notificationTarget(
+      role: role,
+      type: notification.type,
+      data: notification.data,
+    );
+    if (target != null) openNotificationTarget(GoRouter.of(context), target);
   }
 
   @override

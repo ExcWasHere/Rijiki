@@ -3,6 +3,7 @@ import type { Bindings } from '../../shared/types/env';
 import type { OrderStatus } from '../orders/orders.types';
 import {
   notifyCustomerProfile,
+  notifyOwners,
   notifyUser,
   notifyWorkerProfile,
 } from './notifications.service';
@@ -72,6 +73,12 @@ export async function notifyPaymentPaid(
     body: 'Pembayaranmu sudah kami terima. Kurir akan menjemput sepatu sesuai jadwal.',
     data: { order_id: order.id },
   });
+  await notifyOwners(env, {
+    type: 'payment_paid',
+    title: `QRIS lunas · ${order.order_number}`,
+    body: 'Pembayaran QRIS untuk order ini sudah diterima.',
+    data: { order_id: order.id },
+  });
 }
 
 /** Customer diberi tahu saat pengajuan tukar poinnya diproses. */
@@ -106,7 +113,10 @@ export async function notifyRedemptionProcessed(
   });
 }
 
-/** Antrean order baru: semua worker aktif diberi tahu agar bisa mengambilnya. */
+/**
+ * Order baru dari aplikasi customer: worker aktif diberi tahu agar bisa
+ * mengambilnya, owner diberi tahu untuk memantau.
+ */
 export async function notifyNewOrder(
   env: Bindings,
   order: { id: string; order_number: string },
@@ -117,14 +127,11 @@ export async function notifyNewOrder(
     .select('user_id')
     .eq('status', 'active');
 
-  if (error) {
-    console.error('notifications: gagal memuat worker aktif', error.message);
-    return;
-  }
+  if (error) console.error('notifications: gagal memuat worker aktif', error.message);
 
-  const userIds = ((data ?? []) as Array<{ user_id: string }>).map((row) => row.user_id);
-  await Promise.all(
-    userIds.map((userId) =>
+  const workerUserIds = ((data ?? []) as Array<{ user_id: string }>).map((row) => row.user_id);
+  await Promise.all([
+    ...workerUserIds.map((userId) =>
       notifyUser(env, {
         userId,
         type: 'order_new',
@@ -133,7 +140,44 @@ export async function notifyNewOrder(
         data: { order_id: order.id },
       }),
     ),
+    notifyOwners(env, {
+      type: 'order_new',
+      title: `Order baru masuk · ${order.order_number}`,
+      body: 'Customer membuat order baru lewat aplikasi.',
+      data: { order_id: order.id },
+    }),
+  ]);
+}
+
+/** Order offline dicatat di outlet: owner diberi tahu, kecuali pencatatnya sendiri. */
+export async function notifyOfflineOrder(
+  env: Bindings,
+  order: { id: string; order_number: string; customer_name: string },
+  createdByUserId: string,
+): Promise<void> {
+  await notifyOwners(
+    env,
+    {
+      type: 'order_new',
+      title: `Order offline baru · ${order.order_number}`,
+      body: `Order offline atas nama ${order.customer_name} dicatat di outlet.`,
+      data: { order_id: order.id },
+    },
+    createdByUserId,
   );
+}
+
+/** Customer mengajukan tukar poin: owner perlu menyetujui atau menolak. */
+export async function notifyRedemptionRequested(
+  env: Bindings,
+  params: { redemptionId: string; customerName: string | null; rewardName: string; pointsUsed: number },
+): Promise<void> {
+  await notifyOwners(env, {
+    type: 'point_redemption_request',
+    title: `Pengajuan tukar poin · ${params.rewardName}`,
+    body: `${params.customerName ?? 'Customer'} mengajukan tukar ${params.pointsUsed} poin. Tinjau pengajuannya.`,
+    data: { redemption_id: params.redemptionId },
+  });
 }
 
 /** QR pembayaran kedaluwarsa: customer perlu membuat QR baru. */

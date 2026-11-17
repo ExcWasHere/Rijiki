@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/domain/price_breakdown.dart';
+import 'package:rijiki/features/order/presentation/utils/discount_lines.dart';
 import 'package:rijiki/features/order/presentation/widgets/payment_chip.dart';
 import 'package:rijiki/shared/widgets/app_card.dart';
 
@@ -10,13 +12,13 @@ class PriceBreakdownCard extends StatelessWidget {
     super.key,
     required this.price,
     required this.paid,
-    this.promoCode,
+    this.promos = const [],
     this.showPaymentStatus = true,
   });
 
   final PriceBreakdown price;
   final bool paid;
-  final String? promoCode;
+  final List<AppliedPromo> promos;
   final bool showPaymentStatus;
 
   @override
@@ -27,11 +29,11 @@ class PriceBreakdownCard extends StatelessWidget {
       child: Column(
         children: [
           _Row(label: 'Subtotal layanan', value: CurrencyFormatter.rupiah(price.subtotal)),
-          if (price.discount > 0) ...[
+          for (final line in discountLines(price, promos)) ...[
             const SizedBox(height: 8),
             _Row(
-              label: promoCode == null ? 'Diskon' : 'Diskon ($promoCode)',
-              value: '-${CurrencyFormatter.rupiah(price.discount)}',
+              label: line.label,
+              value: '-${CurrencyFormatter.rupiah(line.amount)}',
               valueColor: AppColors.success,
             ),
           ],

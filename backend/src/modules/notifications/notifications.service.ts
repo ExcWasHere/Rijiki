@@ -7,6 +7,7 @@ import {
   deleteDeviceTokenRow,
   findUserIdByCustomerProfile,
   findUserIdByWorkerProfile,
+  listActiveOwnerUserIds,
   insertNotificationRow,
   listDeviceTokensForUser,
   listNotificationRows,
@@ -50,16 +51,18 @@ export async function notifyUser(env: Bindings, input: NotifyInput): Promise<voi
     const tokens = await listDeviceTokensForUser(env, input.userId);
     if (tokens.length === 0) return;
 
+    // `type` ikut dikirim agar aplikasi tahu halaman tujuan saat notifikasi diketuk.
     const stale = await sendPush(env, tokens, {
       title: input.title,
       body: input.body,
-      data: input.data
-        ? Object.fromEntries(
-            Object.entries(input.data)
-              .filter(([, value]) => value !== null && value !== undefined)
-              .map(([key, value]) => [key, String(value)]),
-          )
-        : undefined,
+      data: {
+        ...Object.fromEntries(
+          Object.entries(input.data ?? {})
+            .filter(([, value]) => value !== null && value !== undefined)
+            .map(([key, value]) => [key, String(value)]),
+        ),
+        type: input.type,
+      },
     });
 
     // Dihapus dengan await: promise yang menggantung dibatalkan Worker setelah
@@ -156,4 +159,18 @@ export async function notifyWorkerProfile(
 ): Promise<void> {
   const userId = await findUserIdByWorkerProfile(env, workerProfileId);
   await notifyUser(env, { ...input, userId });
+}
+
+/** Notifikasi untuk semua owner aktif, kecuali [exceptUserId] (pelaku aksinya sendiri). */
+export async function notifyOwners(
+  env: Bindings,
+  input: Omit<NotifyInput, 'userId'>,
+  exceptUserId?: string,
+): Promise<void> {
+  const ownerIds = await listActiveOwnerUserIds(env);
+  await Promise.all(
+    ownerIds
+      .filter((userId) => userId !== exceptUserId)
+      .map((userId) => notifyUser(env, { ...input, userId })),
+  );
 }

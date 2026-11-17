@@ -4,7 +4,9 @@ import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/enums/promo_applies_to.dart';
 import 'package:rijiki/core/mock/mock_scenario.dart';
 import 'package:rijiki/core/utils/rupiah_formatter.dart';
+import 'package:rijiki/features/event/domain/promo.dart';
 import 'package:rijiki/features/event/domain/promo_repository.dart';
+import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/data/mock_order_store.dart';
@@ -64,19 +66,49 @@ class MockOrderRepository implements OrderRepository {
   @override
   Future<PriceQuote> quotePrice({
     required int subtotal,
-    String? promoCode,
+    List<String> promoCodes = const [],
     List<OrderDraftItem> items = const [],
   }) async {
-    final code = promoCode?.trim().toUpperCase() ?? '';
-    if (code.isEmpty) {
+    if (promoCodes.isEmpty) {
       await scenario.resolve<bool>(empty: true, data: true);
       return PriceQuote(
         price: PriceBreakdown(subtotal: subtotal, shipping: _shippingFee),
       );
     }
+    if (promoCodes.length > AppliedPromo.maxPerOrder) throw _conflict;
 
-    // Kuota dan syarat order pertama hanya dicek backend; mock meniru sisanya.
     final all = await promos.fetchAllPromos();
+    final applied = <AppliedPromo>[];
+    for (final raw in promoCodes) {
+      final promo = _evaluate(all, raw, subtotal, items);
+      if (applied.any((p) => p.appliesToShipping == promo.appliesToShipping)) {
+        throw _conflict;
+      }
+      applied.add(promo);
+    }
+
+    return PriceQuote(
+      price: PriceBreakdown(
+        subtotal: subtotal,
+        discount: applied.fold(0, (sum, p) => sum + p.discount),
+        shipping: _shippingFee,
+      ),
+      promos: applied,
+    );
+  }
+
+  static const _conflict = PromoException(
+    'Hanya bisa memakai 1 promo layanan dan 1 promo ongkir dalam satu order.',
+  );
+
+  // Kuota dan syarat order pertama hanya dicek backend; mock meniru sisanya.
+  AppliedPromo _evaluate(
+    List<Promo> all,
+    String raw,
+    int subtotal,
+    List<OrderDraftItem> items,
+  ) {
+    final code = raw.trim().toUpperCase();
     final promo = all.where((p) => p.code.toUpperCase() == code).firstOrNull;
     if (promo == null || !promo.isActive) {
       throw const PromoException(
@@ -100,8 +132,9 @@ class MockOrderRepository implements OrderRepository {
       );
     }
 
+    final shipping = promo.appliesTo == PromoAppliesTo.shipping;
     final int target;
-    if (promo.appliesTo == PromoAppliesTo.shipping) {
+    if (shipping) {
       target = _shippingFee;
     } else if (promo.serviceIds.isNotEmpty && items.isNotEmpty) {
       target = items
@@ -120,29 +153,25 @@ class MockOrderRepository implements OrderRepository {
       target = subtotal;
     }
 
-    int raw;
+    int raw0;
     final String valueLabel;
     switch (promo.discountType) {
       case DiscountType.percentage:
-        raw = (target * promo.discountValue / 100).round();
+        raw0 = (target * promo.discountValue / 100).round();
         valueLabel = 'Diskon ${promo.discountValue}%';
       case DiscountType.fixed:
-        raw = promo.discountValue;
+        raw0 = promo.discountValue;
         valueLabel =
             'Potongan ${RupiahFormatter.full(promo.discountValue.toDouble())}';
     }
     final cap = promo.maxDiscountAmount;
-    if (cap != null && cap > 0 && raw > cap) raw = cap;
-    final discount = raw.clamp(0, target).toInt();
+    if (cap != null && cap > 0 && raw0 > cap) raw0 = cap;
 
-    return PriceQuote(
-      price: PriceBreakdown(
-        subtotal: subtotal,
-        discount: discount,
-        shipping: _shippingFee,
-      ),
-      promoCode: promo.code,
-      promoDescription: '${promo.title} · $valueLabel',
+    return AppliedPromo(
+      code: promo.code,
+      appliesToShipping: shipping,
+      discount: raw0.clamp(0, target).toInt(),
+      description: '${promo.title} · $valueLabel${shipping ? ' ongkir' : ''}',
     );
   }
 
@@ -174,7 +203,7 @@ class MockOrderRepository implements OrderRepository {
           ),
       ],
       price: quote.price,
-      promoCode: quote.promoCode,
+      promos: quote.promos,
       customerName: order.customerName.trim(),
       customerPhone: order.phone.trim(),
       pickupAddress: order.pickupAddress,
@@ -283,7 +312,13 @@ class MockOrderRepository implements OrderRepository {
           discount: 5000,
           shipping: 10000,
         ),
-        promoCode: 'RIJIKI20',
+        promos: const [
+          AppliedPromo(
+            code: 'RIJIKI20',
+            appliesToShipping: false,
+            discount: 5000,
+          ),
+        ],
         pickupAddress: _homeAddress,
         deliveryAddress: 'Jl. Veteran No. 12, Klojen, Kota Malang',
         createdAt: now.subtract(const Duration(days: 2)),

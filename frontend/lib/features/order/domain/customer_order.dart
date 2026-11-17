@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:rijiki/core/enums/order_payment_status.dart';
 import 'package:rijiki/core/enums/order_status.dart';
+import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/domain/delivery_method.dart';
 import 'package:rijiki/features/order/domain/order_documentation.dart';
 import 'package:rijiki/features/order/domain/order_item.dart';
@@ -23,7 +24,7 @@ class CustomerOrder {
     this.scheduledPickupAt,
     this.completedAt,
     this.workerName,
-    this.promoCode,
+    this.promos = const [],
     this.customerName,
     this.customerPhone,
     this.statusHistory = const [],
@@ -48,7 +49,7 @@ class CustomerOrder {
   final DateTime? scheduledPickupAt;
   final DateTime? completedAt;
   final String? workerName;
-  final String? promoCode;
+  final List<AppliedPromo> promos;
   final String? customerName;
   final String? customerPhone;
   final List<OrderStatusHistory> statusHistory;
@@ -107,7 +108,7 @@ class CustomerOrder {
       scheduledPickupAt: scheduledPickupAt,
       completedAt: completedAt,
       workerName: workerName,
-      promoCode: promoCode,
+      promos: promos,
       customerName: customerName,
       customerPhone: customerPhone,
       statusHistory: statusHistory,

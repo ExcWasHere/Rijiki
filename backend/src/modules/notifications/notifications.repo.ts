@@ -229,3 +229,18 @@ export async function findUserIdByWorkerProfile(
   }
   return (data?.user_id as string | undefined) ?? null;
 }
+
+export async function listActiveOwnerUserIds(env: Bindings): Promise<string[]> {
+  const admin = getSupabaseAdmin(env);
+  const { data, error } = await admin
+    .from('users')
+    .select('id')
+    .eq('role', 'owner')
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('notifications: gagal memuat owner', error.message);
+    return [];
+  }
+  return ((data ?? []) as Array<{ id: string }>).map((row) => row.id);
+}

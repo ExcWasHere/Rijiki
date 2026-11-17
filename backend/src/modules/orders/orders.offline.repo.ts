@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from '../../config/supabase';
 import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import { EMPTY_USAGE } from './orders.pricing';
+import { countPromoUsage } from './orders.repo';
 import type { PromoRow, PromoUsage } from './orders.types';
 
 function loadFailed(label: string, message: string, publicMessage: string): AppError {
@@ -33,21 +34,14 @@ export async function findOfflineOrderByIdempotencyKey(
   };
 }
 
-async function countOrders(
-  env: Bindings,
-  filters: { promoId?: string; walkInPhone?: string },
-): Promise<number> {
+async function countWalkInOrders(env: Bindings, walkInPhone: string): Promise<number> {
   const admin = getSupabaseAdmin(env);
-  let builder = admin
+  const { count, error } = await admin
     .from('orders')
     .select('id', { count: 'exact', head: true })
-    .neq('status', 'cancelled');
-  if (filters.promoId) builder = builder.eq('promo_id', filters.promoId);
-  if (filters.walkInPhone) {
-    builder = builder.eq('channel', 'staff_manual').eq('walk_in_customer_phone', filters.walkInPhone);
-  }
-
-  const { count, error } = await builder;
+    .neq('status', 'cancelled')
+    .eq('channel', 'staff_manual')
+    .eq('walk_in_customer_phone', walkInPhone);
   if (error) throw loadFailed('pemakaian promo', error.message, 'Gagal memeriksa kuota promo');
   return count ?? 0;
 }
@@ -69,9 +63,9 @@ export async function getWalkInPromoUsage(
   if (!needsTotal && !needsPerCustomer && !needsFirstOrder) return EMPTY_USAGE;
 
   const [total, perCustomer, customerOrders] = await Promise.all([
-    needsTotal ? countOrders(env, { promoId: promo.id }) : Promise.resolve(0),
-    needsPerCustomer ? countOrders(env, { promoId: promo.id, walkInPhone }) : Promise.resolve(0),
-    needsFirstOrder ? countOrders(env, { walkInPhone }) : Promise.resolve(0),
+    needsTotal ? countPromoUsage(env, promo.id) : Promise.resolve(0),
+    needsPerCustomer ? countPromoUsage(env, promo.id, { walkInPhone }) : Promise.resolve(0),
+    needsFirstOrder ? countWalkInOrders(env, walkInPhone) : Promise.resolve(0),
   ]);
 
   return { total, perCustomer, customerOrders };
@@ -82,8 +76,7 @@ export interface CreateOfflineOrderRpcParams {
   items: Array<{ service_id: string; shoe_brand: string; quantity: number; notes: string | null }>;
   walkInName: string;
   walkInPhone: string;
-  promoId: string | null;
-  discountAmount: number;
+  promos: Array<{ promo_id: string; discount_amount: number }>;
   expectedSubtotal: number;
   paymentMethod: 'cash' | 'qris';
   deliveryMethod: 'self_pickup' | 'delivery';
@@ -93,6 +86,7 @@ export interface CreateOfflineOrderRpcParams {
 }
 
 const PROMO_RPC_ERRORS: Array<[string, string]> = [
+  ['promo_conflict', 'Hanya bisa memakai 1 promo layanan dan 1 promo ongkir dalam satu order.'],
   ['promo_inactive', 'Kode promo tidak ditemukan atau sudah tidak berlaku.'],
   ['promo_min_subtotal', 'Belanja belum memenuhi syarat minimal promo ini.'],
   ['promo_first_order_only', 'Promo ini hanya berlaku untuk order pertama.'],
@@ -110,8 +104,7 @@ export async function createOfflineOrderViaRpc(
     p_items: params.items,
     p_walk_in_name: params.walkInName,
     p_walk_in_phone: params.walkInPhone,
-    p_promo_id: params.promoId,
-    p_discount_amount: params.discountAmount,
+    p_promos: params.promos,
     p_expected_subtotal: params.expectedSubtotal,
     p_payment_method: params.paymentMethod,
     p_delivery_method: params.deliveryMethod,

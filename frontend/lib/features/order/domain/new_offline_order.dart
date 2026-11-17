@@ -21,7 +21,7 @@ class NewOfflineOrder {
     required this.items,
     required this.paymentMethod,
     this.deliveryMethod = DeliveryMethod.selfPickup,
-    this.promoCode,
+    this.promoCodes = const [],
     this.assignedWorkerId,
     this.idempotencyKey,
   });
@@ -31,7 +31,7 @@ class NewOfflineOrder {
   final List<OrderDraftItem> items;
   final OfflinePaymentMethod paymentMethod;
   final DeliveryMethod deliveryMethod;
-  final String? promoCode;
+  final List<String> promoCodes;
 
   /// worker_profiles.id; null = worker yang login (owner: tanpa worker).
   final String? assignedWorkerId;

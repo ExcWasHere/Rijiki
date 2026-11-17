@@ -2,6 +2,7 @@ import { toNumber } from '../../shared/utils/number';
 import { flowInfoFromRow, isAssignedToViewer, staffActionsFor } from './orders.transitions';
 import type { Viewer } from './orders.transitions';
 import type {
+  AppliedPromoView,
   OrderDocumentationView,
   OrderItemView,
   OrderRow,
@@ -19,12 +20,23 @@ function itemSuffix(code: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function toAppliedPromos(raw: unknown): AppliedPromoView[] {
+  const rows: OrderRow[] = Array.isArray(raw) ? raw : [];
+  return rows
+    .map((row) => ({
+      code: (one(row.promos)?.code as string | undefined) ?? '-',
+      applies_to: (row.applies_to === 'shipping' ? 'shipping' : 'subtotal') as AppliedPromoView['applies_to'],
+      discount_amount: toNumber(row.discount_amount),
+    }))
+    // Promo layanan dulu, lalu ongkir: sama dengan urutan baris di struk.
+    .sort((a, b) => (a.applies_to === b.applies_to ? 0 : a.applies_to === 'subtotal' ? -1 : 1));
+}
+
 export function toOrderView(row: OrderRow, viewer: Viewer | null): OrderView {
   const customer = one(row.customer);
   const customerUser = one(customer?.users);
   const worker = one(row.worker);
   const workerUser = one(worker?.users);
-  const promo = one(row.promos);
   const info = flowInfoFromRow(row);
 
   const rawItems: OrderRow[] = Array.isArray(row.order_items) ? [...row.order_items] : [];
@@ -75,7 +87,7 @@ export function toOrderView(row: OrderRow, viewer: Viewer | null): OrderView {
     discount_amount: toNumber(row.discount_amount),
     shipping_fee: toNumber(row.shipping_fee),
     total_price: toNumber(row.total_price),
-    promo_code: (promo?.code as string | undefined) ?? null,
+    promos: toAppliedPromos(row.order_promos),
     pickup_address: (row.pickup_address as string | null) ?? null,
     delivery_address: (row.delivery_address as string | null) ?? null,
     customer_name:

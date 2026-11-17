@@ -168,7 +168,7 @@ class _DetailBody extends StatelessWidget {
         PriceBreakdownCard(
           price: order.price,
           paid: order.isPaid,
-          promoCode: order.promoCode,
+          promos: order.promos,
           showPaymentStatus: order.status != OrderStatus.cancelled,
         ),
         if (order.isOffline && order.canPay) ...[

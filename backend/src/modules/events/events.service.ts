@@ -7,6 +7,7 @@ import {
   getEventView,
   insertEventRow,
   listAllEvents,
+  listAvailablePromoEvents,
   listPromoOptionRows,
   listPublishedEvents,
   promoExists,
@@ -64,15 +65,28 @@ async function assertPromoExists(env: Bindings, promoId: string): Promise<void> 
  * Event yang tampil ke customer: published, belum lewat end_date, dan bila
  * terhubung ke promo maka promonya harus tersedia (aktif, dalam periode, kuota
  * belum habis). Event dengan promo yang tidak tersedia disembunyikan.
+ *
+ * Promo tersedia yang belum ditampilkan lewat event ikut dimasukkan sebagai
+ * item bertipe promo, supaya kode promo yang aktif selalu terlihat customer.
  */
 export async function listCustomerEvents(
   env: Bindings,
   query: ListEventsQuery,
 ): Promise<{ items: EventView[] }> {
-  const views = await listPublishedEvents(env, todayWib(), query.event_type);
-  return {
-    items: views.filter((event) => !event.related_promo_id || event.promo?.available === true),
-  };
+  const today = todayWib();
+  const includePromos = !query.event_type || query.event_type === 'promo';
+  const [views, promoViews] = await Promise.all([
+    listPublishedEvents(env, today, query.event_type),
+    includePromos ? listAvailablePromoEvents(env, today) : Promise.resolve([]),
+  ]);
+
+  const events = views.filter(
+    (event) => !event.related_promo_id || event.promo?.available === true,
+  );
+  const shownPromoIds = new Set(events.map((event) => event.related_promo_id));
+  const standalonePromos = promoViews.filter((view) => !shownPromoIds.has(view.id));
+
+  return { items: [...events, ...standalonePromos] };
 }
 
 // ---------------------------------------------------------------------------

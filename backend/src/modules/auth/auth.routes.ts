@@ -82,14 +82,8 @@ authRoutes.post('/change-password', authMiddleware, async (c) => {
 
 authRoutes.post('/change-email', authMiddleware, async (c) => {
   const input = parseInput(requestEmailChangeSchema, await c.req.json().catch(() => null));
-  const { pending } = await authService.requestEmailChange(c.env, c.get('user').user, input);
-
-  return c.json({
-    pending,
-    message: pending
-      ? 'Kode verifikasi dikirim ke email baru'
-      : 'Email berhasil diganti',
-  });
+  await authService.requestEmailChange(c.env, c.get('user').user, input);
+  return c.json({ message: 'Kode verifikasi dikirim ke email baru' });
 });
 
 authRoutes.post('/confirm-email-change', authMiddleware, async (c) => {

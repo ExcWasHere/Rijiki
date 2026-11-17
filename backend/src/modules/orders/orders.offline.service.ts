@@ -3,10 +3,10 @@ import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { logActivity } from '../../shared/utils/activity-log';
 import { fingerprintOf, idempotencyConflict } from '../../shared/utils/idempotency';
+import { notifyOfflineOrder } from '../notifications/notifications.events';
 import { resolveAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
-import { EMPTY_USAGE, evaluatePromo } from './orders.pricing';
-import type { PromoEvaluation } from './orders.pricing';
+import { EMPTY_USAGE, evaluatePromos, toRpcPromos } from './orders.pricing';
 import { createOfflineOrderViaRpc, findOfflineOrderByIdempotencyKey, getWalkInPromoUsage } from './orders.offline.repo';
 import { findPromoByCode, findWorkerProfile, findWorkerProfileById, getOrderRow } from './orders.repo';
 import type { CreateOfflineOrderInput } from './orders.schema';
@@ -50,7 +50,7 @@ function offlineFingerprint(
       item.quantity,
       item.notes,
     ]),
-    promo: input.promo_code ?? null,
+    promos: [...input.promo_codes].sort(),
     worker: assignedWorkerId,
     payment: input.payment_method,
     delivery: input.delivery_method,
@@ -95,21 +95,21 @@ export async function createOfflineOrder(
 
   const priced = await priceItems(env, input.items);
 
-  let evaluation: PromoEvaluation | null = null;
-  let promoId: string | null = null;
-  if (input.promo_code) {
-    const promo = await findPromoByCode(env, input.promo_code);
-    const usage = promo
-      ? await getWalkInPromoUsage(env, promo, input.walk_in_customer_phone)
-      : EMPTY_USAGE;
-    evaluation = evaluatePromo(promo, {
-      subtotal: priced.subtotal,
-      shipping: 0,
-      lines: priced.lines,
-      usage,
-    });
-    promoId = promo?.id ?? null;
-  }
+  const promoEntries = await Promise.all(
+    input.promo_codes.map(async (code) => {
+      const promo = await findPromoByCode(env, code);
+      const usage = promo
+        ? await getWalkInPromoUsage(env, promo, input.walk_in_customer_phone)
+        : EMPTY_USAGE;
+      return { code, promo, usage };
+    }),
+  );
+  // Order offline tanpa ongkir: promo ongkir ditolak evaluatePromo.
+  const evaluations = evaluatePromos(promoEntries, {
+    subtotal: priced.subtotal,
+    shipping: 0,
+    lines: priced.lines,
+  });
 
   const orderId = await createOfflineOrderViaRpc(env, {
     userId: ctx.user.id,
@@ -121,8 +121,7 @@ export async function createOfflineOrder(
     })),
     walkInName: input.walk_in_customer_name,
     walkInPhone: input.walk_in_customer_phone,
-    promoId,
-    discountAmount: evaluation?.discount ?? 0,
+    promos: toRpcPromos(evaluations),
     expectedSubtotal: priced.subtotal,
     paymentMethod: input.payment_method,
     deliveryMethod: input.delivery_method,
@@ -151,5 +150,16 @@ export async function createOfflineOrder(
     console.error('orders.offline: order baru tidak ditemukan setelah dibuat', orderId);
     throw new AppError(500, 'order_create_failed', 'Order disimpan, tetapi gagal dimuat. Cek daftar order.');
   }
+
+  await notifyOfflineOrder(
+    env,
+    {
+      id: orderId,
+      order_number: String(row.order_number),
+      customer_name: input.walk_in_customer_name,
+    },
+    ctx.user.id,
+  );
+
   return { order: toOrderView(row, access.viewer), replayed: false };
 }

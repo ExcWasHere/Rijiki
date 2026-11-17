@@ -26,6 +26,9 @@ interface CachedToken {
 
 let tokenCache: CachedToken | null = null;
 
+/** Sama dengan `PushService.channelId` di Flutter. */
+const ANDROID_CHANNEL_ID = 'rijiki_default';
+
 export function getFcmConfig(env: Bindings): FcmConfig | null {
   const projectId = env.FIREBASE_PROJECT_ID?.trim();
   const clientEmail = env.FIREBASE_CLIENT_EMAIL?.trim();
@@ -155,7 +158,18 @@ export async function sendPush(
               token,
               notification: { title: message.title, body: message.body },
               data: message.data,
-              android: { priority: 'high' },
+              android: {
+                priority: 'high',
+                // Kanal & ikon harus sama dengan yang dibuat aplikasi
+                // (PushService + AndroidManifest), agar notifikasi tampil
+                // sebagai heads-up walau aplikasi tertutup.
+                notification: {
+                  channel_id: ANDROID_CHANNEL_ID,
+                  icon: 'ic_notification',
+                  color: '#2EB4F2',
+                  sound: 'default',
+                },
+              },
             },
           }),
         });

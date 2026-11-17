@@ -173,11 +173,10 @@ class MockAuthRepository implements AuthRepository {
 
 
   @override
-  Future<bool> requestEmailChange({
+  Future<void> requestEmailChange({
     required String newEmail,
     required String password,
   }) async {
     await Future<void>.delayed(_latency);
-    return true;
   }
 }

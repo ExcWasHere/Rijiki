@@ -68,7 +68,6 @@ class StaffOrderRepositoryImpl implements StaffOrderRepository {
   Future<CustomerOrder> createOfflineOrder(NewOfflineOrder order) {
     return _guard(() async {
       final key = order.idempotencyKey;
-      final promo = order.promoCode?.trim() ?? '';
       final workerId = order.assignedWorkerId;
 
       final json = await api.post(
@@ -87,7 +86,7 @@ class StaffOrderRepositoryImpl implements StaffOrderRepository {
                 if (item.notes.trim().isNotEmpty) 'notes': item.notes.trim(),
               },
           ],
-          if (promo.isNotEmpty) 'promo_code': promo,
+          if (order.promoCodes.isNotEmpty) 'promo_codes': order.promoCodes,
           if (workerId != null) 'assigned_worker_id': workerId,
           'payment_method': order.paymentMethod.json,
           'delivery_method': order.deliveryMethod == DeliveryMethod.selfPickup

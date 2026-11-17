@@ -20,10 +20,9 @@ abstract interface class AuthRepository {
     required String newPassword,
   });
 
-  /// Mengirim permintaan ganti email. `true` = masih perlu kode OTP ke email
-  /// baru; `false` = email sudah langsung berganti (konfirmasi email dimatikan
-  /// di Supabase Auth).
-  Future<bool> requestEmailChange({
+  /// Mengirim kode OTP ke email baru. Email baru berlaku setelah
+  /// [confirmEmailChange] berhasil.
+  Future<void> requestEmailChange({
     required String newEmail,
     required String password,
   });

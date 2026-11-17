@@ -80,9 +80,17 @@ export interface PriceQuoteView {
   discount_amount: number;
   shipping_fee: number;
   total_price: number;
-  promo_code: string | null;
-  promo_description: string | null;
+  promos: AppliedPromoView[];
   distance_km: number;
+}
+
+/** Promo yang dipakai sebuah order (atau kutipan harga) beserta potongannya. */
+export interface AppliedPromoView {
+  code: string;
+  applies_to: 'subtotal' | 'shipping';
+  discount_amount: number;
+  /** Hanya di kutipan harga: judul promo dan nilai potongannya. */
+  description?: string;
 }
 
 export interface OrderItemView {
@@ -136,7 +144,7 @@ export interface OrderView {
   discount_amount: number;
   shipping_fee: number;
   total_price: number;
-  promo_code: string | null;
+  promos: AppliedPromoView[];
   pickup_address: string | null;
   delivery_address: string | null;
   customer_name: string | null;

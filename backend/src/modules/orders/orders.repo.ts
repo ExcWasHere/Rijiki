@@ -56,7 +56,7 @@ const ORDER_SELECT: string = [
   'scheduled_pickup_at',
   'completed_at',
   'created_at',
-  'promos(code)',
+  'order_promos(applies_to, discount_amount, promos(code))',
   'customer:customer_profiles(users(full_name, phone_number))',
   'worker:worker_profiles(users(full_name))',
   'ratings(id)',
@@ -173,17 +173,41 @@ export async function findPromoByCode(env: Bindings, code: string): Promise<Prom
   return row ? (row as unknown as PromoRow) : null;
 }
 
-async function countOrders(
+async function countOrders(env: Bindings, customerId: string): Promise<number> {
+  const admin = getSupabaseAdmin(env);
+  const { count, error } = await admin
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .neq('status', 'cancelled')
+    .eq('customer_id', customerId);
+  if (error) throw loadFailed('pemakaian promo', error.message, 'Gagal memeriksa kuota promo');
+  return count ?? 0;
+}
+
+/**
+ * Pemakaian promo dari order_promos (order batal tidak dihitung). Filter
+ * pemilik order opsional: customer aplikasi atau nomor HP customer offline.
+ */
+export async function countPromoUsage(
   env: Bindings,
-  filters: { promoId?: string; customerId?: string },
+  promoId: string,
+  owner?: { customerId: string } | { walkInPhone: string },
 ): Promise<number> {
   const admin = getSupabaseAdmin(env);
   let builder = admin
-    .from('orders')
-    .select('id', { count: 'exact', head: true })
-    .neq('status', 'cancelled');
-  if (filters.promoId) builder = builder.eq('promo_id', filters.promoId);
-  if (filters.customerId) builder = builder.eq('customer_id', filters.customerId);
+    .from('order_promos')
+    .select('id, orders!inner(status, customer_id, channel, walk_in_customer_phone)', {
+      count: 'exact',
+      head: true,
+    })
+    .eq('promo_id', promoId)
+    .neq('orders.status', 'cancelled');
+  if (owner && 'customerId' in owner) builder = builder.eq('orders.customer_id', owner.customerId);
+  if (owner && 'walkInPhone' in owner) {
+    builder = builder
+      .eq('orders.channel', 'staff_manual')
+      .eq('orders.walk_in_customer_phone', owner.walkInPhone);
+  }
 
   const { count, error } = await builder;
   if (error) throw loadFailed('pemakaian promo', error.message, 'Gagal memeriksa kuota promo');
@@ -208,11 +232,11 @@ export async function getPromoUsage(
   if (!needsTotal && !needsPerCustomer && !needsFirstOrder) return EMPTY_USAGE;
 
   const [total, perCustomer, customerOrders] = await Promise.all([
-    needsTotal ? countOrders(env, { promoId: promo.id }) : Promise.resolve(0),
+    needsTotal ? countPromoUsage(env, promo.id) : Promise.resolve(0),
     needsPerCustomer && customerId
-      ? countOrders(env, { promoId: promo.id, customerId })
+      ? countPromoUsage(env, promo.id, { customerId })
       : Promise.resolve(0),
-    needsFirstOrder && customerId ? countOrders(env, { customerId }) : Promise.resolve(0),
+    needsFirstOrder && customerId ? countOrders(env, customerId) : Promise.resolve(0),
   ]);
 
   return { total, perCustomer, customerOrders };
@@ -225,8 +249,7 @@ export interface CreateOrderRpcParams {
   pickupLat: number;
   pickupLng: number;
   deliveryAddress: string;
-  promoId: string | null;
-  discountAmount: number;
+  promos: Array<{ promo_id: string; discount_amount: number }>;
   shippingFee: number;
   expectedSubtotal: number;
   idempotencyKey: string | null;
@@ -234,6 +257,7 @@ export interface CreateOrderRpcParams {
 }
 
 const PROMO_RPC_ERRORS: Array<[string, string]> = [
+  ['promo_conflict', 'Hanya bisa memakai 1 promo layanan dan 1 promo ongkir dalam satu order.'],
   ['promo_inactive', 'Kode promo tidak ditemukan atau sudah tidak berlaku.'],
   ['promo_min_subtotal', 'Belanja kamu belum memenuhi syarat minimal promo ini.'],
   ['promo_first_order_only', 'Promo ini hanya berlaku untuk order pertama.'],
@@ -253,8 +277,7 @@ export async function createOrderViaRpc(
     p_pickup_lat: params.pickupLat,
     p_pickup_lng: params.pickupLng,
     p_delivery_address: params.deliveryAddress,
-    p_promo_id: params.promoId,
-    p_discount_amount: params.discountAmount,
+    p_promos: params.promos,
     p_shipping_fee: params.shippingFee,
     p_expected_subtotal: params.expectedSubtotal,
     p_idempotency_key: params.idempotencyKey,

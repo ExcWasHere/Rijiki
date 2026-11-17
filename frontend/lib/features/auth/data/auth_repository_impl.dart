@@ -111,17 +111,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<bool> requestEmailChange({
+  Future<void> requestEmailChange({
     required String newEmail,
     required String password,
   }) async {
     try {
-      final json = await api.post(
+      await api.post(
         ApiEndpoints.changeEmail,
         auth: true,
         body: {'new_email': newEmail, 'password': password},
       );
-      return json['pending'] as bool? ?? true;
     } on AppException catch (e) {
       throw _toFailure(e);
     }

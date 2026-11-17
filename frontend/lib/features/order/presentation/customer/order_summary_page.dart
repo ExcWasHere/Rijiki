@@ -130,7 +130,7 @@ class OrderSummaryPage extends ConsumerWidget {
             data: (data) => PriceBreakdownCard(
               price: data.price,
               paid: false,
-              promoCode: data.promoCode,
+              promos: data.promos,
               showPaymentStatus: false,
             ),
           ),

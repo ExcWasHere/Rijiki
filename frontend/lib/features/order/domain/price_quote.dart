@@ -1,17 +1,15 @@
 import 'package:flutter/foundation.dart';
+import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/domain/price_breakdown.dart';
 
 @immutable
 class PriceQuote {
-  const PriceQuote({
-    required this.price,
-    this.promoCode,
-    this.promoDescription,
-  });
+  const PriceQuote({required this.price, this.promos = const []});
 
   final PriceBreakdown price;
-  final String? promoCode;
-  final String? promoDescription;
+  final List<AppliedPromo> promos;
+
+  List<String> get promoCodes => [for (final promo in promos) promo.code];
 }
 
 class PromoException implements Exception {

@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 
 enum AppNotificationType {
+  orderNew('order_new'),
   orderStatus('order_status'),
   orderAssigned('order_assigned'),
   paymentPaid('payment_paid'),
+  paymentExpired('payment_expired'),
   pointRedemption('point_redemption'),
+  pointRedemptionRequest('point_redemption_request'),
   unknown('unknown');
 
   const AppNotificationType(this.value);
@@ -40,8 +43,6 @@ class AppNotification {
 
   /// Data tambahan dari backend, mis. `order_id` untuk membuka detail order.
   final Map<String, dynamic> data;
-
-  String? get orderId => data['order_id'] as String?;
 
   AppNotification copyWith({bool? read}) {
     return AppNotification(

@@ -2,7 +2,10 @@ import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import { logActivity } from '../../shared/utils/activity-log';
 import { toNumberOrNull } from '../../shared/utils/number';
-import { notifyRedemptionProcessed } from '../notifications/notifications.events';
+import {
+  notifyRedemptionProcessed,
+  notifyRedemptionRequested,
+} from '../notifications/notifications.events';
 import { findCustomerProfileByUserId } from '../orders/orders.repo';
 import {
   adjustPointsRpc,
@@ -146,6 +149,13 @@ export async function requestRedemption(
     entity: 'point_redemption',
     entityId: redemptionId,
     metadata: { merchandise_id: input.merchandise_id, points_used: view.points_used },
+  });
+
+  await notifyRedemptionRequested(env, {
+    redemptionId,
+    customerName: view.customer_name,
+    rewardName: view.reward_name,
+    pointsUsed: view.points_used,
   });
   return view;
 }
