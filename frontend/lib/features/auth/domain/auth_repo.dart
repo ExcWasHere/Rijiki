@@ -20,6 +20,8 @@ abstract interface class AuthRepository {
     required String newPassword,
   });
 
+  /// Mengirim kode OTP ke email baru. Email baru berlaku setelah
+  /// [confirmEmailChange] berhasil.
   Future<void> requestEmailChange({
     required String newEmail,
     required String password,
@@ -29,7 +31,4 @@ abstract interface class AuthRepository {
     required String newEmail,
     required String code,
   });
-
-  /// true = berhasil, false = dibatalkan pengguna.
-  Future<bool> linkGoogle();
 }

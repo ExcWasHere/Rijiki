@@ -10,7 +10,9 @@ import 'package:rijiki/features/auth/presentation/controllers/auth_controller.da
 import 'package:rijiki/features/finance/domain/transaction_filter.dart';
 import 'package:rijiki/features/finance/presentation/controllers/finance_controller.dart';
 import 'package:rijiki/features/finance/presentation/widgets/export_range_sheet.dart';
+import 'package:rijiki/features/notifications/presentation/controllers/notification_list_controller.dart';
 import 'package:rijiki/features/profile/presentation/shared/contact_sheet.dart';
+import 'package:rijiki/features/profile/presentation/shared/profile_avatar.dart';
 
 class OwnerProfilePage extends ConsumerWidget {
   const OwnerProfilePage({super.key});
@@ -22,6 +24,7 @@ class OwnerProfilePage extends ConsumerWidget {
     final fullName = (rawName != null && rawName.isNotEmpty)
         ? rawName
         : 'Owner Rijiki';
+    final unread = ref.watch(unreadNotificationCountProvider).value ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -35,7 +38,7 @@ class OwnerProfilePage extends ConsumerWidget {
               name: fullName,
               email: user?.email ?? 'email belum tersedia',
               phone: user?.phoneNumber ?? 'nomor HP belum tersedia',
-              initials: _initials(fullName),
+              avatarUrl: user?.avatarUrl,
               roleLabel: 'Owner',
               onEdit: () => context.push(RoutePaths.editProfile),
             ),
@@ -95,7 +98,8 @@ class OwnerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.notifications_none_rounded,
                         title: 'Notifikasi',
-                        onTap: () => _showComingSoon(context, 'Notifikasi'),
+                        trailing: unread > 0 ? '$unread baru' : null,
+                        onTap: () => context.push(RoutePaths.notifications),
                       ),
                     ],
                   ),
@@ -106,7 +110,7 @@ class OwnerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.help_outline_rounded,
                         title: 'Pusat bantuan',
-                        onTap: () => _showComingSoon(context, 'Pusat bantuan'),
+                        onTap: () => context.push(RoutePaths.helpCenter),
                       ),
                       _ProfileMenuItem(
                         icon: Icons.chat_bubble_outline_rounded,
@@ -116,8 +120,7 @@ class OwnerProfilePage extends ConsumerWidget {
                       _ProfileMenuItem(
                         icon: Icons.description_outlined,
                         title: 'Syarat & ketentuan',
-                        onTap: () =>
-                            _showComingSoon(context, 'Syarat & ketentuan'),
+                        onTap: () => context.push(RoutePaths.terms),
                       ),
                     ],
                   ),
@@ -144,16 +147,6 @@ class OwnerProfilePage extends ConsumerWidget {
     );
   }
 
-  static String _initials(String name) {
-    final values = name
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .toList();
-    if (values.isEmpty) return 'O';
-    if (values.length == 1) return values.first.substring(0, 1).toUpperCase();
-    return '${values.first[0]}${values.last[0]}'.toUpperCase();
-  }
-
   /// Buka Rekap transaksi dengan filter tipe sudah terpilih. Filter bersifat
   /// global, jadi direset dulu agar rentang tanggal/tipe lama tidak ikut.
   static void _openTransactions(
@@ -165,12 +158,6 @@ class OwnerProfilePage extends ConsumerWidget {
       ..reset()
       ..selectType(type);
     context.push(RoutePaths.ownerFinanceTransactions);
-  }
-
-  static void _showComingSoon(BuildContext context, String title) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$title segera hadir')));
   }
 }
 
@@ -240,7 +227,7 @@ class _ProfileHero extends StatelessWidget {
     required this.name,
     required this.email,
     required this.phone,
-    required this.initials,
+    required this.avatarUrl,
     required this.roleLabel,
     required this.onEdit,
   });
@@ -248,7 +235,7 @@ class _ProfileHero extends StatelessWidget {
   final String name;
   final String email;
   final String phone;
-  final String initials;
+  final String? avatarUrl;
   final String roleLabel;
   final VoidCallback onEdit;
 
@@ -276,7 +263,7 @@ class _ProfileHero extends StatelessWidget {
               name: name,
               email: email,
               phone: phone,
-              initials: initials,
+              avatarUrl: avatarUrl,
               roleLabel: roleLabel,
               onEdit: onEdit,
             ),
@@ -334,7 +321,7 @@ class _ProfileCard extends StatelessWidget {
     required this.name,
     required this.email,
     required this.phone,
-    required this.initials,
+    required this.avatarUrl,
     required this.roleLabel,
     required this.onEdit,
   });
@@ -342,7 +329,7 @@ class _ProfileCard extends StatelessWidget {
   final String name;
   final String email;
   final String phone;
-  final String initials;
+  final String? avatarUrl;
   final String roleLabel;
   final VoidCallback onEdit;
 
@@ -365,16 +352,11 @@ class _ProfileCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 32,
+          ProfileAvatar(
+            name: name,
+            avatarUrl: avatarUrl,
             backgroundColor: AppColors.primary,
-            child: Text(
-              initials,
-              style: textTheme.titleLarge?.copyWith(
-                color: AppColors.onPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            foregroundColor: AppColors.onPrimary,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -475,10 +457,12 @@ class _ProfileMenuItem extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
+    this.trailing,
   });
 
   final IconData icon;
   final String title;
+  final String? trailing;
   final VoidCallback onTap;
 
   @override
@@ -486,7 +470,23 @@ class _ProfileMenuItem extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: AppColors.onSurface),
       title: Text(title),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (trailing != null)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.sm),
+              child: Text(
+                trailing!,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          const Icon(Icons.chevron_right_rounded),
+        ],
+      ),
       onTap: onTap,
     );
   }

@@ -5,6 +5,10 @@ import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { logActivity } from '../../shared/utils/activity-log';
 import { parseInput } from '../../shared/utils/validate';
+import {
+  notifyOrderAssigned,
+  notifyOrderStatus,
+} from '../notifications/notifications.events';
 import { awardOrderCompletedPoints } from '../points/points.service';
 import { isUuid, loadVisibleOrder, orderNotFound, resolveAccess } from './orders.access';
 import type { OrderAccess } from './orders.access';
@@ -48,6 +52,20 @@ const DOCUMENTATION_LABEL: Record<DocumentationType, string> = {
   after: 'foto sesudah',
   proof_of_delivery: 'bukti pengiriman',
 };
+
+function orderTarget(row: OrderRow): {
+  id: string;
+  order_number: string;
+  customer_id: string | null;
+  assigned_worker_id: string | null;
+} {
+  return {
+    id: row.id as string,
+    order_number: String(row.order_number),
+    customer_id: (row.customer_id as string | null | undefined) ?? null,
+    assigned_worker_id: (row.assigned_worker_id as string | null | undefined) ?? null,
+  };
+}
 
 function requireStaff(access: OrderAccess): void {
   if (access.viewer.role === 'customer') {
@@ -103,6 +121,7 @@ export async function claimOrder(
     entityId: orderId,
     metadata: { worker_id: worker.id },
   });
+  await notifyOrderAssigned(env, { ...orderTarget(row), assigned_worker_id: worker.id });
   return freshView(env, access, orderId);
 }
 
@@ -143,6 +162,9 @@ export async function assignOrder(
     entityId: orderId,
     metadata: { from: info.assigned_worker_id, to: workerId },
   });
+  if (workerId) {
+    await notifyOrderAssigned(env, { ...orderTarget(row), assigned_worker_id: workerId });
+  }
   return freshView(env, access, orderId);
 }
 
@@ -282,6 +304,8 @@ export async function changeOrderStatus(
     entityId: orderId,
     metadata: { from: info.status, to: target, kind, notes },
   });
+
+  await notifyOrderStatus(env, orderTarget(row), target);
 
   // Order selesai -> poin untuk customer. Galatnya hanya dicatat (status sudah
   // tersimpan) dan pemberiannya idempoten, jadi aman diulang lewat SQL bila perlu.

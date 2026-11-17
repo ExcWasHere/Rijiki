@@ -34,3 +34,27 @@ export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
 export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, 'Password saat ini wajib diisi'),
+    new_password: newPassword,
+  })
+  .refine((value) => value.current_password !== value.new_password, {
+    message: 'Password baru harus berbeda dari yang lama',
+    path: ['new_password'],
+  });
+
+export const requestEmailChangeSchema = z.object({
+  new_email: email,
+  password: z.string().min(1, 'Password wajib diisi'),
+});
+
+export const confirmEmailChangeSchema = z.object({
+  new_email: email,
+  code: z.string().regex(/^\d{6}$/, 'Kode verifikasi harus 6 digit angka'),
+});
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type RequestEmailChangeInput = z.infer<typeof requestEmailChangeSchema>;
+export type ConfirmEmailChangeInput = z.infer<typeof confirmEmailChangeSchema>;

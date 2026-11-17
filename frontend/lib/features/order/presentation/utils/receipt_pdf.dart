@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:rijiki/core/utils/date_formatter.dart';
 import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/presentation/utils/discount_lines.dart';
 import 'package:share_plus/share_plus.dart';
 
 // TODO(PRD #53): tujuan QR code (tautan unduh aplikasi / halaman landing)
@@ -175,12 +176,10 @@ abstract final class ReceiptPdf {
               ],
               divider(),
               line('Subtotal', RupiahFormatter.full(price.subtotal)),
-              if (price.discount > 0)
+              for (final discount in discountLines(price, order.promos))
                 line(
-                  order.promoCode == null
-                      ? 'Diskon'
-                      : 'Diskon (${order.promoCode})',
-                  '-${RupiahFormatter.full(price.discount)}',
+                  discount.label,
+                  '-${RupiahFormatter.full(discount.amount)}',
                 ),
               line('Ongkir', RupiahFormatter.full(price.shipping)),
               pw.SizedBox(height: 4),

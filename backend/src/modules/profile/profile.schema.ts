@@ -22,6 +22,11 @@ const coordinate = (label: string) =>
     `${label} harus berupa angka`,
   );
 
+/**
+ * Nama dan nomor HP berlaku untuk semua role. Alamat default hanya untuk
+ * customer dan bersifat opsional saat edit: bila salah satu dari alamat/titik
+ * dikirim, ketiganya wajib ada agar titik dan teks tidak pernah terpisah.
+ */
 export const updateProfileSchema = z
   .object({
     full_name: z
@@ -34,13 +39,44 @@ export const updateProfileSchema = z
       .string()
       .trim()
       .min(5, 'Alamat terlalu pendek')
-      .max(300, 'Alamat maksimal 300 karakter'),
-    default_lat: coordinate('Latitude'),
-    default_lng: coordinate('Longitude'),
+      .max(300, 'Alamat maksimal 300 karakter')
+      .optional(),
+    default_lat: coordinate('Latitude').optional(),
+    default_lng: coordinate('Longitude').optional(),
   })
-  .refine((v) => isInServiceArea(v.default_lat, v.default_lng), {
-    message: OUT_OF_AREA_MESSAGE,
-    path: ['default_lat'],
+  .superRefine((value, ctx) => {
+    const provided = [
+      value.default_address,
+      value.default_lat,
+      value.default_lng,
+    ].filter((item) => item !== undefined);
+
+    if (provided.length === 0) return;
+
+    if (provided.length !== 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['default_address'],
+        message: 'Alamat dan titik lokasi harus dikirim bersama',
+      });
+      return;
+    }
+
+    if (!isInServiceArea(value.default_lat!, value.default_lng!)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['default_lat'],
+        message: OUT_OF_AREA_MESSAGE,
+      });
+    }
   });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+/** Paginasi riwayat profil (sepatu, rating). */
+export const historyQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export type HistoryQuery = z.infer<typeof historyQuerySchema>;

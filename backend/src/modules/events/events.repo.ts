@@ -143,6 +143,46 @@ export async function listPublishedEvents(
   return toViews(env, (data ?? []) as unknown as EventRow[], today);
 }
 
+/**
+ * Promo aktif dalam periode (WIB) yang kuotanya belum habis, dalam bentuk
+ * event bertipe promo agar tampil di halaman Event & Promo customer.
+ */
+export async function listAvailablePromoEvents(env: Bindings, today: string): Promise<EventView[]> {
+  const admin = getSupabaseAdmin(env);
+  const { data, error } = await admin
+    .from('promos')
+    .select(`${PROMO_FIELDS}, created_at`)
+    .eq('is_active', true)
+    .lte('start_date', today)
+    .gte('end_date', today)
+    .order('created_at', { ascending: false })
+    .limit(LIST_LIMIT);
+  if (error) throw failed('memuat daftar promo', error.message);
+
+  const rows = (data ?? []) as unknown as EventRow[];
+  const usage = await usageCounts(
+    env,
+    rows.map((row) => row.id as string),
+  );
+
+  return rows
+    .map((row) => ({ row, promo: mapPromo(row, usage.get(row.id as string) ?? 0, today) }))
+    .filter(({ promo }) => promo.available)
+    .map(({ row, promo }) => ({
+      id: promo.id,
+      title: promo.title,
+      description: promo.description,
+      banner_image_url: null,
+      event_type: 'promo' as const,
+      related_promo_id: promo.id,
+      start_date: promo.start_date,
+      end_date: promo.end_date,
+      is_published: true,
+      created_at: row.created_at as string,
+      promo,
+    }));
+}
+
 export async function listAllEvents(env: Bindings, today: string): Promise<EventView[]> {
   const admin = getSupabaseAdmin(env);
   const { data, error } = await admin

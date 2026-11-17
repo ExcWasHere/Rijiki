@@ -11,7 +11,7 @@ abstract interface class OrderRepository {
   /// per layanan. Tanpa [items], [subtotal] dipakai apa adanya (alur offline).
   Future<PriceQuote> quotePrice({
     required int subtotal,
-    String? promoCode,
+    List<String> promoCodes = const [],
     List<OrderDraftItem> items = const [],
   });
   Future<CustomerOrder> createOrder(NewOrder order, PriceQuote quote);

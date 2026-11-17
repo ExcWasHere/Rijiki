@@ -53,6 +53,11 @@ import 'package:rijiki/features/payment/presentation/customer/qris_payment_page.
 import 'package:rijiki/features/points/presentation/management/point_adjust_page.dart';
 import 'package:rijiki/features/points/presentation/management/points_hub_page.dart';
 import 'package:rijiki/features/points/presentation/management/redemption_manage_page.dart';
+import 'package:rijiki/features/help/presentation/help_center_page.dart';
+import 'package:rijiki/features/help/presentation/terms_page.dart';
+import 'package:rijiki/features/notifications/presentation/notifications_page.dart';
+import 'package:rijiki/features/profile/presentation/customer/my_ratings_page.dart';
+import 'package:rijiki/features/profile/presentation/customer/my_shoes_page.dart';
 import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
 import 'package:rijiki/features/profile/presentation/owner/owner_profile_page.dart';
 import 'package:rijiki/features/profile/presentation/shared/account_security_page.dart';
@@ -119,6 +124,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.editProfile,
         builder: (context, state) => const EditProfilePage(),
+      ),
+      GoRoute(
+        path: RoutePaths.notifications,
+        builder: (context, state) => const NotificationsPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.myShoes,
+        builder: (context, state) => const MyShoesPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.myRatings,
+        builder: (context, state) => const MyRatingsPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.helpCenter,
+        builder: (context, state) => const HelpCenterPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.terms,
+        builder: (context, state) => const TermsPage(),
       ),
       GoRoute(
         path: RoutePaths.accountSecurity,

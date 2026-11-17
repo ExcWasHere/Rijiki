@@ -5,6 +5,7 @@ import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/location/default_location.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/utils/idempotency_key.dart';
+import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/new_order.dart';
 import 'package:rijiki/features/order/domain/price_quote.dart';
@@ -26,23 +27,30 @@ final defaultAddressProvider = Provider<String>((ref) {
   return saved.isNotEmpty ? saved : _mockDefaultAddress;
 });
 
-enum PromoStatus { idle, checking, applied, invalid }
-
+/// Promo di form order: daftar promo yang sudah lolos cek server (maks 1
+/// promo layanan + 1 promo ongkir) dan status input kode berikutnya.
 @immutable
 class PromoUiState {
   const PromoUiState({
-    this.status = PromoStatus.idle,
-    this.code,
-    this.description,
+    this.applied = const [],
+    this.checkingCode,
     this.error,
   });
 
-  final PromoStatus status;
-  final String? code;
-  final String? description;
+  final List<AppliedPromo> applied;
+
+  /// Kode yang sedang diperiksa server; null = tidak sedang memeriksa.
+  final String? checkingCode;
+
+  /// Galat kode terakhir yang dicoba.
   final String? error;
 
-  String? get appliedCode => status == PromoStatus.applied ? code : null;
+  bool get isChecking => checkingCode != null;
+  bool get canAddMore => applied.length < AppliedPromo.maxPerOrder;
+  List<String> get appliedCodes => [for (final p in applied) p.code];
+
+  /// Kunci quote: urutan tidak memengaruhi harga.
+  String get quoteKey => ([...appliedCodes]..sort()).join(',');
 }
 
 @immutable
@@ -165,8 +173,7 @@ class OrderCreateController extends Notifier<OrderCreateState> {
 
   /// Promo bisa bergantung pada layanan dan subtotal, jadi dilepas saat
   /// keranjang berubah; customer menerapkannya lagi dan dicek ulang server.
-  PromoUiState _promoAfterCartChange() =>
-      state.promo.status == PromoStatus.idle ? state.promo : const PromoUiState();
+  PromoUiState _promoAfterCartChange() => const PromoUiState();
 
   void addItem() {
     if (state.items.length >= maxItems) return;
@@ -208,45 +215,61 @@ class OrderCreateController extends Notifier<OrderCreateState> {
     );
   }
 
-  Future<void> applyPromo(String rawCode) async {
+  /// Menambah kode promo. Server memeriksa gabungan promo yang sudah dipakai
+  /// plus kode baru sekaligus, jadi aturan 1 layanan + 1 ongkir ikut dicek.
+  /// Mengembalikan true bila kode diterima.
+  Future<bool> applyPromo(String rawCode) async {
     final code = rawCode.trim().toUpperCase();
-    if (code.isEmpty) return;
+    final current = state.promo;
+    if (code.isEmpty || current.isChecking) return false;
+    if (current.appliedCodes.contains(code)) {
+      state = state.copyWith(
+        promo: PromoUiState(
+          applied: current.applied,
+          error: 'Kode $code sudah dipakai.',
+        ),
+      );
+      return false;
+    }
+    if (!current.canAddMore) return false;
 
     state = state.copyWith(
-      promo: PromoUiState(status: PromoStatus.checking, code: code),
+      promo: PromoUiState(applied: current.applied, checkingCode: code),
     );
     try {
       final quote = await ref
           .read(orderRepositoryProvider)
           .quotePrice(
             subtotal: state.subtotal,
-            promoCode: code,
+            promoCodes: [...current.appliedCodes, code],
             items: state.items,
           );
-      state = state.copyWith(
-        promo: PromoUiState(
-          status: PromoStatus.applied,
-          code: quote.promoCode ?? code,
-          description: quote.promoDescription,
-        ),
-      );
+      state = state.copyWith(promo: PromoUiState(applied: quote.promos));
+      return true;
     } on PromoException catch (e) {
       state = state.copyWith(
-        promo: PromoUiState(
-          status: PromoStatus.invalid,
-          code: code,
-          error: e.message,
-        ),
+        promo: PromoUiState(applied: current.applied, error: e.message),
       );
     } catch (_) {
       state = state.copyWith(
         promo: PromoUiState(
-          status: PromoStatus.invalid,
-          code: code,
+          applied: current.applied,
           error: 'Kode promo gagal diperiksa. Coba lagi.',
         ),
       );
     }
+    return false;
+  }
+
+  void removePromo(String code) {
+    state = state.copyWith(
+      promo: PromoUiState(
+        applied: [
+          for (final promo in state.promo.applied)
+            if (promo.code != code) promo,
+        ],
+      ),
+    );
   }
 
   void clearPromo() => state = state.copyWith(promo: const PromoUiState());
@@ -260,7 +283,7 @@ class OrderCreateController extends Notifier<OrderCreateState> {
       ...lines,
       state.pickupAddress.trim(),
       state.effectiveDeliveryAddress.trim(),
-      quote.promoCode ?? '',
+      ([...quote.promoCodes]..sort()).join(','),
     ].join('\n');
   }
 
@@ -285,7 +308,7 @@ class OrderCreateController extends Notifier<OrderCreateState> {
               items: state.items,
               pickupAddress: state.pickupAddress.trim(),
               deliveryAddress: state.effectiveDeliveryAddress.trim(),
-              promoCode: quote.promoCode,
+              promoCodes: quote.promoCodes,
               idempotencyKey: _keyFor(_fingerprint(quote)),
             ),
             quote,
@@ -313,11 +336,15 @@ final orderCreateControllerProvider =
 final orderQuoteProvider = FutureProvider.autoDispose<PriceQuote>((ref) {
   final key = ref.watch(
     orderCreateControllerProvider.select(
-      (state) => (state.subtotal, state.promo.appliedCode, state.quoteItemsKey),
+      (state) => (state.subtotal, state.promo.quoteKey, state.quoteItemsKey),
     ),
   );
-  final items = ref.read(orderCreateControllerProvider).items;
+  final current = ref.read(orderCreateControllerProvider);
   return ref
       .watch(orderRepositoryProvider)
-      .quotePrice(subtotal: key.$1, promoCode: key.$2, items: items);
+      .quotePrice(
+        subtotal: key.$1,
+        promoCodes: current.promo.appliedCodes,
+        items: current.items,
+      );
 }, retry: _noRetry);

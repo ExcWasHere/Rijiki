@@ -91,15 +91,23 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
- static const _mockEmailCode = '123456';
-  static const _mockDelay = Duration(milliseconds: 800);
-  
-@override
+  @override
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
-    await Future<void>.delayed(_mockDelay);
+    try {
+      await api.post(
+        ApiEndpoints.changePassword,
+        auth: true,
+        body: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        },
+      );
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
   }
 
   @override
@@ -107,7 +115,15 @@ class AuthRepositoryImpl implements AuthRepository {
     required String newEmail,
     required String password,
   }) async {
-    await Future<void>.delayed(_mockDelay);
+    try {
+      await api.post(
+        ApiEndpoints.changeEmail,
+        auth: true,
+        body: {'new_email': newEmail, 'password': password},
+      );
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
   }
 
   @override
@@ -115,20 +131,17 @@ class AuthRepositoryImpl implements AuthRepository {
     required String newEmail,
     required String code,
   }) async {
-    await Future<void>.delayed(_mockDelay);
-    if (code != _mockEmailCode) {
-      throw const Failure(FailureType.invalidOtp, 'Kode verifikasi salah.');
+    try {
+      await api.post(
+        ApiEndpoints.confirmEmailChange,
+        auth: true,
+        body: {'new_email': newEmail, 'code': code},
+      );
+    } on AppException catch (e) {
+      throw _toFailure(e);
     }
   }
 
-  @override
-  Future<bool> linkGoogle() async {
-    final idToken = await googleSignIn.signIn();
-    if (idToken == null) return false;
-    // TODO(backend): kirim idToken ke endpoint "hubungkan Google".
-    await Future<void>.delayed(_mockDelay);
-    return true;
-  }
 
   Future<AppUser> _authenticate(String path, Map<String, dynamic> body) async {
     try {

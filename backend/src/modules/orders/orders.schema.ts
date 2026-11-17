@@ -9,6 +9,9 @@ const promoCode = z
   .regex(/^[A-Za-z0-9_-]+$/, 'Kode promo tidak valid')
   .transform((v) => v.toUpperCase());
 
+/** Maksimal 1 promo layanan + 1 promo ongkir; aturan jenisnya dicek service. */
+const promoCodes = z.array(promoCode).max(2, 'Maksimal 2 kode promo per order').default([]);
+
 const address = (label: string) =>
   z
     .string()
@@ -33,7 +36,7 @@ export const quoteOrderSchema = z.object({
     .max(100_000_000, 'Subtotal terlalu besar')
     .optional(),
   items: z.array(quoteItemSchema).max(5, 'Maksimal 5 item per order').optional(),
-  promo_code: promoCode.nullish(),
+  promo_codes: promoCodes,
 });
 
 const orderItemSchema = z.object({
@@ -68,7 +71,7 @@ export const createOrderSchema = z.object({
     .max(5, 'Maksimal 5 item per order'),
   pickup_address: address('Alamat penjemputan'),
   delivery_address: address('Alamat pengantaran'),
-  promo_code: promoCode.nullish(),
+  promo_codes: promoCodes,
 });
 
 /** 08xx / 628xx / +628xx -> +628xx. */
@@ -98,7 +101,7 @@ export const createOfflineOrderSchema = z.object({
     .array(orderItemSchema)
     .min(1, 'Pilih minimal satu layanan')
     .max(5, 'Maksimal 5 item per order'),
-  promo_code: promoCode.nullish(),
+  promo_codes: promoCodes,
   /** worker_profiles.id; kosong = worker yang login (owner: tanpa worker). */
   assigned_worker_id: z.string().uuid('Worker tidak valid').nullish(),
   payment_method: z.enum(['qris', 'cash']),

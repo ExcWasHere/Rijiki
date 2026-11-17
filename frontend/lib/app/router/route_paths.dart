@@ -12,6 +12,12 @@ abstract final class RoutePaths {
   static const String changePassword = '/profile/security/password';
   static const String changeEmail = '/profile/security/email';
 
+  static const String notifications = '/profile/notifications';
+  static const String myShoes = '/profile/shoes';
+  static const String myRatings = '/profile/ratings';
+  static const String helpCenter = '/profile/help';
+  static const String terms = '/profile/terms';
+
   static const String customerHome = '/customer';
   static const String customerOrders = '/customer/orders';
   static const String customerEvents = '/customer/events';

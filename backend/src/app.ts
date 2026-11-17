@@ -6,6 +6,7 @@ import { managementCustomersRoutes } from './modules/customers/customers.routes'
 import { eventsRoutes, managementEventsRoutes } from './modules/events/events.routes';
 import { mediaRoutes } from './modules/media/media.routes';
 import { managementMerchandiseRoutes } from './modules/merchandise/merchandise.routes';
+import { devicesRoutes, notificationsRoutes } from './modules/notifications/notifications.routes';
 import { ordersRoutes } from './modules/orders/orders.routes';
 import { paymentsRoutes } from './modules/payments/payments.routes';
 import {
@@ -47,6 +48,8 @@ export function createApp() {
   app.route('/api/orders', ordersRoutes);
   app.route('/api/payments', paymentsRoutes);
   app.route('/api/points', pointsRoutes);
+  app.route('/api/notifications', notificationsRoutes);
+  app.route('/api/devices', devicesRoutes);
   app.route('/api/testimonials', testimonialsRoutes);
   app.route('/api/management/events', managementEventsRoutes);
   app.route('/api/management/merchandise', managementMerchandiseRoutes);

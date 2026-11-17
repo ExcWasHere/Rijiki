@@ -4,6 +4,7 @@ import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/currency_formatter.dart';
 import 'package:rijiki/core/utils/date_formatter.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/presentation/utils/discount_lines.dart';
 import 'package:rijiki/shared/widgets/dashed_divider.dart';
 
 class ReceiptCard extends StatelessWidget {
@@ -112,12 +113,10 @@ class ReceiptCard extends StatelessWidget {
             label: 'Subtotal',
             value: CurrencyFormatter.rupiah(price.subtotal),
           ),
-          if (price.discount > 0)
+          for (final line in discountLines(price, order.promos))
             _Line(
-              label: order.promoCode == null
-                  ? 'Diskon'
-                  : 'Diskon (${order.promoCode})',
-              value: '-${CurrencyFormatter.rupiah(price.discount)}',
+              label: line.label,
+              value: '-${CurrencyFormatter.rupiah(line.amount)}',
               valueColor: AppColors.success,
             ),
           _Line(label: 'Ongkir', value: CurrencyFormatter.rupiah(price.shipping)),

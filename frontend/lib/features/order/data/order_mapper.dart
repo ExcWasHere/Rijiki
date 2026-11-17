@@ -1,6 +1,7 @@
 import 'package:rijiki/core/enums/order_payment_status.dart';
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/network/api_client.dart' show Json;
+import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/domain/assignable_worker.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/delivery_method.dart';
@@ -43,7 +44,7 @@ CustomerOrder customerOrderFromJson(Json json) {
     scheduledPickupAt: _date(json['scheduled_pickup_at']),
     completedAt: _date(json['completed_at']),
     workerName: json['worker_name'] as String?,
-    promoCode: json['promo_code'] as String?,
+    promos: AppliedPromo.listFromJson(json['promos']),
     customerName: json['customer_name'] as String?,
     customerPhone: json['customer_phone'] as String?,
     statusHistory: history,

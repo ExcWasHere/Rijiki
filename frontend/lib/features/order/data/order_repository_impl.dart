@@ -4,6 +4,7 @@ import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/network/api_client.dart';
 import 'package:rijiki/core/network/api_endpoint.dart';
 import 'package:rijiki/features/order/data/order_mapper.dart';
+import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/domain/new_order.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
@@ -41,10 +42,9 @@ class OrderRepositoryImpl implements OrderRepository {
   @override
   Future<PriceQuote> quotePrice({
     required int subtotal,
-    String? promoCode,
+    List<String> promoCodes = const [],
     List<OrderDraftItem> items = const [],
   }) async {
-    final code = promoCode?.trim() ?? '';
     final lines = [
       for (final item in items)
         if (item.service != null)
@@ -57,7 +57,7 @@ class OrderRepositoryImpl implements OrderRepository {
         body: {
           'subtotal': subtotal,
           if (lines.isNotEmpty) 'items': lines,
-          if (code.isNotEmpty) 'promo_code': code,
+          if (promoCodes.isNotEmpty) 'promo_codes': promoCodes,
         },
       );
       return PriceQuote(
@@ -66,8 +66,7 @@ class OrderRepositoryImpl implements OrderRepository {
           discount: (json['discount_amount'] as num).round(),
           shipping: (json['shipping_fee'] as num).round(),
         ),
-        promoCode: json['promo_code'] as String?,
-        promoDescription: json['promo_description'] as String?,
+        promos: AppliedPromo.listFromJson(json['promos']),
       );
     } on AppException catch (e) {
       if (e.code == 'promo_invalid') throw PromoException(e.message);
@@ -95,7 +94,7 @@ class OrderRepositoryImpl implements OrderRepository {
           ],
           'pickup_address': order.pickupAddress,
           'delivery_address': order.deliveryAddress,
-          if (order.promoCode != null) 'promo_code': order.promoCode,
+          if (order.promoCodes.isNotEmpty) 'promo_codes': order.promoCodes,
         },
       );
       return customerOrderFromJson(json);

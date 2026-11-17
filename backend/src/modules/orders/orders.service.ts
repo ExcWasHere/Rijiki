@@ -2,9 +2,16 @@ import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { fingerprintOf, idempotencyConflict } from '../../shared/utils/idempotency';
+import { notifyNewOrder } from '../notifications/notifications.events';
 import { loadVisibleOrder, resolveAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
-import { EMPTY_USAGE, computeTotals, evaluatePromo } from './orders.pricing';
+import {
+  EMPTY_USAGE,
+  computeTotals,
+  evaluatePromos,
+  toRpcPromos,
+  totalDiscount,
+} from './orders.pricing';
 import type { PromoEvaluation } from './orders.pricing';
 import {
   createOrderViaRpc,
@@ -79,17 +86,31 @@ export async function priceItems(
   return { subtotal, lines };
 }
 
-async function loadPromo(
+async function loadPromos(
   env: Bindings,
-  code: string | null | undefined,
+  codes: string[],
   base: { subtotal: number; shipping: number; lines: PricedLine[] },
   customerId: string | null,
-): Promise<{ evaluation: PromoEvaluation | null; promoId: string | null }> {
-  if (!code) return { evaluation: null, promoId: null };
-  const promo = await findPromoByCode(env, code);
-  const usage = promo ? await getPromoUsage(env, promo, customerId) : EMPTY_USAGE;
-  const evaluation = evaluatePromo(promo, { ...base, usage });
-  return { evaluation, promoId: promo?.id ?? null };
+): Promise<PromoEvaluation[]> {
+  if (codes.length === 0) return [];
+  const entries = await Promise.all(
+    codes.map(async (code) => {
+      const promo = await findPromoByCode(env, code);
+      const usage = promo ? await getPromoUsage(env, promo, customerId) : EMPTY_USAGE;
+      return { code, promo, usage };
+    }),
+  );
+  return evaluatePromos(entries, base);
+}
+
+/** Bentuk promo di respons kutipan harga. */
+export function toQuotePromos(evaluations: PromoEvaluation[]): PriceQuoteView['promos'] {
+  return evaluations.map((item) => ({
+    code: item.code,
+    applies_to: item.appliesTo,
+    discount_amount: item.discount,
+    description: item.description,
+  }));
 }
 
 export async function quoteOrder(
@@ -106,21 +127,20 @@ export async function quoteOrder(
       ? await priceItems(env, input.items)
       : { subtotal: input.subtotal ?? 0, lines: [] as PricedLine[] };
 
-  const { evaluation } = await loadPromo(
+  const evaluations = await loadPromos(
     env,
-    input.promo_code,
+    input.promo_codes,
     { subtotal: priced.subtotal, shipping: shipping.fee, lines: priced.lines },
     profile?.id ?? null,
   );
 
-  const totals = computeTotals(priced.subtotal, evaluation?.discount ?? 0, shipping.fee);
+  const totals = computeTotals(priced.subtotal, totalDiscount(evaluations), shipping.fee);
   return {
     subtotal: totals.subtotal,
     discount_amount: totals.discount,
     shipping_fee: totals.shipping,
     total_price: totals.total,
-    promo_code: evaluation?.code ?? null,
-    promo_description: evaluation?.description ?? null,
+    promos: toQuotePromos(evaluations),
     distance_km: Math.round(shipping.distanceKm * 100) / 100,
   };
 }
@@ -142,7 +162,8 @@ function orderFingerprint(input: CreateOrderInput): Promise<string> {
     ]),
     pickup: input.pickup_address,
     delivery: input.delivery_address,
-    promo: input.promo_code ?? null,
+    // Urutan kode tidak mengubah isi order.
+    promos: [...input.promo_codes].sort(),
   });
 }
 
@@ -167,9 +188,9 @@ export async function createOrder(
   const coords = requireCoordinates(profile);
   const priced = await priceItems(env, input.items);
   const shipping = await loadShipping(env, coords);
-  const { evaluation, promoId } = await loadPromo(
+  const evaluations = await loadPromos(
     env,
-    input.promo_code,
+    input.promo_codes,
     { subtotal: priced.subtotal, shipping: shipping.fee, lines: priced.lines },
     profile?.id ?? null,
   );
@@ -186,8 +207,7 @@ export async function createOrder(
     pickupLat: coords.lat,
     pickupLng: coords.lng,
     deliveryAddress: input.delivery_address,
-    promoId,
-    discountAmount: evaluation?.discount ?? 0,
+    promos: toRpcPromos(evaluations),
     shippingFee: shipping.fee,
     expectedSubtotal: priced.subtotal,
     idempotencyKey,
@@ -199,6 +219,10 @@ export async function createOrder(
     console.error('orders: order baru tidak ditemukan setelah dibuat', orderId);
     throw new AppError(500, 'order_create_failed', 'Order dibuat, tetapi gagal dimuat. Cek daftar order.');
   }
+
+  // Order baru masuk antrean: kabari worker agar bisa diambil.
+  await notifyNewOrder(env, { id: orderId, order_number: String(row.order_number) });
+
   return { order: toOrderView(row, null), replayed: false };
 }
 

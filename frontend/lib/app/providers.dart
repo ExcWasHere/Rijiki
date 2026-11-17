@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/core/constants/app_constants.dart';
 import 'package:rijiki/core/mock/mock_scenario.dart';
 import 'package:rijiki/core/network/api_client.dart';
+import 'package:rijiki/core/notifications/push_service.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/storage/token_storage.dart';
 import 'package:rijiki/features/access_control/data/mock_permission_repository.dart';
@@ -62,6 +63,9 @@ import 'package:rijiki/features/points/data/customer_points_repository_impl.dart
 import 'package:rijiki/features/points/data/mock_customer_points_repository.dart';
 import 'package:rijiki/features/points/domain/customer_points_repository.dart';
 import 'package:rijiki/features/merchandise/data/merchandise_repository_impl.dart';
+import 'package:rijiki/features/notifications/data/mock_notification_repository.dart';
+import 'package:rijiki/features/notifications/data/notification_repository_impl.dart';
+import 'package:rijiki/features/notifications/domain/notification_repository.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -89,6 +93,15 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   if (AppConstants.useMockAuth) return MockProfileRepository();
   return ProfileRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  if (AppConstants.useMockAuth) return MockNotificationRepository();
+  return NotificationRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
+final pushServiceProvider = Provider<PushService>((ref) {
+  return PushService(repository: ref.watch(notificationRepositoryProvider));
 });
 
 final mockScenarioProvider = Provider<MockScenario>((ref) => MockScenario.data);

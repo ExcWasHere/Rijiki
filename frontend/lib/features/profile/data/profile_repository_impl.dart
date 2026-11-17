@@ -4,6 +4,7 @@ import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/network/api_client.dart';
 import 'package:rijiki/core/network/api_endpoint.dart';
 import 'package:rijiki/core/session/app_user.dart';
+import 'package:rijiki/features/profile/domain/profile_history.dart';
 import 'package:rijiki/features/profile/domain/profile_repository.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
@@ -81,6 +82,58 @@ class ProfileRepositoryImpl implements ProfileRepository {
         throw const Failure(FailureType.unknown, AppStrings.errUnknown);
       }
       return currentUser.copyWith(avatarUrl: url);
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
+  }
+
+  @override
+  Future<MyShoePage> fetchMyShoes({
+    required int page,
+    required int limit,
+  }) async {
+    try {
+      final json = await api.get(
+        Uri(
+          path: ApiEndpoints.profileShoes,
+          queryParameters: {'page': '$page', 'limit': '$limit'},
+        ).toString(),
+        auth: true,
+      );
+      final raw = json['items'] as List<dynamic>? ?? const [];
+      return MyShoePage(
+        items: [
+          for (final item in raw) MyShoe.fromJson(item as Map<String, dynamic>),
+        ],
+        total: (json['total'] as num? ?? 0).round(),
+      );
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
+  }
+
+  @override
+  Future<CustomerRatingPage> fetchMyRatings({
+    required int page,
+    required int limit,
+  }) async {
+    try {
+      final json = await api.get(
+        Uri(
+          path: ApiEndpoints.profileRatings,
+          queryParameters: {'page': '$page', 'limit': '$limit'},
+        ).toString(),
+        auth: true,
+      );
+      final raw = json['items'] as List<dynamic>? ?? const [];
+      return CustomerRatingPage(
+        items: [
+          for (final item in raw)
+            CustomerRating.fromJson(item as Map<String, dynamic>),
+        ],
+        total: (json['total'] as num? ?? 0).round(),
+        average: (json['average'] as num?)?.toDouble(),
+      );
     } on AppException catch (e) {
       throw _toFailure(e);
     }

@@ -105,19 +105,20 @@ class AuthController extends AsyncNotifier<void> {
     return ok ?? false;
   }
 
+  /// Mengirim kode OTP ke email baru; `true` bila kode terkirim.
   Future<bool> requestEmailChange({
     required String newEmail,
     required String password,
   }) async {
     final repository = ref.read(authRepositoryProvider);
-    final ok = await _run(() async {
+    final sent = await _run(() async {
       await repository.requestEmailChange(
         newEmail: newEmail,
         password: password,
       );
       return true;
     });
-    return ok ?? false;
+    return sent == true;
   }
 
   Future<bool> confirmEmailChange({
@@ -138,17 +139,14 @@ class AuthController extends AsyncNotifier<void> {
     return true;
   }
 
-  Future<bool> linkGoogle() async {
-    final repository = ref.read(authRepositoryProvider);
-    final ok = await _run(repository.linkGoogle);
-    return ok ?? false;
-  }
   
   Future<void> logout() async {
     final repository = ref.read(authRepositoryProvider);
     final session = ref.read(sessionProvider.notifier);
 
     _set(const AsyncLoading());
+    // Lepas token FCM lebih dulu: setelah logout token akses sudah dicabut.
+    await ref.read(pushServiceProvider).stop();
     try {
       await repository.logout();
     } finally {
