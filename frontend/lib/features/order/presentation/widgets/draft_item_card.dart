@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/order/domain/new_order.dart';
 import 'package:rijiki/features/order/presentation/widgets/quantity_stepper.dart';
 import 'package:rijiki/features/order/presentation/widgets/shoe_condition_notes_field.dart';
@@ -124,7 +124,7 @@ class _DraftItemCardState extends State<DraftItemCard> {
                             children: [
                               Text(service.name, style: textTheme.titleSmall),
                               Text(
-                                '${CurrencyFormatter.rupiah(service.basePrice)} / pasang',
+                                '${RupiahFormatter.full(service.basePrice)} / pasang',
                                 style: textTheme.bodySmall?.copyWith(
                                   color: AppColors.onSurfaceVariant,
                                 ),
@@ -150,7 +150,7 @@ class _DraftItemCardState extends State<DraftItemCard> {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                CurrencyFormatter.rupiah(widget.item.lineTotal),
+                RupiahFormatter.full(widget.item.lineTotal),
                 style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),

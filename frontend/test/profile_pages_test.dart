@@ -8,11 +8,11 @@ import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/notifications/data/mock_notification_repository.dart';
 import 'package:rijiki/features/points/data/mock_customer_points_repository.dart';
-import 'package:rijiki/features/profile/presentation/customer/profile_page.dart';
-import 'package:rijiki/features/notifications/presentation/notifications_page.dart';
+import 'package:rijiki/features/profile/presentation/pages/customer/profile_page.dart';
+import 'package:rijiki/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
-import 'package:rijiki/features/profile/presentation/customer/my_ratings_page.dart';
-import 'package:rijiki/features/profile/presentation/customer/my_shoes_page.dart';
+import 'package:rijiki/features/profile/presentation/pages/customer/my_ratings_page.dart';
+import 'package:rijiki/features/profile/presentation/pages/customer/my_shoes_page.dart';
 
 class _SignedInCustomer extends SessionNotifier {
   @override

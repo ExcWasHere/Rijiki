@@ -12,11 +12,14 @@ import 'package:rijiki/features/auth/data/auth_repository_impl.dart';
 import 'package:rijiki/features/auth/data/google_sign_in_service.dart';
 import 'package:rijiki/features/auth/data/mock_auth_repo.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
+import 'package:rijiki/features/chat/data/order_chat_repository_impl.dart';
+import 'package:rijiki/features/chat/domain/order_chat_repository.dart';
+import 'package:rijiki/features/finance/data/finance_repository_impl.dart';
 import 'package:rijiki/features/finance/data/mock_finance_repository.dart';
 import 'package:rijiki/features/finance/domain/finance_repository.dart';
-import 'package:rijiki/features/home/owner/data/mock_dashboard_repository.dart';
-import 'package:rijiki/features/home/owner/data/remote_dashboard_repository.dart';
-import 'package:rijiki/features/home/owner/domain/dashboard_repository.dart';
+import 'package:rijiki/features/owner_dashboard/data/mock_dashboard_repository.dart';
+import 'package:rijiki/features/owner_dashboard/data/remote_dashboard_repository.dart';
+import 'package:rijiki/features/owner_dashboard/domain/dashboard_repository.dart';
 import 'package:rijiki/features/event/data/mock_event_repository.dart';
 import 'package:rijiki/features/event/data/mock_promo_repository.dart';
 import 'package:rijiki/features/event/data/promo_repository_impl.dart';
@@ -107,9 +110,10 @@ final pushServiceProvider = Provider<PushService>((ref) {
 final mockScenarioProvider = Provider<MockScenario>((ref) => MockScenario.data);
 
 final serviceRepositoryProvider = Provider<ServiceRepository>((ref) {
-  final mock = MockServiceRepository(scenario: ref.watch(mockScenarioProvider));
-  if (AppConstants.useMockOrders) return mock;
-  return ServiceRepositoryImpl(api: ref.watch(apiClientProvider), cms: mock);
+  if (AppConstants.useMockOrders) {
+    return MockServiceRepository(scenario: ref.watch(mockScenarioProvider));
+  }
+  return ServiceRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
@@ -206,6 +210,10 @@ final scanRepositoryProvider = Provider<ScanRepository>(
   (ref) => MockScanRepository(scenario: ref.watch(mockScenarioProvider)),
 );
 
+final orderChatRepositoryProvider = Provider<OrderChatRepository>((ref) {
+  return OrderChatRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
   if (AppConstants.useMockOrders) {
     return MockPaymentRepository(
@@ -217,19 +225,18 @@ final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
 });
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
-  final mock = MockDashboardRepository();
-  if (AppConstants.useMockOrders) return mock;
-  return RemoteDashboardRepository(
-    api: ref.watch(apiClientProvider),
-    fallback: mock,
-  );
+  if (AppConstants.useMockOrders) return MockDashboardRepository();
+  return RemoteDashboardRepository(api: ref.watch(apiClientProvider));
 });
 
-final financeRepositoryProvider = Provider<FinanceRepository>(
-  (ref) => MockFinanceRepository(
-    dashboard: ref.watch(dashboardRepositoryProvider),
-  ),
-);
+final financeRepositoryProvider = Provider<FinanceRepository>((ref) {
+  if (AppConstants.useMockOrders) {
+    return MockFinanceRepository(
+      dashboard: ref.watch(dashboardRepositoryProvider),
+    );
+  }
+  return FinanceRepositoryImpl(api: ref.watch(apiClientProvider));
+});
 
 final workerRepositoryProvider = Provider<WorkerRepository>((ref) {
   if (AppConstants.useMockOrders) {

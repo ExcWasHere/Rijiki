@@ -12,6 +12,14 @@ String? notificationTarget({
 }) {
   final orderId = data['order_id'];
   if (orderId is String && orderId.isNotEmpty) {
+    // Notifikasi chat membuka percakapan order, bukan detail order.
+    if (type == AppNotificationType.orderMessage) {
+      return switch (role) {
+        UserRole.customer => RoutePaths.orderChatFor(orderId),
+        UserRole.worker => RoutePaths.workerOrderChatFor(orderId),
+        UserRole.owner => RoutePaths.ownerOrderChatFor(orderId),
+      };
+    }
     return switch (role) {
       UserRole.customer => RoutePaths.orderDetailFor(orderId),
       UserRole.worker => RoutePaths.workerOrderDetailFor(orderId),

@@ -192,3 +192,40 @@ export async function notifyPaymentExpired(
     data: { order_id: order.id },
   });
 }
+
+/**
+ * Pesan chat order baru: lawan bicara diberi tahu. Customer mengirim → worker
+ * penangan; bila belum ada worker (order belum diambil), owner yang diberi tahu
+ * supaya pesan tetap ada yang menjawab. Worker/owner mengirim → customer.
+ */
+export async function notifyNewMessage(
+  env: Bindings,
+  order: {
+    id: string;
+    order_number: string;
+    customer_id: string | null;
+    assigned_worker_id: string | null;
+  },
+  message: { senderId: string; senderRole: string; preview: string },
+): Promise<void> {
+  const preview =
+    message.preview.length > 120 ? `${message.preview.slice(0, 117)}...` : message.preview;
+
+  if (message.senderRole === 'customer') {
+    const target = { type: 'order_message', title: `Pesan baru · ${order.order_number}`, body: preview, data: { order_id: order.id } };
+
+    if (order.assigned_worker_id) {
+      await notifyWorkerProfile(env, order.assigned_worker_id, target);
+      return;
+    }
+    await notifyOwners(env, target);
+    return;
+  }
+
+  await notifyCustomerProfile(env, order.customer_id, {
+    type: 'order_message',
+    title: `Pesan dari Rijiki · ${order.order_number}`,
+    body: preview,
+    data: { order_id: order.id },
+  });
+}

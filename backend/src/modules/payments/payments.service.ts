@@ -184,7 +184,9 @@ export async function createPayment(
 
   const amount = Math.round(order.total_price);
   if (amount < 1) {
-    throw new AppError(400, 'amount_invalid', 'Total order tidak valid untuk dibayar.');
+    // Order gratis (promo menutup seluruh biaya) sudah ditandai lunas saat
+    // dibuat; kalau masih sampai ke sini berarti tidak ada tagihan untuk QRIS.
+    throw new AppError(409, 'nothing_to_pay', 'Order ini tidak perlu dibayar.');
   }
 
   const rows = await listPaymentsForOrder(env, order.id);

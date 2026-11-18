@@ -1,12 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/core/enums/expense_type.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/rupiah_formatter.dart';
+import 'package:rijiki/core/utils/share_file.dart';
 import 'package:rijiki/features/finance/domain/finance_export.dart';
 import 'package:rijiki/features/finance/presentation/controllers/finance_export_controller.dart';
-import 'package:rijiki/features/finance/presentation/expense_type_ui.dart';
+import 'package:rijiki/features/finance/presentation/utils/expense_type_ui.dart';
 import 'package:rijiki/features/finance/presentation/utils/finance_format.dart';
 import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 
@@ -456,12 +459,10 @@ class _SuccessView extends StatelessWidget {
   final DateTime start;
   final DateTime end;
 
-  static const String _demoNote =
-      'Fase UI: file asli nanti dibuat oleh backend.';
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final bytes = result.bytes;
 
     return Column(
       children: [
@@ -495,21 +496,41 @@ class _SuccessView extends StatelessWidget {
             color: AppColors.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          _demoNote,
-          textAlign: TextAlign.center,
-          style: textTheme.bodySmall?.copyWith(
-            color: AppColors.onSurfaceVariant,
-          ),
-        ),
         const SizedBox(height: AppSpacing.lg),
-        FilledButton(
+        if (bytes != null) ...[
+          FilledButton.icon(
+            onPressed: () => _share(context, bytes),
+            icon: const Icon(Icons.ios_share_rounded, size: 20),
+            label: const Text('Simpan / bagikan file'),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        FilledButton.tonal(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Selesai'),
         ),
       ],
     );
+  }
+
+  Future<void> _share(BuildContext context, Uint8List bytes) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await shareBytesAsFile(
+        bytes: bytes,
+        fileName: result.fileName,
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+    } catch (_) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('File gagal dibagikan. Coba lagi ya.'),
+          ),
+        );
+    }
   }
 }
 

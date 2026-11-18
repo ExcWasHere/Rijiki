@@ -1,42 +1,18 @@
-const List<String> _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'Mei',
-  'Jun',
-  'Jul',
-  'Agu',
-  'Sep',
-  'Okt',
-  'Nov',
-  'Des',
-];
+import 'package:rijiki/core/utils/date_formatter.dart';
 
 String formatPercentSigned(double value) {
   final text = value.abs().toStringAsFixed(1).replaceAll('.', ',');
   return '${value >= 0 ? '+' : '-'}$text%';
 }
 
-String formatDate(DateTime date) {
-  return '${date.day} ${_months[date.month - 1]} ${date.year}';
-}
+/// Delegasi ke [DateFormatter] supaya tabel bulan tidak diduplikasi.
+String formatDate(DateTime date) => DateFormatter.shortDate(date);
 
-String formatDateGroup(DateTime date, {DateTime? now}) {
-  final today = _dateOnly(now ?? DateTime.now());
-  final day = _dateOnly(date);
-  final diff = today.difference(day).inDays;
-  if (diff == 0) return 'Hari ini';
-  if (diff == 1) return 'Kemarin';
-  return formatDate(day);
-}
+String formatDateGroup(DateTime date, {DateTime? now}) =>
+    DateFormatter.groupLabel(date, now: now);
 
-String formatDateRange(DateTime start, DateTime end) {
-  if (start.year == end.year) {
-    return '${start.day} ${_months[start.month - 1]} - ${formatDate(end)}';
-  }
-  return '${formatDate(start)} - ${formatDate(end)}';
-}
+String formatDateRange(DateTime start, DateTime end) =>
+    DateFormatter.range(start, end);
 
 String formatQuantity(double quantity, String? unit) {
   final text = quantity == quantity.roundToDouble()
@@ -44,5 +20,3 @@ String formatQuantity(double quantity, String? unit) {
       : quantity.toString().replaceAll('.', ',');
   return unit == null || unit.isEmpty ? text : '$text $unit';
 }
-
-DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);

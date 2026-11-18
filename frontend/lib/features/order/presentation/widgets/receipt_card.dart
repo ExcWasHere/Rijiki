@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/core/utils/date_formatter.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/presentation/utils/discount_lines.dart';
@@ -91,7 +91,7 @@ class ReceiptCard extends StatelessWidget {
                       ),
                       Text(
                         item.quantity > 1
-                            ? '${item.serviceName} · ${CurrencyFormatter.rupiah(item.price)}'
+                            ? '${item.serviceName} · ${RupiahFormatter.full(item.price)}'
                             : item.serviceName,
                         style: muted,
                       ),
@@ -99,7 +99,7 @@ class ReceiptCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  CurrencyFormatter.rupiah(item.lineTotal),
+                  RupiahFormatter.full(item.lineTotal),
                   style: textTheme.titleSmall,
                 ),
               ],
@@ -111,21 +111,21 @@ class ReceiptCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           _Line(
             label: 'Subtotal',
-            value: CurrencyFormatter.rupiah(price.subtotal),
+            value: RupiahFormatter.full(price.subtotal),
           ),
           for (final line in discountLines(price, order.promos))
             _Line(
               label: line.label,
-              value: '-${CurrencyFormatter.rupiah(line.amount)}',
+              value: '-${RupiahFormatter.full(line.amount)}',
               valueColor: AppColors.success,
             ),
-          _Line(label: 'Ongkir', value: CurrencyFormatter.rupiah(price.shipping)),
+          _Line(label: 'Ongkir', value: RupiahFormatter.full(price.shipping)),
           const SizedBox(height: 6),
           Row(
             children: [
               Expanded(child: Text('TOTAL', style: textTheme.titleMedium)),
               Text(
-                CurrencyFormatter.rupiah(price.total),
+                RupiahFormatter.full(price.total),
                 style: textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),

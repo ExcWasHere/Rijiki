@@ -28,6 +28,10 @@ abstract final class ApiEndpoints {
 
   static const String services = '/api/services';
 
+  /// Owner atau worker berizin manage_cms_services: semua layanan, termasuk nonaktif.
+  static const String managementServices = '/api/services/manage';
+  static String serviceById(String id) => '$services/$id';
+
   static const String promos = '/api/promos';
   static String promoById(String id) => '$promos/$id';
 
@@ -72,6 +76,20 @@ abstract final class ApiEndpoints {
 
   static const String repeatCustomers = '/api/management/customers/repeat';
 
+  /// Owner atau worker berizin view_analytics (dashboard Beranda).
+  static const String dashboardSummary = '/api/management/analytics/dashboard';
+  static const String dashboardRecentOrders =
+      '/api/management/analytics/recent-orders';
+
+  /// Owner atau worker berizin manage_finance.
+  static const String financeSummary = '/api/finance/summary';
+  static const String financeTransactions = '/api/finance/transactions';
+  static const String financeExpenseAiParse = '/api/finance/expenses/ai-parse';
+  static String financeExpenseAiConfirm(String id) =>
+      '$financeExpenseAiParse/$id/confirm';
+  static String financeExpenseAiDiscard(String id) => '$financeExpenseAiParse/$id';
+  static const String financeExport = '/api/finance/export';
+
   static const String orders = '/api/orders';
   static const String orderQuote = '/api/orders/quote';
 
@@ -87,6 +105,10 @@ abstract final class ApiEndpoints {
 
   static String orderTracking(String id) => '$orders/$id/tracking';
   static String orderRating(String id) => '$orders/$id/rating';
+
+  /// Chat per order (customer, worker penangan, owner).
+  static String orderMessages(String id) => '$orders/$id/messages';
+  static String orderMessagesRead(String id) => '$orders/$id/messages/read';
 
   /// Membuat QR QRIS untuk order (idempoten: QR aktif dipakai lagi).
   static String orderPayment(String id) => '$orders/$id/payment';

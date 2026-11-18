@@ -1,14 +1,8 @@
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/event/domain/event_promo.dart';
 
-String formatRupiahInt(int value) {
-  final digits = value.abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
-    buffer.write(digits[i]);
-  }
-  return 'Rp${value < 0 ? '-' : ''}$buffer';
-}
+/// Tanpa spasi setelah "Rp" agar label promo tetap ringkas.
+String formatRupiahInt(int value) => 'Rp${RupiahFormatter.grouped(value)}';
 
 extension EventPromoFormat on EventPromo {
   /// Contoh: "Diskon 20%", "Diskon Rp10.000", "Diskon ongkir 50%".

@@ -2,6 +2,8 @@ import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { fingerprintOf, idempotencyConflict } from '../../shared/utils/idempotency';
+import { logActivity } from '../../shared/utils/activity-log';
+import { toNumber } from '../../shared/utils/number';
 import { notifyNewOrder } from '../notifications/notifications.events';
 import { loadVisibleOrder, resolveAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
@@ -23,6 +25,7 @@ import {
   getPromoUsage,
   getRatePerKm,
   listOrderRows,
+  markOrderPaidIfFree,
 } from './orders.repo';
 import type { CreateOrderInput, ListOrdersQuery, QuoteOrderInput } from './orders.schema';
 import { calculateShippingFee, routeDistanceKm } from './orders.shipping';
@@ -214,10 +217,25 @@ export async function createOrder(
     requestFingerprint: fingerprint,
   });
 
-  const row = await getOrderRow(env, orderId);
+  let row = await getOrderRow(env, orderId);
   if (!row) {
     console.error('orders: order baru tidak ditemukan setelah dibuat', orderId);
     throw new AppError(500, 'order_create_failed', 'Order dibuat, tetapi gagal dimuat. Cek daftar order.');
+  }
+
+  // Total 0 (promo menutup seluruh biaya) tidak bisa dibayar lewat QRIS:
+  // langsung lunas supaya order tetap bisa dijemput dan diproses.
+  if (row.payment_status === 'unpaid' && toNumber(row.total_price) <= 0) {
+    if (await markOrderPaidIfFree(env, orderId)) {
+      await logActivity(env, {
+        userId,
+        action: 'order_free_paid',
+        entity: 'order',
+        entityId: orderId,
+        metadata: { total_price: 0 },
+      });
+      row = (await getOrderRow(env, orderId)) ?? row;
+    }
   }
 
   // Order baru masuk antrean: kabari worker agar bisa diambil.

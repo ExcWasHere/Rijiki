@@ -69,7 +69,16 @@ export async function routeDistanceKm(lat: number, lng: number): Promise<RouteDi
   return value;
 }
 
+/** Jarak ditagih dengan presisi 10 m supaya nominalnya tetap bulat rapi. */
+const BILLING_KM_DECIMALS = 2;
+
+/**
+ * Ongkir = jarak tempuh × tarif per km. Jarak tidak lagi dibulatkan ke atas per
+ * km: rute 3,34 km ditagih 3,34 × tarif, bukan 4 × tarif.
+ */
 export function calculateShippingFee(distanceKm: number, ratePerKm: number): number {
-  const billableKm = Math.ceil(Math.round(distanceKm * 1000) / 1000);
+  if (!Number.isFinite(distanceKm) || distanceKm <= 0) return 0;
+  const factor = 10 ** BILLING_KM_DECIMALS;
+  const billableKm = Math.round(distanceKm * factor) / factor;
   return Math.max(0, Math.round(billableKm * ratePerKm));
 }

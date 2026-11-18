@@ -7,8 +7,8 @@ import 'package:rijiki/features/finance/domain/finance_repository.dart';
 import 'package:rijiki/features/finance/domain/finance_summary.dart';
 import 'package:rijiki/features/finance/domain/financial_transaction.dart';
 import 'package:rijiki/features/finance/domain/transaction_filter.dart';
-import 'package:rijiki/features/home/owner/domain/dashboard_repository.dart';
-import 'package:rijiki/features/home/owner/domain/dashboard_summary.dart';
+import 'package:rijiki/features/owner_dashboard/domain/dashboard_repository.dart';
+import 'package:rijiki/features/owner_dashboard/domain/dashboard_summary.dart';
 
 class MockFinanceRepository implements FinanceRepository {
   MockFinanceRepository({required DashboardRepository dashboard})

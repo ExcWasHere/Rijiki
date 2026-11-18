@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/service/domain/care_service.dart';
 import 'package:rijiki/features/service/presentation/controllers/service_list_controller.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
@@ -136,7 +136,7 @@ class _ServiceRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              CurrencyFormatter.rupiah(service.basePrice),
+              RupiahFormatter.full(service.basePrice),
               style: textTheme.titleSmall,
             ),
             SizedBox(

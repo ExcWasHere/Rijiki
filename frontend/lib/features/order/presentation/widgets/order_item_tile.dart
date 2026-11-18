@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/order/domain/order_item.dart';
 
 class OrderItemTile extends StatelessWidget {
@@ -36,7 +36,7 @@ class OrderItemTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     item.quantity > 1
-                        ? '${item.serviceName} · ${CurrencyFormatter.rupiah(item.price)}/pasang'
+                        ? '${item.serviceName} · ${RupiahFormatter.full(item.price)}/pasang'
                         : item.serviceName,
                     style: muted,
                   ),
@@ -44,7 +44,7 @@ class OrderItemTile extends StatelessWidget {
               ),
             ),
             Text(
-              CurrencyFormatter.rupiah(item.lineTotal),
+              RupiahFormatter.full(item.lineTotal),
               style: textTheme.titleSmall,
             ),
           ],

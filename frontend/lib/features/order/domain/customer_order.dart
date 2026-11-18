@@ -70,7 +70,11 @@ class CustomerOrder {
 
   bool get isPaid => paymentStatus == OrderPaymentStatus.paid;
 
-  bool get canPay => !isPaid && status != OrderStatus.cancelled;
+  /// Order gratis (promo menutup seluruh biaya) sudah dilunasi backend saat
+  /// dibuat, jadi tidak ada tombol bayar. `totalPrice > 0` menjaga order lama
+  /// bertotal 0 tidak membuka halaman QRIS yang pasti gagal.
+  bool get canPay =>
+      !isPaid && status != OrderStatus.cancelled && totalPrice > 0;
 
   bool get canRate => status == OrderStatus.completed && !isRated;
   List<OrderStatus> get flowStatuses {

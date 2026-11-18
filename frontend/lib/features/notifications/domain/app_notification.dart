@@ -4,6 +4,7 @@ enum AppNotificationType {
   orderNew('order_new'),
   orderStatus('order_status'),
   orderAssigned('order_assigned'),
+  orderMessage('order_message'),
   paymentPaid('payment_paid'),
   paymentExpired('payment_expired'),
   pointRedemption('point_redemption'),
