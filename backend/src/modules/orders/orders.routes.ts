@@ -1,6 +1,11 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../../middleware/auth';
 import type { AppEnv } from '../../shared/types/env';
+import {
+  listMessagesHandler,
+  markMessagesReadHandler,
+  sendMessageHandler,
+} from '../messages/messages.controller';
 import { createPaymentHandler } from '../payments/payments.controller';
 import { createRatingHandler } from '../ratings/ratings.controller';
 import {
@@ -46,3 +51,8 @@ ordersRoutes.delete('/:id/documentations/:docId', deleteDocumentationHandler);
 
 ordersRoutes.post('/:id/tracking', recordTrackingHandler);
 ordersRoutes.get('/:id/tracking', getTrackingHandler);
+
+// Chat order: siapa pun yang boleh melihat order boleh ikut percakapannya.
+ordersRoutes.get('/:id/messages', listMessagesHandler);
+ordersRoutes.post('/:id/messages', sendMessageHandler);
+ordersRoutes.post('/:id/messages/read', markMessagesReadHandler);

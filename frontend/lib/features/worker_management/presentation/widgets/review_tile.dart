@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/core/utils/date_format.dart';
+import 'package:rijiki/core/utils/date_formatter.dart';
 import 'package:rijiki/features/worker_management/domain/worker_review.dart';
 import 'package:rijiki/features/worker_management/presentation/widgets/rating_stars.dart';
 
@@ -25,7 +25,7 @@ class ReviewTile extends StatelessWidget {
               RatingStars(value: review.ratingValue.toDouble(), size: 15),
               const Spacer(),
               Text(
-                formatDate(review.createdAt),
+                DateFormatter.shortDate(review.createdAt),
                 style: textTheme.labelSmall?.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),

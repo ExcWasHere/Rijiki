@@ -1,17 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/utils/date_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/points/domain/point_ledger_entry.dart';
 
-String formatPoints(int value) {
-  final digits = value.abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
-    buffer.write(digits[i]);
-  }
-  return '${value < 0 ? '-' : ''}$buffer';
-}
+String formatPoints(int value) => RupiahFormatter.grouped(value);
 
 String formatSignedPoints(int value) {
   if (value > 0) return '+${formatPoints(value)}';

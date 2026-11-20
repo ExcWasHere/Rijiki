@@ -21,6 +21,7 @@ class FinancialTransaction {
     this.relatedOrderId,
     this.inputSource = InputSource.manual,
     this.receiptImageUrl,
+    this.paymentMethod,
   });
 
   final String id;
@@ -39,6 +40,9 @@ class FinancialTransaction {
 
   final String? receiptImageUrl;
   final DateTime transactionDate;
+
+  /// `qris` atau `cash` untuk pemasukan yang berasal dari order (PRD 15.2).
+  final String? paymentMethod;
 
   bool get isIncome => type == TransactionType.income;
   bool get isExpense => type == TransactionType.expense;

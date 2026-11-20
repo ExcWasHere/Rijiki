@@ -15,6 +15,12 @@ export interface Bindings {
   FIREBASE_PROJECT_ID?: string;
   FIREBASE_CLIENT_EMAIL?: string;
   FIREBASE_PRIVATE_KEY?: string;
+  // Parser pengeluaran AI. Provider apa pun yang kompatibel [OI]
+  // /v1/chat/completions (InferHub, [OI]); bila kosong, ai-parse membalas
+  // status failed dan pengeluaran dicatat tanpa klasifikasi (PRD 15.1).
+  AI_API_KEY?: string;
+  AI_BASE_URL?: string;
+  AI_MODEL?: string;
 }
 
 export interface Variables {

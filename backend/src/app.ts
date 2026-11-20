@@ -1,9 +1,11 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { validateEnv } from './config/env';
+import { managementAnalyticsRoutes } from './modules/analytics/analytics.routes';
 import { authRoutes } from './modules/auth/auth.routes';
 import { managementCustomersRoutes } from './modules/customers/customers.routes';
 import { eventsRoutes, managementEventsRoutes } from './modules/events/events.routes';
+import { financeRoutes } from './modules/finance/finance.routes';
 import { mediaRoutes } from './modules/media/media.routes';
 import { managementMerchandiseRoutes } from './modules/merchandise/merchandise.routes';
 import { devicesRoutes, notificationsRoutes } from './modules/notifications/notifications.routes';
@@ -57,6 +59,8 @@ export function createApp() {
   app.route('/api/management/point-rules', pointRulesRoutes);
   app.route('/api/management/points', managementPointsRoutes);
   app.route('/api/management/customers', managementCustomersRoutes);
+  app.route('/api/finance', financeRoutes);
+  app.route('/api/management/analytics', managementAnalyticsRoutes);
   app.route('/api/workers', workersRoutes);
   app.route('/api/owner/workers', ownerWorkersRoutes);
   // Tanpa auth Bearer: dipanggil Midtrans, dilindungi verifikasi signature_key.

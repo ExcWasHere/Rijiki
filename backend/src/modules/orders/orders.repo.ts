@@ -338,6 +338,29 @@ export async function findOrderByIdempotencyKey(
   };
 }
 
+/**
+ * Order bertotal 0 (promo menutup seluruh biaya) tidak punya tagihan yang bisa
+ * dibayar lewat QRIS, jadi langsung ditandai lunas. Filter `total_price <= 0`
+ * dan `payment_status = unpaid` ada di query supaya dua request bersamaan tidak
+ * bisa menandai order berbayar. Mengembalikan true bila baris ini yang berubah.
+ */
+export async function markOrderPaidIfFree(env: Bindings, id: string): Promise<boolean> {
+  const admin = getSupabaseAdmin(env);
+  const { data, error } = await admin
+    .from('orders')
+    .update({ payment_status: 'paid', updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('payment_status', 'unpaid')
+    .lte('total_price', 0)
+    .select('id');
+
+  if (error) {
+    console.error('orders: gagal menandai order gratis lunas', error.message);
+    return false;
+  }
+  return (data ?? []).length > 0;
+}
+
 export async function getOrderRow(env: Bindings, id: string): Promise<OrderRow | null> {
   const admin = getSupabaseAdmin(env);
   const { data, error } = await admin

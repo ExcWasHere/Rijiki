@@ -131,7 +131,14 @@ export async function sendPush(
   message: PushMessage,
 ): Promise<string[]> {
   const config = getFcmConfig(env);
-  if (!config || tokens.length === 0) return [];
+  if (!config) {
+    if (tokens.length > 0) {
+      console.warn(
+        'notifications: push dilewati, FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY belum diset',
+      );
+    }
+    return [];
+  }
 
   let accessToken: string;
   try {

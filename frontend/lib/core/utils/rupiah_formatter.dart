@@ -1,5 +1,7 @@
 abstract final class RupiahFormatter {
-  static String full(num value) {
+  /// Angka dengan pemisah ribuan, tanpa awalan "Rp".
+  /// Contoh: 1250000 → "1.250.000", -5000 → "-5.000".
+  static String grouped(num value) {
     final negative = value < 0;
     final digits = value.abs().round().toString();
     final buffer = StringBuffer();
@@ -7,9 +9,13 @@ abstract final class RupiahFormatter {
       if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
       buffer.write(digits[i]);
     }
-    return '${negative ? '-' : ''}Rp $buffer';
+    return '${negative ? '-' : ''}$buffer';
   }
 
+  /// Contoh: 25000 → "Rp 25.000".
+  static String full(num value) => 'Rp ${grouped(value)}';
+
+  /// Ringkas untuk grafik: 1.500.000 → "Rp 1,5 jt".
   static String compact(num value) {
     final negative = value < 0;
     final abs = value.abs().toDouble();

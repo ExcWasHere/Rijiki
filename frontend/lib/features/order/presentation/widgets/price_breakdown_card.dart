@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
-import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/domain/price_breakdown.dart';
 import 'package:rijiki/features/order/presentation/utils/discount_lines.dart';
@@ -28,17 +28,17 @@ class PriceBreakdownCard extends StatelessWidget {
     return AppCard(
       child: Column(
         children: [
-          _Row(label: 'Subtotal layanan', value: CurrencyFormatter.rupiah(price.subtotal)),
+          _Row(label: 'Subtotal layanan', value: RupiahFormatter.full(price.subtotal)),
           for (final line in discountLines(price, promos)) ...[
             const SizedBox(height: 8),
             _Row(
               label: line.label,
-              value: '-${CurrencyFormatter.rupiah(line.amount)}',
+              value: '-${RupiahFormatter.full(line.amount)}',
               valueColor: AppColors.success,
             ),
           ],
           const SizedBox(height: 8),
-          _Row(label: 'Ongkir', value: CurrencyFormatter.rupiah(price.shipping)),
+          _Row(label: 'Ongkir', value: RupiahFormatter.full(price.shipping)),
           const SizedBox(height: 12),
           const Divider(),
           const SizedBox(height: 12),
@@ -46,7 +46,7 @@ class PriceBreakdownCard extends StatelessWidget {
             children: [
               Expanded(child: Text('Total', style: textTheme.titleSmall)),
               Text(
-                CurrencyFormatter.rupiah(price.total),
+                RupiahFormatter.full(price.total),
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),

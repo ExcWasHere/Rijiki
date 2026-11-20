@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/service/domain/care_service.dart';
 import 'package:rijiki/shared/widgets/status_chip.dart';
 
@@ -41,7 +41,7 @@ class RecommendedServiceCard extends StatelessWidget {
             children: [
               Expanded(child: Text(service.name, style: textTheme.titleLarge)),
               Text(
-                CurrencyFormatter.rupiah(service.basePrice),
+                RupiahFormatter.full(service.basePrice),
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),

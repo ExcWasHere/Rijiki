@@ -3,12 +3,20 @@ import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { logActivity } from '../../shared/utils/activity-log';
 import { fingerprintOf, idempotencyConflict } from '../../shared/utils/idempotency';
+import { toNumber } from '../../shared/utils/number';
 import { notifyOfflineOrder } from '../notifications/notifications.events';
 import { resolveAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
-import { EMPTY_USAGE, evaluatePromos, toRpcPromos } from './orders.pricing';
+import { insertCashOrderIncome } from '../finance/finance.repo';
+import { EMPTY_USAGE, evaluatePromos, toRpcPromos, todayWib } from './orders.pricing';
 import { createOfflineOrderViaRpc, findOfflineOrderByIdempotencyKey, getWalkInPromoUsage } from './orders.offline.repo';
-import { findPromoByCode, findWorkerProfile, findWorkerProfileById, getOrderRow } from './orders.repo';
+import {
+  findPromoByCode,
+  findWorkerProfile,
+  findWorkerProfileById,
+  getOrderRow,
+  markOrderPaidIfFree,
+} from './orders.repo';
 import type { CreateOfflineOrderInput } from './orders.schema';
 import { priceItems } from './orders.service';
 import type { CreateOrderResult } from './orders.service';
@@ -130,8 +138,23 @@ export async function createOfflineOrder(
     requestFingerprint: fingerprint,
   });
 
-  // TODO(finance): pemasukan tunai belum dicatat ke financial_transactions
-  // (modul finance belum dibuat). Pemasukan QRIS sudah dicatat apply_payment_result.
+  // Pemasukan QRIS dicatat apply_payment_result saat lunas; tunai diterima
+  // worker saat order dibuat, jadi dicatat sekarang (PRD 15.2).
+  if (input.payment_method === 'cash') {
+    const cashRow = await getOrderRow(env, orderId);
+    const cashAmount = Math.round(toNumber(cashRow?.total_price));
+    if (cashAmount > 0) {
+      await insertCashOrderIncome(env, {
+        userId: ctx.user.id,
+        orderId,
+        orderNumber: String(cashRow?.order_number ?? ''),
+        amount: cashAmount,
+        transactionDate: todayWib(),
+      }).catch((err) =>
+        console.error('orders.offline: gagal mencatat pemasukan tunai', err),
+      );
+    }
+  }
 
   await logActivity(env, {
     userId: ctx.user.id,
@@ -145,10 +168,25 @@ export async function createOfflineOrder(
     },
   });
 
-  const row = await getOrderRow(env, orderId);
+  let row = await getOrderRow(env, orderId);
   if (!row) {
     console.error('orders.offline: order baru tidak ditemukan setelah dibuat', orderId);
     throw new AppError(500, 'order_create_failed', 'Order disimpan, tetapi gagal dimuat. Cek daftar order.');
+  }
+
+  // Total 0 (promo menutup seluruh biaya) tidak bisa dibayar lewat QRIS:
+  // langsung lunas supaya order bisa langsung diproses.
+  if (row.payment_status === 'unpaid' && toNumber(row.total_price) <= 0) {
+    if (await markOrderPaidIfFree(env, orderId)) {
+      await logActivity(env, {
+        userId: ctx.user.id,
+        action: 'order_free_paid',
+        entity: 'order',
+        entityId: orderId,
+        metadata: { total_price: 0, channel: 'staff_manual' },
+      });
+      row = (await getOrderRow(env, orderId)) ?? row;
+    }
   }
 
   await notifyOfflineOrder(

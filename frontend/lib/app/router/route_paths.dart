@@ -24,6 +24,8 @@ abstract final class RoutePaths {
   static const String customerPointHistory = '/customer/events/points';
   static const String customerProfile = '/customer/profile';
 
+  static const String customerServices = '/customer/services';
+
   static const String customerScan = '/customer/scan';
   static const String customerScanAnalyzing = '/customer/scan/analyzing';
   static const String customerScanResult = '/customer/scan/result';
@@ -122,6 +124,12 @@ abstract final class RoutePaths {
   }
 
   static String orderDetailFor(String orderId) => '$customerOrders/$orderId';
+  static String orderChatFor(String orderId) =>
+      '$customerOrders/$orderId/chat';
+  static String workerOrderChatFor(String orderId) =>
+      '$workerOrders/$orderId/chat';
+  static String ownerOrderChatFor(String orderId) =>
+      '$ownerOrders/$orderId/chat';
   static String orderTrackingFor(String orderId) =>
       '$customerOrders/$orderId/tracking';
   static String orderPaymentFor(String orderId) =>

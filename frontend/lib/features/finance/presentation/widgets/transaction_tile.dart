@@ -3,7 +3,7 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/finance/domain/financial_transaction.dart';
-import 'package:rijiki/features/finance/presentation/expense_type_ui.dart';
+import 'package:rijiki/features/finance/presentation/utils/expense_type_ui.dart';
 
 class TransactionTile extends StatelessWidget {
   const TransactionTile({
