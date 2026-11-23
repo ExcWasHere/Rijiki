@@ -24,7 +24,7 @@ class WorkerQrisPaymentPage extends ConsumerWidget {
 
   static const List<String> _steps = [
     'Minta customer membuka e-wallet atau mobile banking.',
-    'Customer memilih scan QR, lalu mengarahkan ke kode di atas.',
+    'Customer memilih pindai QR, lalu mengarahkan ke kode di atas.',
     'Pastikan nominal sesuai, lalu customer mengonfirmasi pembayaran.',
   ];
 

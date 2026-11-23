@@ -27,22 +27,67 @@ async function resolveAssignedWorker(
   ctx: AuthContextUser,
   requestedId: string | null,
 ): Promise<string | null> {
+  const own =
+    ctx.user.role === 'worker' ? await findWorkerProfile(env, ctx.user.id) : null;
+
   if (requestedId) {
     const worker = await findWorkerProfileById(env, requestedId);
     if (!worker || worker.status !== 'active') {
       throw new AppError(400, 'worker_invalid', 'Worker yang dipilih tidak ditemukan atau tidak aktif.');
     }
+
+    // Menugaskan order ke orang lain butuh wewenang atas semua order; kalau
+    // tidak, worker bisa "menitipkan" order (dan pemasukan tunainya) ke rekan.
+    const mayAssignOthers = ctx.ownerBypass || ctx.permissions.includes('manage_orders_all');
+    if (worker.id !== own?.id && !mayAssignOthers) {
+      throw new AppError(
+        403,
+        'forbidden',
+        'Hanya owner atau worker berizin manage_orders_all yang dapat menugaskan order ke worker lain.',
+      );
+    }
     return worker.id;
   }
 
   if (ctx.user.role === 'worker') {
-    const own = await findWorkerProfile(env, ctx.user.id);
     if (!own) {
       throw new AppError(400, 'worker_profile_missing', 'Profil worker kamu belum ada. Hubungi owner.');
     }
     return own.id;
   }
   return null;
+}
+
+/**
+ * Mencatat pemasukan tunai order offline. Dipanggil juga saat replay
+ * idempoten, karena request pertama bisa sudah membuat order tetapi gagal
+ * mencatat pendapatannya. Aman diulang: ada unique index per order.
+ */
+async function recordCashIncome(
+  env: Bindings,
+  ctx: AuthContextUser,
+  orderId: string,
+): Promise<void> {
+  const cashRow = await getOrderRow(env, orderId);
+  const cashAmount = Math.round(toNumber(cashRow?.total_price));
+  if (!cashRow || cashAmount <= 0) return;
+
+  try {
+    await insertCashOrderIncome(env, {
+      userId: ctx.user.id,
+      orderId,
+      orderNumber: String(cashRow.order_number ?? ''),
+      amount: cashAmount,
+      transactionDate: todayWib(),
+    });
+  } catch (err) {
+    console.error('orders.offline: gagal mencatat pemasukan tunai', orderId, err);
+    throw new AppError(
+      500,
+      'income_record_failed',
+      'Order tersimpan, tetapi pemasukan tunai gagal dicatat. Ulangi dengan kunci yang sama.',
+    );
+  }
 }
 
 function offlineFingerprint(
@@ -97,7 +142,12 @@ export async function createOfflineOrder(
     if (existing) {
       if (existing.fingerprint !== fingerprint) throw idempotencyConflict();
       const row = await getOrderRow(env, existing.id);
-      if (row) return { order: toOrderView(row, access.viewer), replayed: true };
+      if (row) {
+        // Request sebelumnya bisa sudah membuat order tetapi gagal mencatat
+        // pemasukan tunai; replay adalah kesempatan memperbaikinya.
+        if (input.payment_method === 'cash') await recordCashIncome(env, ctx, existing.id);
+        return { order: toOrderView(row, access.viewer), replayed: true };
+      }
     }
   }
 
@@ -119,42 +169,46 @@ export async function createOfflineOrder(
     lines: priced.lines,
   });
 
-  const orderId = await createOfflineOrderViaRpc(env, {
-    userId: ctx.user.id,
-    items: input.items.map((item) => ({
-      service_id: item.service_id,
-      shoe_brand: item.shoe_brand,
-      quantity: item.quantity,
-      notes: item.notes,
-    })),
-    walkInName: input.walk_in_customer_name,
-    walkInPhone: input.walk_in_customer_phone,
-    promos: toRpcPromos(evaluations),
-    expectedSubtotal: priced.subtotal,
-    paymentMethod: input.payment_method,
-    deliveryMethod: input.delivery_method,
-    assignedWorkerId,
-    idempotencyKey,
-    requestFingerprint: fingerprint,
-  });
+  let orderId: string;
+  try {
+    orderId = await createOfflineOrderViaRpc(env, {
+      userId: ctx.user.id,
+      items: input.items.map((item) => ({
+        service_id: item.service_id,
+        shoe_brand: item.shoe_brand,
+        quantity: item.quantity,
+        notes: item.notes,
+      })),
+      walkInName: input.walk_in_customer_name,
+      walkInPhone: input.walk_in_customer_phone,
+      promos: toRpcPromos(evaluations),
+      expectedSubtotal: priced.subtotal,
+      paymentMethod: input.payment_method,
+      deliveryMethod: input.delivery_method,
+      assignedWorkerId,
+      idempotencyKey,
+      requestFingerprint: fingerprint,
+    });
+  } catch (err) {
+    // Kalah balapan dengan request yang sama: anggap replay bila isinya sama.
+    if (idempotencyKey && err instanceof AppError && err.code === 'idempotency_conflict') {
+      const existing = await findOfflineOrderByIdempotencyKey(env, ctx.user.id, idempotencyKey);
+      if (existing && existing.fingerprint === fingerprint) {
+        const row = await getOrderRow(env, existing.id);
+        if (row) {
+          if (input.payment_method === 'cash') await recordCashIncome(env, ctx, existing.id);
+          return { order: toOrderView(row, access.viewer), replayed: true };
+        }
+      }
+    }
+    throw err;
+  }
 
   // Pemasukan QRIS dicatat apply_payment_result saat lunas; tunai diterima
-  // worker saat order dibuat, jadi dicatat sekarang (PRD 15.2).
-  if (input.payment_method === 'cash') {
-    const cashRow = await getOrderRow(env, orderId);
-    const cashAmount = Math.round(toNumber(cashRow?.total_price));
-    if (cashAmount > 0) {
-      await insertCashOrderIncome(env, {
-        userId: ctx.user.id,
-        orderId,
-        orderNumber: String(cashRow?.order_number ?? ''),
-        amount: cashAmount,
-        transactionDate: todayWib(),
-      }).catch((err) =>
-        console.error('orders.offline: gagal mencatat pemasukan tunai', err),
-      );
-    }
-  }
+  // worker saat order dibuat, jadi dicatat sekarang (PRD 15.2). Gagal mencatat
+  // tidak boleh ditelan: order sudah ada, jadi replay dengan kunci yang sama
+  // akan menyelesaikannya (unique index menjaga tidak dobel).
+  if (input.payment_method === 'cash') await recordCashIncome(env, ctx, orderId);
 
   await logActivity(env, {
     userId: ctx.user.id,

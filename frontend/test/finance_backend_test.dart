@@ -141,6 +141,8 @@ void main() {
         'expense_type': 'material',
         'start_date': '2026-11-01',
         'end_date': '2026-11-30',
+        'page': '1',
+        'limit': '50',
       });
       expect(rows.first.paymentMethod, 'cash');
       expect(rows.first.isIncome, isTrue);

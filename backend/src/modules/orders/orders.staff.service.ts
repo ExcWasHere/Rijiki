@@ -10,6 +10,7 @@ import {
   notifyOrderStatus,
 } from '../notifications/notifications.events';
 import { awardOrderCompletedPoints } from '../points/points.service';
+import { cancelOpenPayments } from '../payments/payments.service';
 import { isUuid, loadVisibleOrder, orderNotFound, resolveAccess } from './orders.access';
 import type { OrderAccess } from './orders.access';
 import { toOrderView } from './orders.mapper';
@@ -271,12 +272,14 @@ export async function changeOrderStatus(
     kind = 'correction';
   }
 
-  // Order online wajib lunas (QRIS Midtrans) sebelum dijemput. Koreksi owner
-  // sengaja tidak diperiksa: catatannya sudah menjadi jejak audit.
+  // Order online wajib lunas (QRIS Midtrans) sebelum diproses. Berlaku untuk
+  // maju status maupun koreksi owner: tanpa ini order belum dibayar bisa
+  // di-`completed` (dan dapat poin) lewat koreksi. Catatan koreksi tetap
+  // menjadi jejak audit, tetapi tidak menggantikan pembayaran.
   if (
-    kind === 'forward' &&
+    kind !== 'cancel' &&
+    target !== 'order' &&
     info.status === 'order' &&
-    target === 'pickup' &&
     info.payment_status !== 'paid'
   ) {
     throw new AppError(
@@ -284,6 +287,19 @@ export async function changeOrderStatus(
       'payment_required',
       'Order ini belum dibayar. Jemput setelah pembayaran QRIS masuk.',
     );
+  }
+
+  // QR yang masih terbuka ditutup lebih dulu: kalau ternyata sudah dibayar,
+  // pembatalan ditolak supaya uang tidak masuk ke order yang sudah dibatalkan.
+  if (kind === 'cancel') {
+    const payments = await cancelOpenPayments(env, orderId);
+    if (payments === 'paid') {
+      throw new AppError(
+        409,
+        'order_paid',
+        'Pembayaran untuk order ini baru saja masuk. Muat ulang halaman sebelum membatalkan.',
+      );
+    }
   }
 
   // Koreksi owner sengaja tidak memeriksa foto: catatannya sudah menjadi jejak audit.

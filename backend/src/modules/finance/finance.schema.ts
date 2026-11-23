@@ -15,6 +15,8 @@ export const transactionQuerySchema = z.object({
   expense_type: z.enum(EXPENSE_TYPE_VALUES).optional(),
   start_date: dateString.optional(),
   end_date: dateString.optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
 });
 
 export const manualIncomeSchema = z

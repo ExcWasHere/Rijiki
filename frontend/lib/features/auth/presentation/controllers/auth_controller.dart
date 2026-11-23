@@ -4,7 +4,11 @@ import 'package:rijiki/core/constants/app_strings.dart';
 import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
+import 'package:rijiki/features/home/presentation/controllers/home_controller.dart';
 import 'package:rijiki/features/onboarding/presentation/controllers/onboarding_controller.dart';
+import 'package:rijiki/features/order/presentation/controllers/order_detail_controller.dart';
+import 'package:rijiki/features/order/presentation/controllers/order_list_controller.dart';
+import 'package:rijiki/shared/widgets/private_image.dart';
 
 enum LoginOutcome { success, needsVerification, failed }
 
@@ -152,6 +156,10 @@ class AuthController extends AsyncNotifier<void> {
     } finally {
       session.clear();
       ref.invalidate(onboardingControllerProvider);
+      ref.invalidate(ordersProvider);
+      ref.invalidate(homeActiveOrdersProvider);
+      ref.invalidate(orderDetailProvider);
+      ref.invalidate(privateImageProvider);
     }
     _set(const AsyncData(null));
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/constants/app_constants.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/features/event/presentation/controllers/events_refresh.dart';
@@ -56,10 +57,14 @@ class _CustomerBottomBar extends StatelessWidget {
   static const double _indicatorHeight = 3;
   static const int _scanSlot = 2;
 
-  static const List<_TabItem> _slots = [
+  /// Scan masih memakai model tiruan, jadi slot-nya hanya ada di build debug.
+  static bool get _hasScan => AppConstants.scanEnabled;
+
+  static List<_TabItem> get _slots => [
     _TabItem('Beranda', Icons.home_outlined, Icons.home_rounded),
     _TabItem('Pesan', Icons.receipt_long_outlined, Icons.receipt_long_rounded),
-    _TabItem('Pindai', Icons.photo_camera_outlined, Icons.photo_camera_rounded),
+    if (_hasScan)
+      _TabItem('Pindai', Icons.photo_camera_outlined, Icons.photo_camera_rounded),
     _TabItem(
       'Promo',
       Icons.local_activity_outlined,
@@ -68,23 +73,26 @@ class _CustomerBottomBar extends StatelessWidget {
     _TabItem('Profil', Icons.person_outline_rounded, Icons.person_rounded),
   ];
 
-  static int _branchOfSlot(int slot) => slot > _scanSlot ? slot - 1 : slot;
+  static int _branchOfSlot(int slot) =>
+      _hasScan && slot > _scanSlot ? slot - 1 : slot;
   static int _slotOfBranch(int branch) =>
-      branch >= _scanSlot ? branch + 1 : branch;
+      _hasScan && branch >= _scanSlot ? branch + 1 : branch;
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final currentSlot = _slotOfBranch(currentBranch);
+    final slots = _slots;
+    final rise = _hasScan ? _scanRise : 0.0;
 
     return Material(
       color: Colors.transparent,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final slotWidth = constraints.maxWidth / _slots.length;
+          final slotWidth = constraints.maxWidth / slots.length;
 
           return SizedBox(
-            height: _barHeight + _scanRise + bottomInset,
+            height: _barHeight + rise + bottomInset,
             child: Stack(
               children: [
                 Positioned(
@@ -106,7 +114,7 @@ class _CustomerBottomBar extends StatelessWidget {
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 340),
                   curve: Curves.easeOutCubic,
-                  top: _scanRise,
+                  top: rise,
                   left:
                       currentSlot * slotWidth +
                       (slotWidth - _indicatorWidth) / 2,
@@ -126,16 +134,16 @@ class _CustomerBottomBar extends StatelessWidget {
                     padding: EdgeInsets.only(bottom: bottomInset),
                     child: Row(
                       children: [
-                        for (var slot = 0; slot < _slots.length; slot++)
+                        for (var slot = 0; slot < slots.length; slot++)
                           Expanded(
-                            child: slot == _scanSlot
+                            child: _hasScan && slot == _scanSlot
                                 ? _ScanButton(
-                                    label: _slots[slot].label,
-                                    icon: _slots[slot].activeIcon,
+                                    label: slots[slot].label,
+                                    icon: slots[slot].activeIcon,
                                     onTap: onScan,
                                   )
                                 : _TabButton(
-                                    item: _slots[slot],
+                                    item: slots[slot],
                                     selected: slot == currentSlot,
                                     onTap: () =>
                                         onBranchSelected(_branchOfSlot(slot)),

@@ -1,5 +1,6 @@
 import type { AuthError } from '@supabase/supabase-js';
 import { getSupabaseAdmin, getSupabaseAnon } from '../../config/supabase';
+import { invalidateAuthCache } from '../../middleware/auth';
 import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import type { AppPermission, AppUser, CustomerProfile } from '../../shared/types/user';
@@ -232,6 +233,8 @@ export async function logout(env: Bindings, accessToken: string): Promise<void> 
   const admin = getSupabaseAdmin(env);
   const { error } = await admin.auth.admin.signOut(accessToken, 'local');
   if (error) console.error('logout: gagal mencabut sesi', error.message);
+  // Token ini tidak boleh tetap dilayani dari cache konteks auth.
+  await invalidateAuthCache(accessToken);
 }
 
 /**

@@ -1,4 +1,5 @@
 import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/constants/app_constants.dart';
 import 'package:rijiki/core/enums/user_role.dart';
 import 'package:rijiki/core/session/app_user.dart';
 
@@ -14,10 +15,28 @@ abstract final class RoleRedirect {
     ..._authRoutes,
   };
 
-  /// Halaman manajemen (CMS, Karyawan) dipakai owner dan worker berizin, di
-  /// luar shell. Izin per fitur dicek backend dan disembunyikan di menu;
-  /// guard ini hanya menutup akses customer lewat tautan langsung.
-  static const String _managementPrefix = '/management';
+  /// Prefix route yang boleh diakses tiap role. Route di luar daftar ini
+  /// dianggap tidak dikenal untuk role tersebut dan dikembalikan ke beranda.
+  /// Owner tidak dibatasi.
+  ///
+  /// Worker tetap boleh membuka `/management/*` karena hub manajemen dipakai
+  /// bersama owner dan worker berizin; izin per fitur tetap dicek backend dan
+  /// menu yang tidak berizin disembunyikan.
+  static const Map<UserRole, List<String>> _allowedPrefixes = {
+    UserRole.customer: ['/customer', '/profile'],
+    UserRole.worker: ['/worker', '/profile', '/management'],
+  };
+
+  static bool _matchesPrefix(String location, String prefix) {
+    return location == prefix || location.startsWith('$prefix/');
+  }
+
+  static bool _isAllowed(UserRole role, String location) {
+    if (role == UserRole.owner) return true;
+    final prefixes = _allowedPrefixes[role];
+    if (prefixes == null) return false;
+    return prefixes.any((prefix) => _matchesPrefix(location, prefix));
+  }
 
   static bool needsOnboarding(AppUser user) {
     return user.role == UserRole.customer && !user.profileCompleted;
@@ -67,9 +86,15 @@ abstract final class RoleRedirect {
       return null;
     }
 
-    if (user.role == UserRole.customer &&
-        (location == _managementPrefix ||
-            location.startsWith('$_managementPrefix/'))) {
+    // Scan masih memakai model tiruan (model asli belum selesai): route-nya
+    // hanya terbuka di build debug, meski tautan dibuka langsung.
+    if (!AppConstants.scanEnabled &&
+        (location == RoutePaths.customerScan ||
+            location.startsWith('${RoutePaths.customerScan}/'))) {
+      return roleHome(user);
+    }
+
+    if (!_isAllowed(user.role, location)) {
       return roleHome(user);
     }
 

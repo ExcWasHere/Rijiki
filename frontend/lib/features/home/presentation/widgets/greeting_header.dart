@@ -54,7 +54,12 @@ class GreetingHeader extends StatelessWidget {
           child: CircleAvatar(
             radius: 24,
             backgroundColor: AppColors.primary,
-            foregroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl!),
+            foregroundImage: avatarUrl == null
+                ? null
+                : ResizeImage(
+                    NetworkImage(avatarUrl!),
+                    width: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                  ),
             onForegroundImageError: avatarUrl == null ? null : (_, _) {},
             child: Text(
               initial,

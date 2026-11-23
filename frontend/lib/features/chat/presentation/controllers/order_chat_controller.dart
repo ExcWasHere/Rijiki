@@ -1,8 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
+import 'package:rijiki/core/error/app_exception.dart';
+import 'package:rijiki/core/error/failure.dart';
+import 'package:rijiki/core/error/failure_mapper.dart';
 import 'package:rijiki/features/chat/domain/order_message.dart';
 
 @immutable
@@ -54,17 +57,38 @@ class OrderChatController extends Notifier<OrderChatState> {
   static const Duration _pollInterval = Duration(seconds: 5);
 
   Timer? _poll;
+  AppLifecycleListener? _lifecycle;
   bool _disposed = false;
   bool _fetching = false;
 
   @override
   OrderChatState build() {
+    // Saat app di background tidak ada gunanya terus memanggil API.
+    _lifecycle = AppLifecycleListener(onStateChange: _handleLifecycle);
     ref.onDispose(() {
       _disposed = true;
       _poll?.cancel();
+      _lifecycle?.dispose();
+      _lifecycle = null;
     });
     scheduleMicrotask(() => _load());
     return const OrderChatState();
+  }
+
+  void _handleLifecycle(AppLifecycleState lifecycleState) {
+    if (_disposed) return;
+    switch (lifecycleState) {
+      case AppLifecycleState.resumed:
+        if (!state.loading && !state.loadFailed) _startPolling();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        _poll?.cancel();
+        _poll = null;
+        break;
+    }
   }
 
   Future<void> retry() {
@@ -145,8 +169,12 @@ class OrderChatController extends Notifier<OrderChatState> {
   }
 
   static String _messageOf(Object error) {
-    final text = error.toString();
-    return text.isEmpty ? 'Pesan gagal dikirim. Coba lagi ya.' : text;
+    final message = switch (error) {
+      AppException e => failureFromException(e).message,
+      Failure f => f.message,
+      _ => '',
+    };
+    return message.isEmpty ? 'Pesan gagal dikirim. Coba lagi ya.' : message;
   }
 }
 

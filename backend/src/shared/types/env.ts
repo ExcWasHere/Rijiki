@@ -21,6 +21,14 @@ export interface Bindings {
   AI_API_KEY?: string;
   AI_BASE_URL?: string;
   AI_MODEL?: string;
+  // Rate Limiting binding Cloudflare (opsional; middleware punya cadangan
+  // per-isolate bila belum dipasang).
+  AUTH_RATE_LIMITER?: RateLimitBinding;
+  WEBHOOK_RATE_LIMITER?: RateLimitBinding;
+}
+
+export interface RateLimitBinding {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
 export interface Variables {

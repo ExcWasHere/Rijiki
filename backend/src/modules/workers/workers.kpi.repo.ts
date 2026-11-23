@@ -110,18 +110,35 @@ export async function upsertAssessment(
   if (error) throw failed('menyimpan penilaian KPI', error.message);
 }
 
-const REVIEW_LIMIT = 200;
+export const REVIEW_MAX_LIMIT = 100;
+export const REVIEW_DEFAULT_LIMIT = 20;
 
-export async function listReviewRows(env: Bindings, workerId: string): Promise<ReviewRow[]> {
+export interface ReviewPage {
+  rows: ReviewRow[];
+  total: number;
+}
+
+/**
+ * Ulasan worker dengan paginasi. Dulu dipotong senyap di 200 baris, sehingga
+ * ulasan lama hilang tanpa tanda apa pun di aplikasi.
+ */
+export async function listReviewRows(
+  env: Bindings,
+  workerId: string,
+  page: number,
+  limit: number,
+): Promise<ReviewPage> {
   const admin = getSupabaseAdmin(env);
-  const { data, error } = await admin
+  const from = (page - 1) * limit;
+  const { data, error, count } = await admin
     .from('ratings')
     .select(
       'id, rating_value, comment, created_at, order:orders(order_number, order_items(services(name))), customer:customer_profiles(users(full_name))',
+      { count: 'exact' },
     )
     .eq('worker_id', workerId)
     .order('created_at', { ascending: false })
-    .limit(REVIEW_LIMIT);
+    .range(from, from + limit - 1);
   if (error) throw failed('memuat ulasan worker', error.message);
-  return (data ?? []) as unknown as ReviewRow[];
+  return { rows: (data ?? []) as unknown as ReviewRow[], total: count ?? 0 };
 }

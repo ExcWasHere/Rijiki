@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { validateEnv } from './config/env';
+import { rateLimit } from './middleware/rate-limit';
 import { managementAnalyticsRoutes } from './modules/analytics/analytics.routes';
 import { authRoutes } from './modules/auth/auth.routes';
 import { managementCustomersRoutes } from './modules/customers/customers.routes';
@@ -40,6 +41,17 @@ export function createApp() {
   });
 
   app.get('/', (c) => c.json({ name: 'rijiki-backend', status: 'ok' }));
+
+  // Endpoint tanpa autentikasi dibatasi per IP: menahan credential stuffing,
+  // brute force OTP, dan banjir notifikasi webhook palsu.
+  app.use(
+    '/api/auth/*',
+    rateLimit({ binding: 'AUTH_RATE_LIMITER', fallbackLimit: 20 }),
+  );
+  app.use(
+    '/api/webhooks/*',
+    rateLimit({ binding: 'WEBHOOK_RATE_LIMITER', fallbackLimit: 120 }),
+  );
 
   app.route('/api/auth', authRoutes);
   app.route('/api/media', mediaRoutes);

@@ -18,13 +18,10 @@ Duration? _noRetry(int retryCount, Object error) => null;
 // Alamat order mengikuti alamat default di profil (customer_profiles.default_address
 // lewat session/defaultLocationProvider). Customer boleh mengubahnya di form;
 // ongkir sementara tetap dihitung backend dari koordinat profil.
-// Bila belum ada, jatuh ke alamat contoh di bawah (hanya relevan untuk mock).
-const String _mockDefaultAddress =
-    'Jl. Soekarno Hatta No. 9, Lowokwaru, Kota Malang';
-
+// Bila profil belum punya alamat, form mulai kosong dan checkout meminta
+// customer mengisi alamat lebih dulu.
 final defaultAddressProvider = Provider<String>((ref) {
-  final saved = ref.watch(defaultLocationProvider)?.address.trim() ?? '';
-  return saved.isNotEmpty ? saved : _mockDefaultAddress;
+  return ref.watch(defaultLocationProvider)?.address.trim() ?? '';
 });
 
 /// Promo di form order: daftar promo yang sudah lolos cek server (maks 1
@@ -296,7 +293,15 @@ class OrderCreateController extends Notifier<OrderCreateState> {
   }
 
   Future<CustomerOrder?> submit(PriceQuote quote) async {
-    if (state.isSubmitting || !state.isValid) return null;
+    if (state.isSubmitting) return null;
+    if (state.pickupAddress.trim().isEmpty ||
+        state.effectiveDeliveryAddress.trim().isEmpty) {
+      state = state.copyWith(
+        submitError: 'Isi alamat penjemputan dan pengantaran dulu ya.',
+      );
+      return null;
+    }
+    if (!state.isValid) return null;
     state = state.copyWith(isSubmitting: true, clearSubmitError: true);
     try {
       final order = await ref

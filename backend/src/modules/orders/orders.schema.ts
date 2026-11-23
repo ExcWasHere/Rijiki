@@ -29,12 +29,8 @@ const quoteItemSchema = z.object({
 });
 
 export const quoteOrderSchema = z.object({
-  subtotal: z
-    .number()
-    .int('Subtotal harus bilangan bulat')
-    .min(0, 'Subtotal tidak valid')
-    .max(100_000_000, 'Subtotal terlalu besar')
-    .optional(),
+  // Subtotal sengaja tidak diterima dari client: nilainya dihitung dari harga
+  // layanan di database supaya kelayakan promo tidak bisa dipalsukan.
   items: z.array(quoteItemSchema).max(5, 'Maksimal 5 item per order').optional(),
   promo_codes: promoCodes,
 });

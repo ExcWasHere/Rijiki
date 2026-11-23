@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rijiki/app/router/route_paths.dart';
+import 'package:rijiki/core/constants/app_constants.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
@@ -44,12 +45,14 @@ class HomePage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: ScanCtaCard(
-                  onScan: () => context.push(RoutePaths.customerScan),
+              // Scan masih memakai model tiruan; hanya tampil di build debug.
+              if (AppConstants.scanEnabled)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: ScanCtaCard(
+                    onScan: () => context.push(RoutePaths.customerScan),
+                  ),
                 ),
-              ),
               const SizedBox(height: AppSpacing.xl),
               const ActiveOrderSection(),
               const SizedBox(height: AppSpacing.xl),

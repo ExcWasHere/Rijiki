@@ -31,3 +31,6 @@ lerna-debug.log*
 
 # wrangler dev state
 .wrangler/
+
+# hasil bundel test
+test-build/

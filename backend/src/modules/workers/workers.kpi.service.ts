@@ -168,10 +168,14 @@ export async function saveAssessment(
 export async function listWorkerReviews(
   env: Bindings,
   workerId: string,
-): Promise<{ items: WorkerReviewView[] }> {
+  query: { page: number; limit: number },
+): Promise<{ items: WorkerReviewView[]; total: number; page: number; limit: number }> {
   await requireWorker(env, workerId);
-  const rows = await listReviewRows(env, workerId);
+  const { rows, total } = await listReviewRows(env, workerId, query.page, query.limit);
   return {
+    total,
+    page: query.page,
+    limit: query.limit,
     items: rows.map((row) => {
       const order = one(row.order);
       return {

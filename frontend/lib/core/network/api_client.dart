@@ -256,13 +256,23 @@ class ApiClient {
         ApiEndpoints.refresh,
         body: {'refresh_token': refreshToken},
       );
+      final accessToken = json['access_token'];
+      final newRefreshToken = json['refresh_token'];
+      if (accessToken is! String || newRefreshToken is! String) {
+        throw const AppException(
+          code: 'invalid_refresh_response',
+          message: AppStrings.errUnknown,
+        );
+      }
       await tokenStorage.save(
-        accessToken: json['access_token'] as String,
-        refreshToken: json['refresh_token'] as String,
+        accessToken: accessToken,
+        refreshToken: newRefreshToken,
       );
       return true;
-    } on AppException catch (e) {
-      if (e.isNetwork) rethrow;
+    } catch (error) {
+      // Gangguan jaringan bukan alasan mengunci sesi: biarkan pemanggil
+      // menampilkan error jaringan seperti biasa.
+      if (error is AppException && error.isNetwork) rethrow;
       await tokenStorage.clear();
       onSessionExpired?.call();
       return false;

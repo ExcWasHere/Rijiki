@@ -68,6 +68,11 @@ const score = z
   .min(1, 'Skor minimal 1')
   .max(5, 'Skor maksimal 5');
 
+export const reviewListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 /** Periode dalam bulan WIB; tanpa nilai berarti bulan berjalan. */
 export const kpiQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
