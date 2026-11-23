@@ -41,6 +41,8 @@ class OrderRepositoryImpl implements OrderRepository {
 
   @override
   Future<PriceQuote> quotePrice({
+    // Dipertahankan demi kompatibilitas pemanggil; backend menghitung
+    // subtotal dari `items` di database.
     required int subtotal,
     List<String> promoCodes = const [],
     List<OrderDraftItem> items = const [],
@@ -55,8 +57,7 @@ class OrderRepositoryImpl implements OrderRepository {
         ApiEndpoints.orderQuote,
         auth: true,
         body: {
-          'subtotal': subtotal,
-          if (lines.isNotEmpty) 'items': lines,
+          'items': lines,
           if (promoCodes.isNotEmpty) 'promo_codes': promoCodes,
         },
       );

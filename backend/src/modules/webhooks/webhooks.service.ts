@@ -3,12 +3,15 @@ import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import { parseInput } from '../../shared/utils/validate';
 import {
+  fetchTransactionStatus,
   getProviderConfig,
   grossAmountMatches,
+  mapTransactionStatus,
   parseMidtransTime,
 } from '../payments/midtrans.client';
 import { findPaymentByProviderOrderId } from '../payments/payments.repo';
 import { applyProviderResult } from '../payments/payments.service';
+import type { ProviderResult } from '../payments/payments.service';
 import { verifyMidtransSignature } from './midtrans-signature.util';
 
 const midtransNotificationSchema = z
@@ -53,10 +56,44 @@ export async function handleMidtransNotification(env: Bindings, rawBody: unknown
     return;
   }
 
-  await applyProviderResult(env, payment, {
+  const result: ProviderResult = {
     transactionStatus: payload.transaction_status,
     fraudStatus: payload.fraud_status ?? null,
     transactionId: payload.transaction_id ?? null,
     settlementTime: parseMidtransTime(payload.settlement_time),
-  });
+  };
+
+  // Signature Midtrans hanya menandatangani order_id + status_code +
+  // gross_amount, jadi transaction_status/fraud_status tidak ikut
+  // terautentikasi. Untuk transisi lunas, konfirmasi ulang ke API status
+  // Midtrans supaya notifikasi yang diputar ulang dengan status diubah tidak
+  // bisa menandai order lunas.
+  const mapped = mapTransactionStatus(result.transactionStatus, result.fraudStatus);
+  if (mapped === 'paid') {
+    const remote = await fetchTransactionStatus(env, payment.provider_order_id).catch((err) => {
+      console.error('webhook midtrans: gagal konfirmasi status lunas', err);
+      return undefined;
+    });
+    if (remote === undefined) {
+      // Provider tidak bisa dihubungi: minta Midtrans mengirim ulang nanti
+      // daripada menerapkan status yang belum terkonfirmasi.
+      throw new AppError(502, 'provider_unavailable', 'Gagal mengonfirmasi status pembayaran');
+    }
+    if (!remote || !grossAmountMatches(payment.amount, remote.grossAmount)) {
+      console.error('webhook midtrans: transaksi tidak ditemukan saat konfirmasi', payload.order_id);
+      return;
+    }
+    if (mapTransactionStatus(remote.transactionStatus, remote.fraudStatus) !== 'paid') {
+      console.error(
+        `webhook midtrans: klaim lunas tidak cocok dengan status provider (${remote.transactionStatus}) untuk ${payload.order_id}`,
+      );
+      return;
+    }
+    result.transactionStatus = remote.transactionStatus;
+    result.fraudStatus = remote.fraudStatus;
+    result.transactionId = remote.transactionId ?? result.transactionId;
+    result.settlementTime = remote.settlementTime ?? result.settlementTime;
+  }
+
+  await applyProviderResult(env, payment, result);
 }

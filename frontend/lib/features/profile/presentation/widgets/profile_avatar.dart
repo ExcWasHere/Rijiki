@@ -48,6 +48,9 @@ class ProfileAvatar extends StatelessWidget {
     );
 
     final url = avatarUrl;
+    // Decode hanya sebesar kotak avatar supaya hemat memori.
+    final cacheWidth = (radius * 2 * MediaQuery.devicePixelRatioOf(context))
+        .round();
     final Widget content;
     if (url == null || url.isEmpty) {
       content = fallback;
@@ -55,6 +58,7 @@ class ProfileAvatar extends StatelessWidget {
       content = Image.network(
         url,
         fit: BoxFit.cover,
+        cacheWidth: cacheWidth,
         errorBuilder: (_, _, _) => fallback,
       );
     } else {
@@ -62,6 +66,7 @@ class ProfileAvatar extends StatelessWidget {
       content = Image.file(
         File(url),
         fit: BoxFit.cover,
+        cacheWidth: cacheWidth,
         errorBuilder: (_, _, _) => fallback,
       );
     }

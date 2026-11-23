@@ -1,7 +1,8 @@
 import type { Bindings } from '../../shared/types/env';
 import type { AuthContextUser } from '../../shared/types/user';
 import { notifyNewMessage } from '../notifications/notifications.events';
-import { loadVisibleOrder, resolveAccess } from '../orders/orders.access';
+import { loadVisibleOrder, orderNotFound, resolveAccess } from '../orders/orders.access';
+import { flowInfoFromRow, isAssignedToViewer } from '../orders/orders.transitions';
 import type { OrderRow } from '../orders/orders.types';
 import {
   countUnreadMessages,
@@ -18,7 +19,11 @@ export const MESSAGE_MAX_LENGTH = 1000;
 /**
  * Siapa pun yang boleh melihat order boleh ikut chat order itu: customer
  * pemilik, worker penangan (atau berizin manage_orders_all), dan owner.
- * Pemeriksaan akses memakai aturan order yang sudah ada supaya tidak berbeda.
+ *
+ * Pengecualian: worker yang belum memegang order. Aturan "boleh melihat order
+ * yang masih bisa diambil" dipakai untuk memutuskan claim, bukan untuk membaca
+ * percakapan customer dengan CS — pesannya juga dikirim sebagai notifikasi
+ * bertanda Rijiki, jadi jangan sampai jadi kanal phishing.
  */
 async function loadThreadOrder(
   env: Bindings,
@@ -27,6 +32,16 @@ async function loadThreadOrder(
 ): Promise<{ order: OrderRow; senderRole: MessageSenderRole }> {
   const access = await resolveAccess(env, ctx);
   const order = await loadVisibleOrder(env, access, orderId);
+
+  const { viewer } = access;
+  if (
+    viewer.role === 'worker' &&
+    !viewer.manageAll &&
+    !isAssignedToViewer(flowInfoFromRow(order), viewer)
+  ) {
+    throw orderNotFound();
+  }
+
   return { order, senderRole: ctx.user.role };
 }
 

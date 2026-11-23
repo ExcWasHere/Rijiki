@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Frontend</string>
+	<string>Rijiki</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>frontend</string>
+	<string>Rijiki</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -26,6 +26,19 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Rijiki memakai kamera untuk mengambil foto sepatu agar kondisi dan jenisnya bisa diperiksa saat membuat pesanan.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Rijiki memakai galeri foto untuk memilih foto sepatu yang akan dicuci dan foto bukti pekerjaan.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Rijiki memakai lokasi Anda saat aplikasi dipakai untuk menampilkan posisi kurir dan memperkirakan alamat penjemputan sepatu.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Rijiki memakai lokasi Anda untuk melacak perjalanan kurir dan memperbarui estimasi penjemputan sepatu, termasuk saat aplikasi berjalan di latar belakang.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

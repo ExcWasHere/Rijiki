@@ -6,6 +6,7 @@ import { getKpiOverview, getWorkerKpi, listWorkerReviews, saveAssessment } from 
 import {
   createWorkerSchema,
   kpiQuerySchema,
+  reviewListQuerySchema,
   saveAssessmentSchema,
   setPermissionsSchema,
   updateWorkerSchema,
@@ -53,7 +54,7 @@ export async function createWorkerHandler(c: Context<AppEnv>) {
 export async function updateWorkerHandler(c: Context<AppEnv>) {
   const ctx = c.get('user');
   const input = parseInput(updateWorkerSchema, await c.req.json().catch(() => null));
-  return c.json(await updateWorker(c.env, ctx.user.id, c.req.param('id') ?? '', input));
+  return c.json(await updateWorker(c.env, ctx, c.req.param('id') ?? '', input));
 }
 
 /** GET /api/owner/workers/:id/permissions */
@@ -73,8 +74,9 @@ export async function setPermissionsHandler(c: Context<AppEnv>) {
 
 /** GET /api/workers/:id/reviews */
 export async function reviewsHandler(c: Context<AppEnv>) {
+  const query = parseInput(reviewListQuerySchema, c.req.query());
   c.header('Cache-Control', 'no-store');
-  return c.json(await listWorkerReviews(c.env, c.req.param('id') ?? ''));
+  return c.json(await listWorkerReviews(c.env, c.req.param('id') ?? '', query));
 }
 
 /** GET /api/workers/:id/kpi?month=&year= */

@@ -2,18 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rijiki/app/providers.dart';
-import 'package:rijiki/core/theme/app_theme.dart';
 import 'package:rijiki/core/enums/user_role.dart';
 import 'package:rijiki/core/session/app_user.dart';
 import 'package:rijiki/core/session/session_provider.dart';
-import 'package:rijiki/features/notifications/data/mock_notification_repository.dart';
-import 'package:rijiki/features/points/data/mock_customer_points_repository.dart';
-import 'package:rijiki/features/profile/presentation/pages/customer/profile_page.dart';
+import 'package:rijiki/core/theme/app_theme.dart';
+import 'package:rijiki/features/notifications/domain/app_notification.dart';
+import 'package:rijiki/features/notifications/domain/notification_repository.dart';
 import 'package:rijiki/features/notifications/presentation/pages/notifications_page.dart';
-import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
+import 'package:rijiki/features/points/domain/customer_points_repository.dart';
+import 'package:rijiki/features/points/domain/point_ledger_entry.dart';
+import 'package:rijiki/features/points/domain/point_redemption.dart';
+import 'package:rijiki/features/points/domain/reward.dart';
+import 'package:rijiki/features/profile/domain/profile_history.dart';
+import 'package:rijiki/features/profile/domain/profile_repository.dart';
 import 'package:rijiki/features/profile/presentation/pages/customer/my_ratings_page.dart';
 import 'package:rijiki/features/profile/presentation/pages/customer/my_shoes_page.dart';
+import 'package:rijiki/features/profile/presentation/pages/customer/profile_page.dart';
 
+/// Fake lokal: dulu test ini memakai `lib/features/**/data/mock_*.dart`, yang
+/// sudah dihapus supaya tidak ada data tiruan di build produksi.
 class _SignedInCustomer extends SessionNotifier {
   @override
   AppUser? build() => const AppUser(
@@ -25,6 +32,155 @@ class _SignedInCustomer extends SessionNotifier {
   );
 }
 
+class _FakeProfileRepository implements ProfileRepository {
+  @override
+  Future<MyShoePage> fetchMyShoes({required int page, required int limit}) async {
+    return MyShoePage(
+      total: 2,
+      items: [
+        MyShoe(
+          id: 'shoe-1',
+          orderId: 'order-1',
+          orderNumber: 'RJK-1001-001',
+          orderStatus: 'completed',
+          serviceName: 'Deep Clean',
+          shoeBrand: 'Nike Air Force 1',
+          quantity: 2,
+          orderDate: DateTime(2026, 11, 18),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<CustomerRatingPage> fetchMyRatings({
+    required int page,
+    required int limit,
+  }) async {
+    return CustomerRatingPage(
+      total: 1,
+      average: 5,
+      items: [
+        CustomerRating(
+          id: 'rating-1',
+          orderId: 'order-1',
+          orderNumber: 'RJK-1001-001',
+          workerName: 'Andi',
+          ratingValue: 5,
+          comment: 'Bersih banget, wanginya enak.',
+          isFeatured: true,
+          createdAt: DateTime(2026, 11, 18),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<AppUser> saveCustomerProfile({
+    required AppUser currentUser,
+    required String fullName,
+    required String phoneNumber,
+    required String address,
+    required double latitude,
+    required double longitude,
+  }) async => currentUser;
+
+  @override
+  Future<AppUser> saveProfile({
+    required AppUser currentUser,
+    required String fullName,
+    required String phoneNumber,
+  }) async => currentUser;
+
+  @override
+  Future<AppUser> uploadAvatar({
+    required AppUser currentUser,
+    required String filePath,
+  }) async => currentUser;
+}
+
+class _FakeNotificationRepository implements NotificationRepository {
+  final List<AppNotification> _items = [
+    AppNotification(
+      id: 'notif-1',
+      type: AppNotificationType.orderStatus,
+      title: 'Order diperbarui',
+      body: 'Sepatu sedang dibersihkan',
+      read: false,
+      createdAt: DateTime(2026, 11, 18, 10),
+    ),
+    AppNotification(
+      id: 'notif-2',
+      type: AppNotificationType.paymentPaid,
+      title: 'Pembayaran diterima',
+      body: 'Pembayaran berhasil',
+      read: true,
+      createdAt: DateTime(2026, 11, 18, 9),
+    ),
+  ];
+
+  @override
+  Future<NotificationPage> fetch({required int page, required int limit}) async {
+    return NotificationPage(
+      items: _items,
+      total: _items.length,
+      unread: _items.where((item) => !item.read).length,
+    );
+  }
+
+  @override
+  Future<int> fetchUnreadCount() async =>
+      _items.where((item) => !item.read).length;
+
+  @override
+  Future<int> markRead(String id) async {
+    final index = _items.indexWhere((item) => item.id == id);
+    if (index >= 0) _items[index] = _items[index].copyWith(read: true);
+    return _items.where((item) => !item.read).length;
+  }
+
+  @override
+  Future<void> markAllRead() async {
+    for (var i = 0; i < _items.length; i++) {
+      _items[i] = _items[i].copyWith(read: true);
+    }
+  }
+
+  @override
+  Future<void> registerDevice({
+    required String token,
+    required String platform,
+  }) async {}
+
+  @override
+  Future<void> unregisterDevice(String token) async {}
+}
+
+class _FakeCustomerPointsRepository implements CustomerPointsRepository {
+  @override
+  Future<PointBalance> fetchBalance() async =>
+      const PointBalance(balance: 120);
+
+  @override
+  Future<PointLedgerPage> fetchLedger({
+    required int page,
+    required int limit,
+  }) async => const PointLedgerPage(items: [], total: 0);
+
+  @override
+  Future<List<Reward>> fetchRewards() async => const [];
+
+  @override
+  Future<List<PointRedemption>> fetchRedemptions({
+    RedemptionStatus? status,
+    int limit = 50,
+  }) async => const [];
+
+  @override
+  Future<PointRedemption> requestRedemption(String merchandiseId) =>
+      throw UnimplementedError();
+}
+
 void main() {
   group('Halaman profil customer', () {
     testWidgets('Profil menampilkan menu yang sudah tersambung', (tester) async {
@@ -33,13 +189,13 @@ void main() {
           overrides: [
             sessionProvider.overrideWith(_SignedInCustomer.new),
             profileRepositoryProvider.overrideWithValue(
-              MockProfileRepository(),
+              _FakeProfileRepository(),
             ),
             notificationRepositoryProvider.overrideWithValue(
-              MockNotificationRepository(),
+              _FakeNotificationRepository(),
             ),
             customerPointsRepositoryProvider.overrideWithValue(
-              MockCustomerPointsRepository(),
+              _FakeCustomerPointsRepository(),
             ),
           ],
           child: MaterialApp(
@@ -48,9 +204,6 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
-      // Saldo poin dimuat lewat mock dengan jeda; beri waktu sampai selesai.
-      await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
       expect(find.text('Budi Santoso'), findsOneWidget);
@@ -70,7 +223,7 @@ void main() {
         ProviderScope(
           overrides: [
             profileRepositoryProvider.overrideWithValue(
-              MockProfileRepository(),
+              _FakeProfileRepository(),
             ),
           ],
           child: MaterialApp(theme: AppTheme.light, home: const MyShoesPage()),
@@ -90,7 +243,7 @@ void main() {
         ProviderScope(
           overrides: [
             profileRepositoryProvider.overrideWithValue(
-              MockProfileRepository(),
+              _FakeProfileRepository(),
             ),
           ],
           child: MaterialApp(
@@ -113,7 +266,7 @@ void main() {
         ProviderScope(
           overrides: [
             notificationRepositoryProvider.overrideWithValue(
-              MockNotificationRepository(),
+              _FakeNotificationRepository(),
             ),
           ],
           child: MaterialApp(

@@ -1,12 +1,14 @@
-import 'package:rijiki/core/mock/mock_scenario.dart';
 import 'package:rijiki/features/scan/domain/scan_repository.dart';
 import 'package:rijiki/features/scan/domain/scan_result.dart';
 import 'package:rijiki/features/service/domain/care_service.dart';
 
+/// Pengganti sementara untuk model klasifikasi yang belum selesai.
+///
+/// Selalu mengembalikan hasil contoh setelah jeda 2 detik supaya alur UI bisa
+/// dicoba. Hanya dipakai di build debug: `AppConstants.scanEnabled` mematikan
+/// tab, CTA, dan route scan di build release.
 class MockScanRepository implements ScanRepository {
-  const MockScanRepository({this.scenario = MockScenario.data});
-
-  final MockScenario scenario;
+  const MockScanRepository();
 
   static const ScanResult _result = ScanResult(
     shoeType: ScanPrediction(label: 'Sneakers', confidence: 0.94),
@@ -30,12 +32,6 @@ class MockScanRepository implements ScanRepository {
   @override
   Future<ScanResult> analyze(String imagePath) async {
     await Future<void>.delayed(const Duration(seconds: 2));
-    return switch (scenario) {
-      MockScenario.data => _result,
-      MockScenario.empty => throw const ScanException(
-        'Sepatu tidak terdeteksi di foto. Coba foto ulang dengan cahaya lebih terang.',
-      ),
-      MockScenario.error => throw const MockException(),
-    };
+    return _result;
   }
 }

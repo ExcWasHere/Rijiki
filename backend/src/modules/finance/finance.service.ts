@@ -14,6 +14,7 @@ import {
   findExpenseAiInput,
   insertExpenseAiInput,
   insertManualIncome,
+  listTransactionPage,
   listTransactions,
   markExpenseAiInputDiscarded,
 } from './finance.repo';
@@ -88,7 +89,14 @@ export async function getFinanceSummary(
 export async function getTransactions(
   env: Bindings,
   query: TransactionQuery,
-): Promise<{ items: TransactionView[]; total: number; income: number; expense: number }> {
+): Promise<{
+  items: TransactionView[];
+  total: number;
+  page: number;
+  limit: number;
+  income: number;
+  expense: number;
+}> {
   const range: DateRange | null =
     query.start_date && query.end_date
       ? { from: query.start_date, to: query.end_date }
@@ -97,16 +105,32 @@ export async function getTransactions(
     throw new AppError(400, 'validation_error', 'Tanggal awal tidak boleh setelah tanggal akhir');
   }
 
-  const rows = await listTransactions(env, {
-    type: query.type ?? null,
-    expenseType: query.expense_type ?? null,
-    range,
-  });
-  const totals = sumByType(rows);
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 50;
+
+  const [paged, totalsRows] = await Promise.all([
+    listTransactionPage(env, {
+      type: query.type ?? null,
+      expenseType: query.expense_type ?? null,
+      range,
+      page,
+      limit,
+    }),
+    // Ringkasan pemasukan/pengeluaran mencakup seluruh rentang filter, bukan
+    // hanya halaman yang sedang ditampilkan.
+    listTransactions(env, {
+      type: query.type ?? null,
+      expenseType: query.expense_type ?? null,
+      range,
+    }),
+  ]);
+  const totals = sumByType(totalsRows);
 
   return {
-    items: rows.map(toView),
-    total: rows.length,
+    items: paged.rows.map(toView),
+    total: paged.total,
+    page,
+    limit,
     income: totals.income,
     expense: totals.expense,
   };

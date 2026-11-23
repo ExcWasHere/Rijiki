@@ -17,7 +17,7 @@ class QrisPaymentPage extends ConsumerWidget {
 
   static const List<String> _steps = [
     'Buka e-wallet atau mobile banking apa pun.',
-    'Pilih menu scan QR, lalu arahkan ke kode di atas.',
+    'Pilih menu pindai QR, lalu arahkan ke kode di atas.',
     'Periksa nominal, lalu konfirmasi pembayaran.',
   ];
 
@@ -48,7 +48,8 @@ class QrisPaymentPage extends ConsumerWidget {
       body: switch (state.phase) {
         PaymentPhase.error => Center(
           child: ErrorState(
-            message: 'QR pembayaran gagal dibuat. Coba lagi ya.',
+            message:
+                state.message ?? 'QR pembayaran gagal dibuat. Coba lagi ya.',
             onRetry: controller.createPayment,
           ),
         ),

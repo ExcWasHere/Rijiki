@@ -11,12 +11,34 @@ import 'package:rijiki/features/finance/domain/finance_summary.dart';
 import 'package:rijiki/features/finance/domain/financial_transaction.dart';
 import 'package:rijiki/features/finance/domain/transaction_filter.dart';
 
+/// Satu halaman daftar transaksi beserta total baris yang cocok dengan filter.
+class FinanceTransactionPage {
+  const FinanceTransactionPage({
+    required this.items,
+    required this.total,
+    required this.page,
+    required this.limit,
+  });
+
+  final List<FinancialTransaction> items;
+
+  /// Total transaksi di server untuk filter yang sama (bukan panjang [items]).
+  final int total;
+  final int page;
+  final int limit;
+
+  bool get hasMore => items.isNotEmpty && page * limit < total;
+}
+
 /// Keuangan dari backend (`/api/finance`), izin `manage_finance`.
 /// Angka ringkasan, rekap, pemasukan manual, input pengeluaran AI, dan ekspor
 /// xlsx semuanya dihitung server supaya layar Keuangan dan dashboard Owner
 /// memakai sumber yang sama.
 class FinanceRepositoryImpl implements FinanceRepository {
   FinanceRepositoryImpl({required this.api});
+
+  /// Ukuran halaman bawaan daftar transaksi.
+  static const int defaultPageSize = 50;
 
   final ApiClient api;
 
@@ -62,7 +84,36 @@ class FinanceRepositoryImpl implements FinanceRepository {
   Future<List<FinancialTransaction>> fetchTransactions(
     TransactionFilter filter,
   ) async {
+    // Kontrak lama: seluruh baris yang cocok (dipakai pratinjau ekspor).
+    final all = <FinancialTransaction>[];
+    var page = 1;
+    while (true) {
+      final result = await fetchTransactionPage(
+        filter,
+        page: page,
+        limit: defaultPageSize,
+      );
+      all.addAll(result.items);
+      if (result.items.isEmpty ||
+          all.length >= result.total ||
+          !result.hasMore) {
+        break;
+      }
+      page++;
+    }
+    return all;
+  }
+
+  /// Satu halaman transaksi. Kontrak backend:
+  /// `{ "items": [...], "total": int, "page": int, "limit": int }`.
+  Future<FinanceTransactionPage> fetchTransactionPage(
+    TransactionFilter filter, {
+    int page = 1,
+    int limit = defaultPageSize,
+  }) async {
     final query = <String, String>{
+      'page': '$page',
+      'limit': '$limit',
       if (filter.type != TransactionTypeFilter.all) 'type': filter.type.name,
       if (filter.expenseType != null) 'expense_type': filter.expenseType!.value,
       if (filter.hasRange) ...{
@@ -75,14 +126,20 @@ class FinanceRepositoryImpl implements FinanceRepository {
       final json = await api.get(
         Uri(
           path: ApiEndpoints.financeTransactions,
-          queryParameters: query.isEmpty ? null : query,
+          queryParameters: query,
         ).toString(),
         auth: true,
       );
-      return [
+      final items = [
         for (final raw in json['items'] as List<dynamic>? ?? const [])
           _transactionFromJson(raw as Map<String, dynamic>),
       ];
+      return FinanceTransactionPage(
+        items: items,
+        total: (json['total'] as num?)?.toInt() ?? items.length,
+        page: (json['page'] as num?)?.toInt() ?? page,
+        limit: (json['limit'] as num?)?.toInt() ?? limit,
+      );
     } on AppException catch (e) {
       throw failureFromException(e);
     }
@@ -288,4 +345,26 @@ class FinanceRepositoryImpl implements FinanceRepository {
       needsReview: json['needs_review'] as bool? ?? false,
     );
   }
+}
+
+/// Mengambil satu halaman transaksi dari [repository].
+///
+/// Implementasi API mendukung paginasi penuh. Implementasi lain (mis. fake di
+/// test) mengembalikan semua barisnya sebagai satu halaman.
+Future<FinanceTransactionPage> fetchFinanceTransactionPage(
+  FinanceRepository repository,
+  TransactionFilter filter, {
+  int page = 1,
+  int limit = FinanceRepositoryImpl.defaultPageSize,
+}) async {
+  if (repository is FinanceRepositoryImpl) {
+    return repository.fetchTransactionPage(filter, page: page, limit: limit);
+  }
+  final items = await repository.fetchTransactions(filter);
+  return FinanceTransactionPage(
+    items: items,
+    total: items.length,
+    page: 1,
+    limit: items.isEmpty ? limit : items.length,
+  );
 }

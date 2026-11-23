@@ -26,6 +26,8 @@ class CmsThumbnail extends StatelessWidget {
       child: Icon(fallbackIcon, color: fallbackColor, size: size * 0.45),
     );
     final source = url;
+    // Thumbnail kecil: cukup decode seukuran kotaknya.
+    final cacheWidth = (size * MediaQuery.devicePixelRatioOf(context)).round();
 
     Widget child = fallback;
     if (source != null && source.isNotEmpty) {
@@ -34,6 +36,7 @@ class CmsThumbnail extends StatelessWidget {
               source,
               width: size,
               height: size,
+              cacheWidth: cacheWidth,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => fallback,
             )
@@ -41,6 +44,7 @@ class CmsThumbnail extends StatelessWidget {
               File(source),
               width: size,
               height: size,
+              cacheWidth: cacheWidth,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => fallback,
             );

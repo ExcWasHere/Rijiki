@@ -10,6 +10,7 @@ import { isUuid, orderNotFound, resolveAccess } from '../orders/orders.access';
 import type { OrderAccess } from '../orders/orders.access';
 import {
   PAYMENT_EXPIRY_MINUTES,
+  cancelTransaction,
   chargeQris,
   fetchTransactionStatus,
   grossAmountMatches,
@@ -118,6 +119,32 @@ export async function applyProviderResult(
   const mapped = mapTransactionStatus(result.transactionStatus, result.fraudStatus);
   if (mapped === null || mapped === 'pending') return payment.status;
 
+  // Status pembayaran tidak boleh mundur. `expired`/`failed` yang datang
+  // terlambat (webhook telat, atau RPC expire memakai data yang sudah basi)
+  // tidak boleh menimpa `paid` yang sudah tercatat.
+  if (mapped !== 'paid') {
+    const fresh = await findPaymentById(env, payment.id);
+    if (fresh?.status === 'paid') {
+      console.warn(
+        `payments: abaikan ${mapped} untuk ${payment.provider_order_id} — sudah paid`,
+      );
+      return 'paid';
+    }
+  }
+
+  // Order yang sudah dibatalkan tidak boleh berubah jadi lunas lewat QR yang
+  // sempat dibayar setelah pembatalan: uangnya sudah masuk di Midtrans, jadi
+  // dicatat untuk rekonsiliasi manual (refund), bukan diterapkan ke order.
+  if (mapped === 'paid') {
+    const order = await findOrderForPayment(env, payment.order_id);
+    if (order?.status === 'cancelled') {
+      console.error(
+        `payments: PEMBAYARAN MASUK UNTUK ORDER DIBATALKAN — perlu refund manual. order=${order.order_number} provider_order_id=${payment.provider_order_id} amount=${payment.amount}`,
+      );
+      return payment.status;
+    }
+  }
+
   const outcome = await applyPaymentResultRpc(env, {
     providerOrderId: payment.provider_order_id,
     newStatus: mapped,
@@ -151,16 +178,64 @@ async function syncWithProvider(env: Bindings, payment: PaymentRow): Promise<Pay
 }
 
 async function expirePayment(env: Bindings, payment: PaymentRow): Promise<void> {
+  // Baca ulang: settlement bisa masuk setelah baris ini dimuat pemanggil.
+  const fresh = await findPaymentById(env, payment.id);
+  if (!fresh || fresh.status !== 'pending') return;
+
   const outcome = await applyPaymentResultRpc(env, {
-    providerOrderId: payment.provider_order_id,
+    providerOrderId: fresh.provider_order_id,
     newStatus: 'expired',
     providerRef: null,
     paidAt: null,
   });
   if (!outcome.applied) return;
 
-  const order = await findOrderForPayment(env, payment.order_id);
+  const order = await findOrderForPayment(env, fresh.order_id);
   if (order) await notifyPaymentExpired(env, order);
+}
+
+export type CancelOpenPaymentsResult = 'paid' | 'cleared';
+
+/**
+ * Menutup semua QR yang masih terbuka untuk sebuah order. Dipanggil sebelum
+ * order dibatalkan supaya QR yang sudah ditampilkan ke customer tidak bisa
+ * dibayar setelah pembatalan.
+ *
+ * Mengembalikan 'paid' bila ternyata ada QR yang sudah terlanjur dibayar
+ * (pemanggil harus membatalkan pembatalan order).
+ */
+export async function cancelOpenPayments(
+  env: Bindings,
+  orderId: string,
+): Promise<CancelOpenPaymentsResult> {
+  const rows = await listPaymentsForOrder(env, orderId);
+  const open = rows.filter((row) => row.status === 'pending');
+  if (open.length === 0) return 'cleared';
+
+  // Cek provider dulu: kalau sudah settle di antara klik cancel dan request ini,
+  // order tidak boleh dibatalkan.
+  for (const row of open) {
+    const status = await syncWithProvider(env, row);
+    if (status === 'paid') return 'paid';
+  }
+
+  for (const row of open) {
+    // QR yang belum sempat dibuat di Midtrans tidak punya transaksi untuk dibatalkan.
+    if (row.qris_payload !== null) {
+      const outcome = await cancelTransaction(env, row.provider_order_id).catch((err) => {
+        console.error('payments: gagal membatalkan transaksi Midtrans', err);
+        return 'rejected' as const;
+      });
+      if (outcome === 'rejected') {
+        // Bisa berarti sudah settle. Cek ulang supaya order tidak dibatalkan diam-diam.
+        const status = await syncWithProvider(env, row).catch(() => row.status);
+        if (status === 'paid') return 'paid';
+      }
+    }
+    await expirePayment(env, row);
+  }
+
+  return 'cleared';
 }
 
 export async function createPayment(
@@ -177,6 +252,9 @@ export async function createPayment(
 
   if (order.status === 'cancelled') {
     throw new AppError(409, 'order_cancelled', 'Order ini sudah dibatalkan.');
+  }
+  if (order.status === 'completed') {
+    throw new AppError(409, 'order_final', 'Order ini sudah selesai.');
   }
   if (order.payment_status === 'paid') {
     throw new AppError(409, 'already_paid', 'Order ini sudah dibayar.');

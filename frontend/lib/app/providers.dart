@@ -1,74 +1,54 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/core/constants/app_constants.dart';
-import 'package:rijiki/core/mock/mock_scenario.dart';
 import 'package:rijiki/core/network/api_client.dart';
 import 'package:rijiki/core/notifications/push_service.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/core/storage/token_storage.dart';
-import 'package:rijiki/features/access_control/data/mock_permission_repository.dart';
 import 'package:rijiki/features/access_control/data/permission_repository_impl.dart';
 import 'package:rijiki/features/access_control/domain/permission_repository.dart';
 import 'package:rijiki/features/auth/data/auth_repository_impl.dart';
 import 'package:rijiki/features/auth/data/google_sign_in_service.dart';
-import 'package:rijiki/features/auth/data/mock_auth_repo.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
 import 'package:rijiki/features/chat/data/order_chat_repository_impl.dart';
 import 'package:rijiki/features/chat/domain/order_chat_repository.dart';
-import 'package:rijiki/features/finance/data/finance_repository_impl.dart';
-import 'package:rijiki/features/finance/data/mock_finance_repository.dart';
-import 'package:rijiki/features/finance/domain/finance_repository.dart';
-import 'package:rijiki/features/owner_dashboard/data/mock_dashboard_repository.dart';
-import 'package:rijiki/features/owner_dashboard/data/remote_dashboard_repository.dart';
-import 'package:rijiki/features/owner_dashboard/domain/dashboard_repository.dart';
-import 'package:rijiki/features/event/data/mock_event_repository.dart';
-import 'package:rijiki/features/event/data/mock_promo_repository.dart';
+import 'package:rijiki/features/event/data/event_repository_impl.dart';
 import 'package:rijiki/features/event/data/promo_repository_impl.dart';
 import 'package:rijiki/features/event/domain/event_repository.dart';
 import 'package:rijiki/features/event/domain/promo_repository.dart';
-import 'package:rijiki/features/merchandise/data/mock_merchandise_repository.dart';
+import 'package:rijiki/features/finance/data/finance_repository_impl.dart';
+import 'package:rijiki/features/finance/domain/finance_repository.dart';
+import 'package:rijiki/features/merchandise/data/merchandise_repository_impl.dart';
 import 'package:rijiki/features/merchandise/domain/merchandise_repository.dart';
-import 'package:rijiki/features/order/data/mock_order_repository.dart';
+import 'package:rijiki/features/notifications/data/notification_repository_impl.dart';
+import 'package:rijiki/features/notifications/domain/notification_repository.dart';
 import 'package:rijiki/features/order/data/courier_tracking_repository_impl.dart';
-import 'package:rijiki/features/order/data/mock_staff_order_repository.dart';
 import 'package:rijiki/features/order/data/order_repository_impl.dart';
 import 'package:rijiki/features/order/data/staff_order_repository_impl.dart';
 import 'package:rijiki/features/order/domain/courier_tracking_repository.dart';
 import 'package:rijiki/features/order/domain/order_repository.dart';
 import 'package:rijiki/features/order/domain/staff_order_repository.dart';
-import 'package:rijiki/features/payment/data/mock_payment_repository.dart';
+import 'package:rijiki/features/owner_dashboard/data/remote_dashboard_repository.dart';
+import 'package:rijiki/features/owner_dashboard/domain/dashboard_repository.dart';
 import 'package:rijiki/features/payment/data/payment_repository_impl.dart';
 import 'package:rijiki/features/payment/domain/payment_repository.dart';
-import 'package:rijiki/features/points/data/mock_point_management_repository.dart';
-import 'package:rijiki/features/points/data/mock_point_rule_repository.dart';
+import 'package:rijiki/features/points/data/customer_points_repository_impl.dart';
 import 'package:rijiki/features/points/data/point_management_repository_impl.dart';
 import 'package:rijiki/features/points/data/point_rule_repository_impl.dart';
+import 'package:rijiki/features/points/domain/customer_points_repository.dart';
 import 'package:rijiki/features/points/domain/point_management_repository.dart';
 import 'package:rijiki/features/points/domain/point_rule_repository.dart';
-import 'package:rijiki/features/profile/data/mock_profile_repository.dart';
 import 'package:rijiki/features/profile/data/profile_repository_impl.dart';
 import 'package:rijiki/features/profile/domain/profile_repository.dart';
-import 'package:rijiki/features/rating/data/mock_rating_repository.dart';
-import 'package:rijiki/features/rating/data/mock_testimonial_manage_repository.dart';
 import 'package:rijiki/features/rating/data/rating_repository_impl.dart';
+import 'package:rijiki/features/scan/data/mock_scan_repository.dart';
+import 'package:rijiki/features/scan/domain/scan_repository.dart';
 import 'package:rijiki/features/rating/data/testimonial_manage_repository_impl.dart';
 import 'package:rijiki/features/rating/domain/rating_repository.dart';
 import 'package:rijiki/features/rating/domain/testimonial_manage_repository.dart';
-import 'package:rijiki/features/scan/data/mock_scan_repository.dart';
-import 'package:rijiki/features/scan/domain/scan_repository.dart';
-import 'package:rijiki/features/service/data/mock_service_repository.dart';
 import 'package:rijiki/features/service/data/service_repository_impl.dart';
 import 'package:rijiki/features/service/domain/service_repository.dart';
-import 'package:rijiki/features/worker_management/data/mock_worker_repository.dart';
 import 'package:rijiki/features/worker_management/data/worker_repository_impl.dart';
 import 'package:rijiki/features/worker_management/domain/worker_repository.dart';
-import 'package:rijiki/features/event/data/event_repository_impl.dart';
-import 'package:rijiki/features/points/data/customer_points_repository_impl.dart';
-import 'package:rijiki/features/points/data/mock_customer_points_repository.dart';
-import 'package:rijiki/features/points/domain/customer_points_repository.dart';
-import 'package:rijiki/features/merchandise/data/merchandise_repository_impl.dart';
-import 'package:rijiki/features/notifications/data/mock_notification_repository.dart';
-import 'package:rijiki/features/notifications/data/notification_repository_impl.dart';
-import 'package:rijiki/features/notifications/domain/notification_repository.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -85,7 +65,6 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 });
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  if (AppConstants.useMockAuth) return MockAuthRepository();
   return AuthRepositoryImpl(
     api: ref.watch(apiClientProvider),
     tokens: ref.watch(tokenStorageProvider),
@@ -94,12 +73,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  if (AppConstants.useMockAuth) return MockProfileRepository();
   return ProfileRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  if (AppConstants.useMockAuth) return MockNotificationRepository();
   return NotificationRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
@@ -107,81 +84,43 @@ final pushServiceProvider = Provider<PushService>((ref) {
   return PushService(repository: ref.watch(notificationRepositoryProvider));
 });
 
-final mockScenarioProvider = Provider<MockScenario>((ref) => MockScenario.data);
-
 final serviceRepositoryProvider = Provider<ServiceRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockServiceRepository(scenario: ref.watch(mockScenarioProvider));
-  }
   return ServiceRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
-      if (AppConstants.useMockOrders) {
-        return MockEventRepository(scenario: ref.watch(mockScenarioProvider));
-      }
-      return EventRepositoryImpl(api: ref.watch(apiClientProvider));
-    });
+  return EventRepositoryImpl(api: ref.watch(apiClientProvider));
+});
 
 final promoRepositoryProvider = Provider<PromoRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockPromoRepository(scenario: ref.watch(mockScenarioProvider));
-  }
   return PromoRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final pointRuleRepositoryProvider = Provider<PointRuleRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockPointRuleRepository(scenario: ref.watch(mockScenarioProvider));
-  }
   return PointRuleRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final customerPointsRepositoryProvider = Provider<CustomerPointsRepository>((
-      ref,
-    ) {
-      if (AppConstants.useMockOrders) {
-        return MockCustomerPointsRepository(
-          scenario: ref.watch(mockScenarioProvider),
-        );
-      }
-      return CustomerPointsRepositoryImpl(api: ref.watch(apiClientProvider));
-    });
+  ref,
+) {
+  return CustomerPointsRepositoryImpl(api: ref.watch(apiClientProvider));
+});
 
 final pointManagementRepositoryProvider = Provider<PointManagementRepository>((
   ref,
 ) {
-  if (AppConstants.useMockOrders) {
-    return MockPointManagementRepository(
-      scenario: ref.watch(mockScenarioProvider),
-    );
-  }
   return PointManagementRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final merchandiseRepositoryProvider = Provider<MerchandiseRepository>((ref) {
-      if (AppConstants.useMockOrders) {
-        return MockMerchandiseRepository(
-          scenario: ref.watch(mockScenarioProvider),
-        );
-      }
-      return MerchandiseRepositoryImpl(api: ref.watch(apiClientProvider));
-    });
+  return MerchandiseRepositoryImpl(api: ref.watch(apiClientProvider));
+});
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockOrderRepository(
-      promos: ref.watch(promoRepositoryProvider),
-      scenario: ref.watch(mockScenarioProvider),
-    );
-  }
   return OrderRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final staffOrderRepositoryProvider = Provider<StaffOrderRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockStaffOrderRepository(orders: ref.watch(orderRepositoryProvider));
-  }
   return StaffOrderRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
@@ -190,64 +129,43 @@ final courierTrackingRepositoryProvider = Provider<CourierTrackingRepository>(
 );
 
 final ratingRepositoryProvider = Provider<RatingRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockRatingRepository(scenario: ref.watch(mockScenarioProvider));
-  }
   return RatingRepositoryImpl(api: ref.watch(apiClientProvider));
+});
+
+/// Fitur scan belum punya backend: modelnya masih dikerjakan. Repositori
+/// tiruan ini hanya hidup di build debug ([AppConstants.scanEnabled]); di
+/// release tab, CTA, dan route-nya disembunyikan sehingga tidak pernah dipanggil.
+final scanRepositoryProvider = Provider<ScanRepository>((ref) {
+  return MockScanRepository();
 });
 
 final testimonialManageRepositoryProvider =
     Provider<TestimonialManageRepository>((ref) {
-      if (AppConstants.useMockOrders) {
-        return MockTestimonialManageRepository(
-          scenario: ref.watch(mockScenarioProvider),
-        );
-      }
-      return TestimonialManageRepositoryImpl(api: ref.watch(apiClientProvider));
+      return TestimonialManageRepositoryImpl(
+        api: ref.watch(apiClientProvider),
+      );
     });
-
-final scanRepositoryProvider = Provider<ScanRepository>(
-  (ref) => MockScanRepository(scenario: ref.watch(mockScenarioProvider)),
-);
 
 final orderChatRepositoryProvider = Provider<OrderChatRepository>((ref) {
   return OrderChatRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockPaymentRepository(
-      orders: ref.watch(orderRepositoryProvider),
-      scenario: ref.watch(mockScenarioProvider),
-    );
-  }
   return PaymentRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
-  if (AppConstants.useMockOrders) return MockDashboardRepository();
   return RemoteDashboardRepository(api: ref.watch(apiClientProvider));
 });
 
 final financeRepositoryProvider = Provider<FinanceRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockFinanceRepository(
-      dashboard: ref.watch(dashboardRepositoryProvider),
-    );
-  }
   return FinanceRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final workerRepositoryProvider = Provider<WorkerRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockWorkerRepository(scenario: ref.watch(mockScenarioProvider));
-  }
   return WorkerRepositoryImpl(api: ref.watch(apiClientProvider));
 });
 
 final permissionRepositoryProvider = Provider<PermissionRepository>((ref) {
-  if (AppConstants.useMockOrders) {
-    return MockPermissionRepository(scenario: ref.watch(mockScenarioProvider));
-  }
   return PermissionRepositoryImpl(api: ref.watch(apiClientProvider));
 });

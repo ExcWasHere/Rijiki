@@ -33,11 +33,27 @@ class PrivateImage extends ConsumerWidget {
       error: (_, _) => _Unavailable(
         onRetry: () => ref.invalidate(privateImageProvider(imageKey)),
       ),
-      data: (bytes) => Image.memory(
-        bytes,
-        fit: fit,
-        gaplessPlayback: true,
-        errorBuilder: (_, _, _) => const _Unavailable(),
+      data: (bytes) => LayoutBuilder(
+        builder: (context, constraints) {
+          // Decode hanya sebesar kotak render; tanpa batas ukuran jatuh ke
+          // resolusi asli.
+          final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+          // Hanya satu dimensi: rasio gambar asli tidak diketahui.
+          final cacheWidth = constraints.hasBoundedWidth
+              ? (constraints.maxWidth * pixelRatio).round()
+              : null;
+          final cacheHeight = cacheWidth == null && constraints.hasBoundedHeight
+              ? (constraints.maxHeight * pixelRatio).round()
+              : null;
+          return Image.memory(
+            bytes,
+            fit: fit,
+            cacheWidth: cacheWidth,
+            cacheHeight: cacheHeight,
+            gaplessPlayback: true,
+            errorBuilder: (_, _, _) => const _Unavailable(),
+          );
+        },
       ),
     );
   }

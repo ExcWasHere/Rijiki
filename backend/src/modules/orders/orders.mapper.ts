@@ -76,6 +76,15 @@ export function toOrderView(row: OrderRow, viewer: Viewer | null): OrderView {
   const rating = row.ratings;
   const isRated = Array.isArray(rating) ? rating.length > 0 : Boolean(rating);
 
+  // Worker yang belum memegang order hanya perlu tahu isi pekerjaannya untuk
+  // memutuskan mengambilnya; nomor HP dan alamat customer baru dibuka setelah
+  // order di-claim (atau untuk pemegang manage_orders_all).
+  const contactVisible =
+    !viewer ||
+    viewer.role !== 'worker' ||
+    viewer.manageAll ||
+    isAssignedToViewer(info, viewer);
+
   return {
     id: row.id as string,
     order_number: row.order_number as string,
@@ -88,16 +97,17 @@ export function toOrderView(row: OrderRow, viewer: Viewer | null): OrderView {
     shipping_fee: toNumber(row.shipping_fee),
     total_price: toNumber(row.total_price),
     promos: toAppliedPromos(row.order_promos),
-    pickup_address: (row.pickup_address as string | null) ?? null,
-    delivery_address: (row.delivery_address as string | null) ?? null,
+    pickup_address: contactVisible ? ((row.pickup_address as string | null) ?? null) : null,
+    delivery_address: contactVisible ? ((row.delivery_address as string | null) ?? null) : null,
     customer_name:
       (customerUser?.full_name as string | undefined) ??
       (row.walk_in_customer_name as string | null | undefined) ??
       null,
-    customer_phone:
-      (customerUser?.phone_number as string | undefined) ??
-      (row.walk_in_customer_phone as string | null | undefined) ??
-      null,
+    customer_phone: contactVisible
+      ? ((customerUser?.phone_number as string | undefined) ??
+        (row.walk_in_customer_phone as string | null | undefined) ??
+        null)
+      : null,
     assigned_worker_id: info.assigned_worker_id,
     assigned_to_me: viewer ? isAssignedToViewer(info, viewer) : false,
     worker_name: (workerUser?.full_name as string | undefined) ?? null,

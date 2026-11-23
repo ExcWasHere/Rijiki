@@ -165,6 +165,34 @@ export async function fetchTransactionStatus(
 }
 
 /**
+ * POST /v2/{order_id}/cancel. Menutup QR yang masih terbuka supaya tidak bisa
+ * dibayar setelah order dibatalkan. Transaksi yang sudah settle ditolak
+ * Midtrans (bukan kegagalan fatal: uangnya sudah masuk, perlu refund manual).
+ */
+export async function cancelTransaction(
+  env: Bindings,
+  providerOrderId: string,
+): Promise<'cancelled' | 'not_found' | 'rejected'> {
+  const { httpStatus, json } = await callMidtrans(
+    env,
+    'POST',
+    `/v2/${encodeURIComponent(providerOrderId)}/cancel`,
+  );
+
+  const statusCode = String(json['status_code'] ?? '');
+  if (statusCode === '200' || statusCode === '201') return 'cancelled';
+  if (statusCode === '404' || httpStatus === 404) return 'not_found';
+
+  console.warn('midtrans: pembatalan transaksi ditolak', {
+    provider_order_id: providerOrderId,
+    http_status: httpStatus,
+    status_code: statusCode,
+    status_message: json['status_message'],
+  });
+  return 'rejected';
+}
+
+/**
  * settlement -> paid, pending -> pending, expire -> expired,
  * cancel/deny/failure -> failed. refund/chargeback dan status asing -> null (diabaikan).
  */

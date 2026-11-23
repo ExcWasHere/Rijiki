@@ -46,4 +46,7 @@ app.*.map.json
 
 /env
 
-google-services.json
+# Android signing
+key.properties
+*.jks
+*.keystore

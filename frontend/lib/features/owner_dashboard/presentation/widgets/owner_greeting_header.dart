@@ -66,7 +66,13 @@ class OwnerGreetingHeader extends StatelessWidget {
             child: CircleAvatar(
               radius: 22,
               backgroundColor: AppColors.surface,
-              foregroundImage: hasAvatar ? NetworkImage(avatarUrl!) : null,
+              foregroundImage: hasAvatar
+                  ? ResizeImage(
+                      NetworkImage(avatarUrl!),
+                      width: (44 * MediaQuery.devicePixelRatioOf(context))
+                          .round(),
+                    )
+                  : null,
               child: Text(
                 initial,
                 style: textTheme.titleMedium?.copyWith(

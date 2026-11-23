@@ -114,6 +114,41 @@ export async function listTransactionsInRange(
   return listTransactions(env, { type: null, expenseType: null, range });
 }
 
+/**
+ * Satu halaman transaksi untuk daftar di aplikasi. Dulu seluruh riwayat
+ * diambil sekaligus (dan dipotong di 2000 baris), sehingga daftar makin berat
+ * seiring bertambahnya transaksi.
+ */
+export async function listTransactionPage(
+  env: Bindings,
+  query: TransactionQuery & { page: number; limit: number },
+): Promise<{ rows: TransactionRow[]; total: number }> {
+  const admin = getSupabaseAdmin(env);
+  let builder = admin
+    .from('financial_transactions')
+    .select(TRANSACTION_COLUMNS, { count: 'exact' });
+
+  if (query.type) builder = builder.eq('type', query.type);
+  if (query.expenseType) builder = builder.eq('expense_type', query.expenseType);
+  if (query.range) {
+    builder = builder
+      .gte('transaction_date', query.range.from)
+      .lte('transaction_date', query.range.to);
+  }
+
+  const from = (query.page - 1) * query.limit;
+  const { data, error, count } = await builder
+    .order('transaction_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .range(from, from + query.limit - 1);
+
+  if (error) throw failed('memuat transaksi', error.message);
+  return {
+    rows: ((data ?? []) as unknown[]).map(toTransactionRow),
+    total: count ?? 0,
+  };
+}
+
 /** Satu baris pemasukan manual (di luar order). */
 export async function insertManualIncome(
   env: Bindings,
@@ -169,6 +204,11 @@ export async function insertCashOrderIncome(
     input_source: 'manual',
     payment_method: 'cash',
   });
+
+  // 23505 = unique index financial_transactions_cash_order_once
+  // (related_order_id untuk pembayaran tunai): pemasukan order ini sudah
+  // tercatat, jadi mengulang tidak boleh menggandakan pendapatan.
+  if (error?.code === '23505') return;
 
   if (error) throw failed('mencatat pemasukan tunai', error.message);
 }

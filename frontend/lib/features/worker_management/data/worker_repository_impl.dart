@@ -50,7 +50,13 @@ class WorkerRepositoryImpl implements WorkerRepository {
 
   @override
   Future<List<WorkerReview>> fetchReviews(String workerId) => _guard(() async {
-    final json = await api.get(ApiEndpoints.workerReviews(workerId), auth: true);
+    // Backend membalas `{items, total}`; daftar ulasan tampil satu halaman
+    // pertama saja.
+    final path = Uri(
+      path: ApiEndpoints.workerReviews(workerId),
+      queryParameters: const {'page': '1', 'limit': '50'},
+    ).toString();
+    final json = await api.get(path, auth: true);
     final raw = json['items'] as List<dynamic>? ?? const [];
     return [
       for (final item in raw) _reviewFromJson(item as Map<String, dynamic>),

@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rijiki/app/providers.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
+import 'package:rijiki/features/finance/data/finance_repository_impl.dart';
 import 'package:rijiki/features/finance/domain/financial_transaction.dart';
 import 'package:rijiki/features/finance/domain/transaction_filter.dart';
 import 'package:rijiki/features/finance/presentation/controllers/finance_controller.dart';
@@ -16,83 +20,217 @@ import 'package:rijiki/shared/widgets/empty_state.dart';
 import 'package:rijiki/shared/widgets/error_state.dart';
 import 'package:rijiki/shared/widgets/loading_skeleton.dart';
 
-class TransactionListPage extends ConsumerWidget {
+class TransactionListPage extends ConsumerStatefulWidget {
   const TransactionListPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final filter = ref.watch(transactionFilterProvider);
-    final notifier = ref.read(transactionFilterProvider.notifier);
-    final async = ref.watch(financeTransactionsProvider);
-    final list = async.value;
+  ConsumerState<TransactionListPage> createState() =>
+      _TransactionListPageState();
+}
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Rekap transaksi'),
-        actions: [
-          IconButton(
-            tooltip: 'Ekspor Excel',
-            icon: const Icon(Icons.file_download_outlined),
-            onPressed: () => showExportRangeSheet(
-              context,
-              initialRange: filter.hasRange
-                  ? DateTimeRange(start: filter.start!, end: filter.end!)
-                  : null,
-              initialExpenseType:
-                  filter.type == TransactionTypeFilter.expense
-                  ? filter.expenseType
-                  : null,
-            ),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        color: AppColors.primaryDark,
-        onRefresh: () => refreshTransactions(ref),
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.md,
-            AppSpacing.lg,
-            AppSpacing.xl,
-          ),
-          children: [
-            TransactionFilterBar(
-              filter: filter,
-              onTypeChanged: notifier.selectType,
-              onExpenseTypeChanged: notifier.selectExpenseType,
-              onPickRange: () => _pickRange(context, ref),
-              onClearRange: notifier.clearRange,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            if (list != null)
-              AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: async.isLoading ? 0.55 : 1,
-                child: _Content(
-                  transactions: list,
-                  isDefaultFilter: filter.isDefault,
-                  onReset: notifier.reset,
-                ),
-              )
-            else if (async.hasError)
-              FinanceStateCard(
-                child: ErrorState(
-                  message: 'Gagal memuat transaksi.',
-                  onRetry: () => ref.invalidate(financeTransactionsProvider),
-                ),
-              )
-            else
-              const _ListSkeleton(),
-          ],
-        ),
-      ),
-    );
+/// Satu baris di daftar: judul tanggal atau kartu berisi transaksi hari itu.
+sealed class _Row {
+  const _Row();
+}
+
+class _DateRow extends _Row {
+  const _DateRow(this.day);
+
+  final DateTime day;
+}
+
+class _GroupRow extends _Row {
+  const _GroupRow(this.transactions);
+
+  final List<FinancialTransaction> transactions;
+}
+
+class _TransactionListPageState extends ConsumerState<TransactionListPage> {
+  static const int _pageSize = FinanceRepositoryImpl.defaultPageSize;
+
+  /// Ambang jarak ke bawah yang memicu halaman berikutnya dimuat.
+  static const double _loadMoreThreshold = 600;
+
+  final ScrollController _scroll = ScrollController();
+  final List<FinancialTransaction> _items = [];
+
+  TransactionFilter _filter = const TransactionFilter();
+
+  /// Filter yang datanya sedang tampil, dipakai untuk membedakan refresh
+  /// (data lama tetap tampil) dari ganti filter (daftar dikosongkan).
+  TransactionFilter? _loadedFilter;
+  int _total = 0;
+  int _page = 0;
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _loadFailed = false;
+  bool _loadMoreFailed = false;
+  bool _hasMore = false;
+
+  // Agregat dan grouping dihitung sekali per perubahan data, bukan tiap build.
+  double _income = 0;
+  double _expense = 0;
+  List<_Row> _rows = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filter = ref.read(transactionFilterProvider);
+    ref.listenManual<TransactionFilter>(transactionFilterProvider, (prev, next) {
+      if (_sameFilter(prev, next)) return;
+      _filter = next;
+      unawaited(_loadFirstPage());
+    });
+    _scroll.addListener(_maybeLoadMore);
+    // Muat setelah frame pertama supaya setState pertama tidak jatuh di
+    // tengah proses build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_loadFirstPage());
+    });
   }
 
-  Future<void> _pickRange(BuildContext context, WidgetRef ref) async {
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  static bool _sameFilter(TransactionFilter? a, TransactionFilter? b) {
+    if (a == null || b == null) return a == b;
+    return a.type == b.type &&
+        a.expenseType == b.expenseType &&
+        a.start == b.start &&
+        a.end == b.end;
+  }
+
+  Future<void> _loadFirstPage() async {
+    final filter = _filter;
+    final filterChanged = !_sameFilter(_loadedFilter, filter);
+    setState(() {
+      if (filterChanged) {
+        _items.clear();
+        _total = 0;
+        _rebuildRows();
+      }
+      _loading = true;
+      _loadFailed = false;
+      _loadMoreFailed = false;
+      _hasMore = false;
+    });
+    try {
+      final result = await fetchFinanceTransactionPage(
+        ref.read(financeRepositoryProvider),
+        filter,
+        page: 1,
+        limit: _pageSize,
+      );
+      if (!mounted || !_sameFilter(filter, _filter)) return;
+      setState(() {
+        _loadedFilter = filter;
+        _items
+          ..clear()
+          ..addAll(result.items);
+        _total = result.total;
+        _page = result.page;
+        _hasMore = result.hasMore;
+        _loading = false;
+        _rebuildRows();
+      });
+      _autoLoadIfNotScrollable();
+    } catch (_) {
+      if (!mounted || !_sameFilter(filter, _filter)) return;
+      setState(() {
+        _loading = false;
+        _loadFailed = true;
+        _rebuildRows();
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loading || _loadingMore || !_hasMore) return;
+    final filter = _filter;
+    final nextPage = _page + 1;
+    setState(() {
+      _loadingMore = true;
+      _loadMoreFailed = false;
+    });
+    try {
+      final result = await fetchFinanceTransactionPage(
+        ref.read(financeRepositoryProvider),
+        filter,
+        page: nextPage,
+        limit: _pageSize,
+      );
+      if (!mounted || !_sameFilter(filter, _filter)) return;
+      setState(() {
+        _items.addAll(result.items);
+        _total = result.total;
+        _page = result.page;
+        // Halaman kosong berarti sudah habis, walau total server lebih besar.
+        _hasMore = result.items.isNotEmpty && result.hasMore;
+        _loadingMore = false;
+        _rebuildRows();
+      });
+      _autoLoadIfNotScrollable();
+    } catch (_) {
+      if (!mounted || !_sameFilter(filter, _filter)) return;
+      setState(() {
+        _loadingMore = false;
+        _loadMoreFailed = true;
+      });
+    }
+  }
+
+  /// Isi yang lebih pendek dari layar tidak memicu scroll, jadi halaman
+  /// berikutnya dimuat langsung setelah frame.
+  void _autoLoadIfNotScrollable() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_hasMore || _loadingMore || _loadMoreFailed) return;
+      if (!_scroll.hasClients) return;
+      if (_scroll.position.extentAfter < _loadMoreThreshold) {
+        unawaited(_loadMore());
+      }
+    });
+  }
+
+  void _maybeLoadMore() {
+    if (!_scroll.hasClients || !_hasMore || _loadingMore || _loadMoreFailed) {
+      return;
+    }
+    if (_scroll.position.extentAfter < _loadMoreThreshold) {
+      unawaited(_loadMore());
+    }
+  }
+
+  void _rebuildRows() {
+    var income = 0.0;
+    var expense = 0.0;
+    final groups = <DateTime, List<FinancialTransaction>>{};
+    for (final transaction in _items) {
+      if (transaction.isIncome) {
+        income += transaction.amount;
+      } else {
+        expense += transaction.amount;
+      }
+      final date = transaction.transactionDate;
+      groups
+          .putIfAbsent(DateTime(date.year, date.month, date.day), () => [])
+          .add(transaction);
+    }
+
+    _income = income;
+    _expense = expense;
+    _rows = [
+      for (final entry in groups.entries) ...[
+        _DateRow(entry.key),
+        _GroupRow(entry.value),
+      ],
+    ];
+  }
+
+  Future<void> _pickRange() async {
     final filter = ref.read(transactionFilterProvider);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -112,77 +250,152 @@ class TransactionListPage extends ConsumerWidget {
         .read(transactionFilterProvider.notifier)
         .setRange(picked.start, picked.end);
   }
-}
-
-class _Content extends StatelessWidget {
-  const _Content({
-    required this.transactions,
-    required this.isDefaultFilter,
-    required this.onReset,
-  });
-
-  final List<FinancialTransaction> transactions;
-  final bool isDefaultFilter;
-  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
-    if (transactions.isEmpty) {
-      return FinanceStateCard(
-        child: EmptyState(
-          icon: Icons.receipt_long_outlined,
-          title: isDefaultFilter
-              ? 'Belum ada transaksi'
-              : 'Tidak ada transaksi untuk filter ini',
-          actionLabel: isDefaultFilter ? null : 'Reset filter',
-          onAction: onReset,
+    final filter = ref.watch(transactionFilterProvider);
+    final notifier = ref.read(transactionFilterProvider.notifier);
+    final showFooter = _hasMore || _loadingMore || _loadMoreFailed;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Rekap transaksi'),
+        actions: [
+          IconButton(
+            tooltip: 'Ekspor Excel',
+            icon: const Icon(Icons.file_download_outlined),
+            onPressed: () => showExportRangeSheet(
+              context,
+              initialRange: filter.hasRange
+                  ? DateTimeRange(start: filter.start!, end: filter.end!)
+                  : null,
+              initialExpenseType: filter.type == TransactionTypeFilter.expense
+                  ? filter.expenseType
+                  : null,
+            ),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        color: AppColors.primaryDark,
+        onRefresh: _loadFirstPage,
+        child: ListView.builder(
+          controller: _scroll,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.xl,
+          ),
+          itemCount: 1 + _rows.length + (showFooter ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return _buildHeader(context, filter, notifier);
+            }
+            if (index > _rows.length) {
+              return _buildFooter();
+            }
+            return _buildRow(_rows[index - 1]);
+          },
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    var income = 0.0;
-    var expense = 0.0;
-    final groups = <DateTime, List<FinancialTransaction>>{};
-    for (final t in transactions) {
-      if (t.isIncome) {
-        income += t.amount;
-      } else {
-        expense += t.amount;
-      }
-      final d = t.transactionDate;
-      groups.putIfAbsent(DateTime(d.year, d.month, d.day), () => []).add(t);
-    }
-
+  Widget _buildHeader(
+    BuildContext context,
+    TransactionFilter filter,
+    TransactionFilterNotifier notifier,
+  ) {
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TransactionSummaryStrip(income: income, expense: expense),
+        TransactionFilterBar(
+          filter: filter,
+          onTypeChanged: notifier.selectType,
+          onExpenseTypeChanged: notifier.selectExpenseType,
+          onPickRange: _pickRange,
+          onClearRange: notifier.clearRange,
+        ),
         const SizedBox(height: AppSpacing.md),
-        Text(
-          '${transactions.length} transaksi',
-          style: textTheme.bodyMedium?.copyWith(
+        if (_loading && _items.isEmpty)
+          const _ListSkeleton()
+        else if (_loadFailed && _items.isEmpty)
+          FinanceStateCard(
+            child: ErrorState(
+              message: 'Gagal memuat transaksi.',
+              onRetry: _loadFirstPage,
+            ),
+          )
+        else if (_items.isEmpty)
+          FinanceStateCard(
+            child: EmptyState(
+              icon: Icons.receipt_long_outlined,
+              title: filter.isDefault
+                  ? 'Belum ada transaksi'
+                  : 'Tidak ada transaksi untuk filter ini',
+              actionLabel: filter.isDefault ? null : 'Reset filter',
+              onAction: notifier.reset,
+            ),
+          )
+        else ...[
+          TransactionSummaryStrip(income: _income, expense: _expense),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            '$_total transaksi',
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRow(_Row row) {
+    return switch (row) {
+      _DateRow(:final day) => Padding(
+        padding: const EdgeInsets.only(
+          left: AppSpacing.xs,
+          top: AppSpacing.md,
+          bottom: AppSpacing.sm,
+        ),
+        child: Text(
+          formatDateGroup(day),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: AppColors.onSurfaceVariant,
           ),
         ),
-        for (final entry in groups.entries) ...[
-          const SizedBox(height: AppSpacing.md),
-          Padding(
-            padding: const EdgeInsets.only(
-              left: AppSpacing.xs,
-              bottom: AppSpacing.sm,
-            ),
-            child: Text(
-              formatDateGroup(entry.key),
-              style: textTheme.labelLarge?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
+      ),
+      _GroupRow(:final transactions) => _GroupCard(transactions: transactions),
+    };
+  }
+
+  Widget _buildFooter() {
+    if (_loadMoreFailed) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Center(
+          child: TextButton(
+            onPressed: _loadMore,
+            child: const Text('Muat lagi'),
           ),
-          _GroupCard(transactions: entry.value),
-        ],
-      ],
+        ),
+      );
+    }
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Center(
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
     );
   }
 }

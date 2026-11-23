@@ -1,6 +1,6 @@
 import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
-import type { AppPermission } from '../../shared/types/user';
+import type { AppPermission, AuthContextUser } from '../../shared/types/user';
 import { logActivity } from '../../shared/utils/activity-log';
 import {
   createWorkerAccount,
@@ -75,12 +75,31 @@ export async function createWorker(
   return view;
 }
 
+/**
+ * Kredensial dan status akun hanya boleh diubah owner. Worker pemegang
+ * `manage_workers` boleh merapikan data profil rekan kerjanya, tetapi tidak
+ * boleh mengganti password/email (bisa dipakai mengambil alih izin worker
+ * lain) maupun menonaktifkan akun.
+ */
+function assertCanChangeCredentials(ctx: AuthContextUser, input: UpdateWorkerInput): void {
+  if (ctx.ownerBypass) return;
+  if (input.password !== undefined || input.email !== undefined || input.is_active !== undefined) {
+    throw new AppError(
+      403,
+      'forbidden',
+      'Hanya Owner yang dapat mengubah email, password, atau status aktif karyawan.',
+    );
+  }
+}
+
 export async function updateWorker(
   env: Bindings,
-  actorUserId: string,
+  ctx: AuthContextUser,
   workerId: string,
   input: UpdateWorkerInput,
 ): Promise<ManagedWorkerView> {
+  assertCanChangeCredentials(ctx, input);
+  const actorUserId = ctx.user.id;
   if (!UUID_RE.test(workerId)) throw notFound();
   const current = await getManagedWorker(env, workerId);
   const userId = await getWorkerUserId(env, workerId);

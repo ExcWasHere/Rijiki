@@ -128,7 +128,7 @@ export async function quoteOrder(
   const priced =
     input.items !== undefined
       ? await priceItems(env, input.items)
-      : { subtotal: input.subtotal ?? 0, lines: [] as PricedLine[] };
+      : { subtotal: 0, lines: [] as PricedLine[] };
 
   const evaluations = await loadPromos(
     env,
@@ -198,24 +198,38 @@ export async function createOrder(
     profile?.id ?? null,
   );
 
-  const orderId = await createOrderViaRpc(env, {
-    userId,
-    items: input.items.map((item) => ({
-      service_id: item.service_id,
-      shoe_brand: item.shoe_brand,
-      quantity: item.quantity,
-      notes: item.notes,
-    })),
-    pickupAddress: input.pickup_address,
-    pickupLat: coords.lat,
-    pickupLng: coords.lng,
-    deliveryAddress: input.delivery_address,
-    promos: toRpcPromos(evaluations),
-    shippingFee: shipping.fee,
-    expectedSubtotal: priced.subtotal,
-    idempotencyKey,
-    requestFingerprint: fingerprint,
-  });
+  let orderId: string;
+  try {
+    orderId = await createOrderViaRpc(env, {
+      userId,
+      items: input.items.map((item) => ({
+        service_id: item.service_id,
+        shoe_brand: item.shoe_brand,
+        quantity: item.quantity,
+        notes: item.notes,
+      })),
+      pickupAddress: input.pickup_address,
+      pickupLat: coords.lat,
+      pickupLng: coords.lng,
+      deliveryAddress: input.delivery_address,
+      promos: toRpcPromos(evaluations),
+      shippingFee: shipping.fee,
+      expectedSubtotal: priced.subtotal,
+      idempotencyKey,
+      requestFingerprint: fingerprint,
+    });
+  } catch (err) {
+    // Dua request bersamaan dengan kunci yang sama: yang kalah dianggap replay,
+    // bukan error, asalkan isinya memang sama.
+    if (idempotencyKey && profile && err instanceof AppError && err.code === 'idempotency_conflict') {
+      const existing = await findOrderByIdempotencyKey(env, profile.id, idempotencyKey);
+      if (existing && existing.fingerprint === fingerprint) {
+        const row = await getOrderRow(env, existing.id);
+        if (row) return { order: toOrderView(row, null), replayed: true };
+      }
+    }
+    throw err;
+  }
 
   let row = await getOrderRow(env, orderId);
   if (!row) {

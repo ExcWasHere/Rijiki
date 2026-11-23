@@ -15,3 +15,17 @@ bucket_name = "rijiki-public"
 [[r2_buckets]]
 binding = "PRIVATE_BUCKET"
 bucket_name = "rijiki-private"
+
+# Rate Limiting binding Cloudflare (per IP per menit). Sintaksnya masih lewat
+# `unsafe.bindings` karena wrangler 3 belum punya kunci top-level sendiri.
+[[unsafe.bindings]]
+name = "AUTH_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
+
+[[unsafe.bindings]]
+name = "WEBHOOK_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 120, period = 60 }
