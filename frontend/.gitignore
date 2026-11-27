@@ -50,3 +50,5 @@ app.*.map.json
 key.properties
 *.jks
 *.keystore
+# Hasil build APK yang dibagikan manual
+/dist/
