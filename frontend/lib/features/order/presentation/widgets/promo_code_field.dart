@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/order/domain/applied_promo.dart';
 import 'package:rijiki/features/order/presentation/controllers/order_create_controller.dart';
 
@@ -34,8 +35,17 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
   }
 
   Future<void> _apply() async {
+    final code = _controller.text.trim().toUpperCase();
     final accepted = await widget.onApply(_controller.text);
-    if (accepted && mounted) _controller.clear();
+    if (!mounted) return;
+    if (!accepted) return;
+    _controller.clear();
+    // Konfirmasi singkat: kartu promo di atas juga sudah menampilkan potongannya.
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('Kode promo $code diterapkan.')),
+      );
   }
 
   @override
@@ -97,6 +107,14 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
               ),
             ],
           ),
+        if (!promo.canAddMore && promo.error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              promo.error!,
+              style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+            ),
+          ),
         const SizedBox(height: 6),
         Text(
           'Bisa gabung 1 promo layanan dan 1 promo ongkir.',
@@ -143,6 +161,14 @@ class _AppliedPromoTile extends StatelessWidget {
                 Text(promo.code, style: textTheme.titleSmall),
                 if (promo.description != null)
                   Text(promo.description!, style: textTheme.bodySmall),
+                if (promo.discount > 0)
+                  Text(
+                    'Hemat ${RupiahFormatter.full(promo.discount)}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
               ],
             ),
           ),

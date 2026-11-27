@@ -7,6 +7,7 @@ import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
 import 'package:rijiki/core/utils/date_formatter.dart';
 import 'package:rijiki/features/event/domain/promo_event.dart';
+import 'package:rijiki/features/event/presentation/widgets/event_detail_sheet.dart';
 import 'package:rijiki/features/home/presentation/controllers/home_controller.dart';
 import 'package:rijiki/shared/widgets/app_card.dart';
 import 'package:rijiki/shared/widgets/empty_state.dart';
@@ -109,6 +110,9 @@ class _EventCard extends StatelessWidget {
       child: AppCard(
         color: event.type.tint,
         padding: const EdgeInsets.all(14),
+        // Banner di Beranda membuka detail yang sama dengan halaman Acara &
+        // Promo, jadi tidak ada kartu yang tidak bereaksi saat diketuk.
+        onTap: () => showEventDetailSheet(context, event),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

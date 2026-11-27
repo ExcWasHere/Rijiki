@@ -17,6 +17,8 @@ class EventPromo {
     this.description,
     this.minSubtotal,
     this.maxDiscountAmount,
+    this.usageLimitPerCustomer,
+    this.serviceNames = const [],
     this.quotaLeft,
     this.firstOrderOnly = false,
   });
@@ -35,6 +37,12 @@ class EventPromo {
   final int? minSubtotal;
   final int? maxDiscountAmount;
   final bool firstOrderOnly;
+
+  /// Batas pemakaian per customer; null = tanpa batas.
+  final int? usageLimitPerCustomer;
+
+  /// Layanan yang ikut dihitung; kosong = semua layanan.
+  final List<String> serviceNames;
   final DateTime startDate;
   final DateTime endDate;
   final bool isActive;
@@ -60,6 +68,12 @@ class EventPromo {
       minSubtotal: optInt(json['min_subtotal']),
       maxDiscountAmount: optInt(json['max_discount_amount']),
       firstOrderOnly: json['first_order_only'] as bool? ?? false,
+      usageLimitPerCustomer: optInt(json['usage_limit_per_customer']),
+      serviceNames: [
+        if (json['service_names'] is List)
+          for (final name in json['service_names'] as List)
+            if (name is String && name.trim().isNotEmpty) name,
+      ],
       startDate: DateTime.parse(json['start_date'] as String),
       endDate: DateTime.parse(json['end_date'] as String),
       isActive: json['is_active'] as bool? ?? true,

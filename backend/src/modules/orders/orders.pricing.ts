@@ -73,6 +73,11 @@ export function evaluatePromo(promo: PromoRow | null, base: PromoBase): PromoEva
     if (base.shipping <= 0) throw promoInvalid('Promo ongkir tidak berlaku untuk order tanpa ongkir.');
     target = base.shipping;
   } else {
+    // Keranjang kosong: dulu promo tetap "berhasil" dengan potongan 0, jadi
+    // customer mengira kodenya sah padahal harga tidak berubah.
+    if (base.subtotal <= 0) {
+      throw promoInvalid('Pilih layanan dulu sebelum memakai kode promo.');
+    }
     const allowed = new Set((promo.promo_services ?? []).map((row) => row.service_id));
     if (allowed.size > 0 && base.lines.length > 0) {
       target = base.lines
@@ -95,6 +100,9 @@ export function evaluatePromo(promo: PromoRow | null, base: PromoBase): PromoEva
   if (capped) raw = Math.round(maxDiscount);
 
   const discount = Math.min(Math.max(raw, 0), target);
+  // Persentase kecil pada pesanan murah bisa membulat jadi 0. Tolak supaya
+  // customer tidak memakai kuota promo untuk potongan nol.
+  if (discount <= 0) throw promoInvalid('Promo ini tidak memberi potongan untuk pesanan ini.');
 
   let valueLabel =
     promo.discount_type === 'percentage'

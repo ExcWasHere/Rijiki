@@ -68,6 +68,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     final state = ref.watch(orderCreateControllerProvider);
     final controller = ref.read(orderCreateControllerProvider.notifier);
     final textTheme = Theme.of(context).textTheme;
+    final promoDiscount = state.promo.applied.fold<int>(
+      0,
+      (sum, promo) => sum + promo.discount,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -202,6 +206,16 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  // Potongan promo langsung terlihat di sini, bukan baru di
+                  // ringkasan order.
+                  if (promoDiscount > 0)
+                    Text(
+                      'Diskon promo -${RupiahFormatter.full(promoDiscount)}',
+                      style: textTheme.labelMedium?.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(width: AppSpacing.md),
