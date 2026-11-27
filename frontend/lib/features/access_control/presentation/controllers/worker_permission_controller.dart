@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
 import 'package:rijiki/core/enums/app_permission.dart';
+import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/features/access_control/domain/worker_permission.dart';
 
 final workerPermissionsProvider = FutureProvider.autoDispose
@@ -31,10 +32,12 @@ class PermissionSaveNotifier extends Notifier<PermissionSaveState> {
       ref.invalidate(workerPermissionsProvider(workerId));
       state = const PermissionSaveState();
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!ref.mounted) return false;
-      state = const PermissionSaveState(
-        errorMessage: 'Gagal menyimpan hak akses. Coba lagi ya.',
+      state = PermissionSaveState(
+        errorMessage: e is Failure && e.message.trim().isNotEmpty
+            ? e.message
+            : 'Gagal menyimpan hak akses. Coba lagi ya.',
       );
       return false;
     }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "841900571890",
+    "project_id": "rijiki-99e1d",
+    "storage_bucket": "rijiki-99e1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:841900571890:android:2f4d62585bbd11b858a46b",
+        "android_client_info": {
+          "package_name": "com.id.rijiki"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlk6AYussLThvQ8Ma2m69HBqaylVxoYqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

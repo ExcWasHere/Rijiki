@@ -14,6 +14,9 @@ class AppUser {
     this.avatarUrl,
     this.permissions = const {},
     this.ownerBypass = false,
+    this.defaultAddress,
+    this.defaultLat,
+    this.defaultLng,
   });
 
   final String id;
@@ -26,10 +29,14 @@ class AppUser {
   final Set<AppPermission> permissions;
 
   final bool ownerBypass;
+  final String? defaultAddress;
+  final double? defaultLat;
+  final double? defaultLng;
 
   factory AppUser.fromAuthJson(Map<String, dynamic> json) {
     final user = json['user'] as Map<String, dynamic>;
     final rawPermissions = json['permissions'] as List<dynamic>? ?? const [];
+    final customerProfile = json['customer_profile'] as Map<String, dynamic>?;
 
     return AppUser(
       id: user['id'] as String,
@@ -44,19 +51,26 @@ class AppUser {
           .whereType<AppPermission>()
           .toSet(),
       ownerBypass: json['owner_bypass'] as bool? ?? false,
+      defaultAddress: customerProfile?['default_address'] as String?,
+      defaultLat: (customerProfile?['default_lat'] as num?)?.toDouble(),
+      defaultLng: (customerProfile?['default_lng'] as num?)?.toDouble(),
     );
   }
 
   AppUser copyWith({
+    String? email,
     String? fullName,
     String? phoneNumber,
     String? avatarUrl,
     bool? profileCompleted,
     Set<AppPermission>? permissions,
+    String? defaultAddress,
+    double? defaultLat,
+    double? defaultLng,
   }) {
     return AppUser(
       id: id,
-      email: email,
+      email: email ?? this.email,
       role: role,
       fullName: fullName ?? this.fullName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
@@ -64,6 +78,9 @@ class AppUser {
       profileCompleted: profileCompleted ?? this.profileCompleted,
       permissions: permissions ?? this.permissions,
       ownerBypass: ownerBypass,
+      defaultAddress: defaultAddress ?? this.defaultAddress,
+      defaultLat: defaultLat ?? this.defaultLat,
+      defaultLng: defaultLng ?? this.defaultLng,
     );
   }
 }

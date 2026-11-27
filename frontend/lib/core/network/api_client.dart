@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:rijiki/core/constants/app_constants.dart';
 import 'package:rijiki/core/constants/app_strings.dart';
@@ -10,6 +11,15 @@ import 'package:rijiki/core/network/api_endpoint.dart';
 import 'package:rijiki/core/storage/token_storage.dart';
 
 typedef Json = Map<String, dynamic>;
+
+/// Hasil unduhan berkas: isi dan header respons (nama header huruf kecil).
+class ApiFile {
+  const ApiFile({required this.bytes, required this.headers});
+
+  final Uint8List bytes;
+  final Map<String, String> headers;
+}
+
 class ApiClient {
   ApiClient({
     required this.baseUrl,
@@ -25,12 +35,111 @@ class ApiClient {
   final http.Client _client;
   Future<bool>? _refreshing;
 
-  Future<Json> get(String path, {bool auth = false}) {
-    return _send('GET', path, auth: auth);
+  static const Duration uploadTimeout = Duration(seconds: 60);
+
+  /// Unduhan besar (mis. rekap ZIP) lebih lama dari request biasa.
+  static const Duration downloadTimeout = Duration(seconds: 120);
+
+  /// Nama header idempotency yang dibaca backend.
+  static const String idempotencyHeader = 'Idempotency-Key';
+
+  Future<Json> get(
+    String path, {
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('GET', path, auth: auth, extraHeaders: headers);
   }
 
-  Future<Json> post(String path, {Json? body, bool auth = false}) {
-    return _send('POST', path, body: body, auth: auth);
+  Future<Json> post(
+    String path, {
+    Json? body,
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('POST', path, body: body, auth: auth, extraHeaders: headers);
+  }
+
+  Future<Json> patch(
+    String path, {
+    Json? body,
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('PATCH', path, body: body, auth: auth, extraHeaders: headers);
+  }
+
+  Future<Json> put(
+    String path, {
+    Json? body,
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('PUT', path, body: body, auth: auth, extraHeaders: headers);
+  }
+
+  Future<Json> delete(
+    String path, {
+    Json? body,
+    bool auth = false,
+    Map<String, String>? headers,
+  }) {
+    return _send('DELETE', path, body: body, auth: auth, extraHeaders: headers);
+  }
+
+  Future<Uint8List> getBytes(String path, {bool auth = false}) async {
+    final response = await _request(
+      method: 'GET',
+      path: path,
+      auth: auth,
+      send: (uri, headers) => _client.get(uri, headers: headers),
+    );
+    return response.bodyBytes;
+  }
+
+  Future<ApiFile> getFile(
+    String path, {
+    bool auth = false,
+    Map<String, String>? headers,
+  }) async {
+    final response = await _request(
+      method: 'GET',
+      path: path,
+      auth: auth,
+      extraHeaders: headers,
+      timeout: downloadTimeout,
+      send: (uri, requestHeaders) => _client.get(uri, headers: requestHeaders),
+    );
+    return ApiFile(bytes: response.bodyBytes, headers: response.headers);
+  }
+
+  /// Upload multipart. [fileField] dan [filePath] boleh kosong untuk request
+  /// yang hanya berisi field teks (mis. rating tanpa foto).
+  Future<Json> postMultipart(
+    String path, {
+    required Map<String, String> fields,
+    String? fileField,
+    String? filePath,
+    bool auth = false,
+  }) async {
+    final response = await _request(
+      method: 'POST',
+      path: path,
+      auth: auth,
+      timeout: uploadTimeout,
+      send: (uri, headers) async {
+        final request = http.MultipartRequest('POST', uri)
+          ..headers.addAll(headers)
+          ..fields.addAll(fields);
+        if (fileField != null && filePath != null) {
+          request.files.add(
+            await http.MultipartFile.fromPath(fileField, filePath),
+          );
+        }
+        return http.Response.fromStream(await _client.send(request));
+      },
+    );
+    return _decode(response);
   }
 
   Future<Json> _send(
@@ -38,12 +147,40 @@ class ApiClient {
     String path, {
     Json? body,
     bool auth = false,
+    Map<String, String>? extraHeaders,
+  }) async {
+    final response = await _request(
+      method: method,
+      path: path,
+      auth: auth,
+      extraHeaders: extraHeaders,
+      send: (uri, headers) {
+        final jsonHeaders = {...headers, 'Content-Type': 'application/json'};
+        final encoded = jsonEncode(body ?? <String, dynamic>{});
+        return switch (method) {
+          'GET' => _client.get(uri, headers: headers),
+          'DELETE' => _client.delete(uri, headers: jsonHeaders, body: encoded),
+          'PATCH' => _client.patch(uri, headers: jsonHeaders, body: encoded),
+          'PUT' => _client.put(uri, headers: jsonHeaders, body: encoded),
+          _ => _client.post(uri, headers: jsonHeaders, body: encoded),
+        };
+      },
+    );
+    return _decode(response);
+  }
+
+  Future<http.Response> _request({
+    required String method,
+    required String path,
+    required bool auth,
+    required Future<http.Response> Function(Uri uri, Map<String, String> headers)
+    send,
+    Map<String, String>? extraHeaders,
+    Duration? timeout,
     bool isRetry = false,
   }) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+    final headers = <String, String>{'Accept': 'application/json'};
+    if (extraHeaders != null) headers.addAll(extraHeaders);
 
     if (auth) {
       final token = await tokenStorage.readAccessToken();
@@ -60,34 +197,41 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final http.Response response;
     try {
-      final request = method == 'GET'
-          ? _client.get(uri, headers: headers)
-          : _client.post(
-              uri,
-              headers: headers,
-              body: jsonEncode(body ?? <String, dynamic>{}),
-            );
-      response = await request.timeout(AppConstants.requestTimeout);
-    } on TimeoutException {
+      response = await send(
+        uri,
+        headers,
+      ).timeout(timeout ?? AppConstants.requestTimeout);
+    } on TimeoutException catch (e) {
+      _logNetworkFailure(method, uri, e);
       throw _networkError();
-    } on IOException {
+    } on IOException catch (e) {
+      _logNetworkFailure(method, uri, e);
       throw _networkError();
-    } on http.ClientException {
+    } on http.ClientException catch (e) {
+      _logNetworkFailure(method, uri, e);
       throw _networkError();
     }
 
-    final decoded = _decode(response);
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return decoded;
+      return response;
     }
 
     if (auth && response.statusCode == 401 && !isRetry) {
       final refreshed = await _refreshTokens();
       if (refreshed) {
-        return _send(method, path, body: body, auth: auth, isRetry: true);
+        return _request(
+          method: method,
+          path: path,
+          auth: auth,
+          send: send,
+          extraHeaders: extraHeaders,
+          timeout: timeout,
+          isRetry: true,
+        );
       }
     }
 
+    final decoded = _decode(response);
     final error = decoded['error'];
     throw AppException(
       code: error is Map ? (error['code'] as String? ?? 'unknown') : 'unknown',
@@ -112,13 +256,23 @@ class ApiClient {
         ApiEndpoints.refresh,
         body: {'refresh_token': refreshToken},
       );
+      final accessToken = json['access_token'];
+      final newRefreshToken = json['refresh_token'];
+      if (accessToken is! String || newRefreshToken is! String) {
+        throw const AppException(
+          code: 'invalid_refresh_response',
+          message: AppStrings.errUnknown,
+        );
+      }
       await tokenStorage.save(
-        accessToken: json['access_token'] as String,
-        refreshToken: json['refresh_token'] as String,
+        accessToken: accessToken,
+        refreshToken: newRefreshToken,
       );
       return true;
-    } on AppException catch (e) {
-      if (e.isNetwork) rethrow;
+    } catch (error) {
+      // Gangguan jaringan bukan alasan mengunci sesi: biarkan pemanggil
+      // menampilkan error jaringan seperti biasa.
+      if (error is AppException && error.isNetwork) rethrow;
       await tokenStorage.clear();
       onSessionExpired?.call();
       return false;
@@ -133,6 +287,13 @@ class ApiClient {
     } on FormatException {
     }
     return <String, dynamic>{};
+  }
+
+  void _logNetworkFailure(String method, Uri uri, Object error) {
+    if (!kDebugMode) return;
+    debugPrint(
+      '[ApiClient] $method $uri gagal -> ${error.runtimeType}: $error',
+    );
   }
 
   AppException _networkError() {

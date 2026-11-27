@@ -1,0 +1,151 @@
+import 'package:rijiki/core/constants/app_strings.dart';
+import 'package:rijiki/core/error/app_exception.dart';
+import 'package:rijiki/core/error/failure.dart';
+import 'package:rijiki/core/network/api_client.dart';
+import 'package:rijiki/core/network/api_endpoint.dart';
+import 'package:rijiki/features/order/data/order_mapper.dart';
+import 'package:rijiki/features/order/domain/applied_promo.dart';
+import 'package:rijiki/features/order/domain/customer_order.dart';
+import 'package:rijiki/features/order/domain/new_order.dart';
+import 'package:rijiki/features/order/domain/order_repository.dart';
+import 'package:rijiki/features/order/domain/price_breakdown.dart';
+import 'package:rijiki/features/order/domain/price_quote.dart';
+
+class OrderRepositoryImpl implements OrderRepository {
+  OrderRepositoryImpl({required this.api});
+
+  final ApiClient api;
+
+  static const int _listLimit = 50;
+  static const int _activeLimit = 2;
+
+  @override
+  Future<List<CustomerOrder>> fetchOrders() {
+    return _fetchList({'page': '1', 'limit': '$_listLimit'});
+  }
+
+  @override
+  Future<List<CustomerOrder>> fetchActiveOrders() {
+    return _fetchList({'active': 'true', 'page': '1', 'limit': '$_activeLimit'});
+  }
+
+  @override
+  Future<CustomerOrder> fetchOrderById(String id) async {
+    try {
+      final json = await api.get(ApiEndpoints.orderById(id), auth: true);
+      return customerOrderFromJson(json);
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
+  }
+
+  @override
+  Future<PriceQuote> quotePrice({
+    // Dipertahankan demi kompatibilitas pemanggil; backend menghitung
+    // subtotal dari `items` di database.
+    required int subtotal,
+    List<String> promoCodes = const [],
+    List<OrderDraftItem> items = const [],
+  }) async {
+    final lines = [
+      for (final item in items)
+        if (item.service != null)
+          {'service_id': item.service!.id, 'quantity': item.quantity},
+    ];
+    try {
+      final json = await api.post(
+        ApiEndpoints.orderQuote,
+        auth: true,
+        body: {
+          'items': lines,
+          if (promoCodes.isNotEmpty) 'promo_codes': promoCodes,
+        },
+      );
+      return PriceQuote(
+        price: PriceBreakdown(
+          subtotal: (json['subtotal'] as num).round(),
+          discount: (json['discount_amount'] as num).round(),
+          shipping: (json['shipping_fee'] as num).round(),
+        ),
+        promos: AppliedPromo.listFromJson(json['promos']),
+      );
+    } on AppException catch (e) {
+      if (e.code == 'promo_invalid') throw PromoException(e.message);
+      throw _toFailure(e);
+    }
+  }
+
+  @override
+  Future<CustomerOrder> createOrder(NewOrder order, PriceQuote quote) async {
+    try {
+      final key = order.idempotencyKey;
+      final json = await api.post(
+        ApiEndpoints.orders,
+        auth: true,
+        headers: key == null ? null : {ApiClient.idempotencyHeader: key},
+        body: {
+          'items': [
+            for (final item in order.items)
+              {
+                'service_id': item.service!.id,
+                'shoe_brand': item.shoeBrand.trim(),
+                'quantity': item.quantity,
+                if (item.notes.trim().isNotEmpty) 'notes': item.notes.trim(),
+              },
+          ],
+          'pickup_address': order.pickupAddress,
+          'delivery_address': order.deliveryAddress,
+          if (order.promoCodes.isNotEmpty) 'promo_codes': order.promoCodes,
+        },
+      );
+      return customerOrderFromJson(json);
+    } on AppException catch (e) {
+      if (e.code == 'promo_invalid') throw Failure(FailureType.validation, e.message, code: e.code);
+      throw _toFailure(e);
+    }
+  }
+
+  Future<List<CustomerOrder>> _fetchList(Map<String, String> query) async {
+    try {
+      final path = Uri(
+        path: ApiEndpoints.orders,
+        queryParameters: query,
+      ).toString();
+      final json = await api.get(path, auth: true);
+      final raw = json['items'] as List<dynamic>? ?? const [];
+      return [
+        for (final item in raw) customerOrderFromJson(item as Json),
+      ];
+    } on AppException catch (e) {
+      throw _toFailure(e);
+    }
+  }
+
+  Failure _toFailure(AppException e) {
+    switch (e.code) {
+      case AppException.networkCode:
+      case AppException.offlineCode:
+      case AppException.timeoutCode:
+        return Failure(FailureType.network, e.message, code: e.code);
+      case 'unauthorized':
+        return Failure(FailureType.unauthorized, e.message, code: e.code);
+      case 'rate_limited':
+        return Failure(FailureType.rateLimited, e.message, code: e.code);
+      case 'validation_error':
+      case 'profile_incomplete':
+      case 'service_unavailable':
+        return Failure(FailureType.validation, e.message, code: e.code);
+      case 'price_changed':
+      case 'idempotency_conflict':
+        return Failure(FailureType.conflict, e.message, code: e.code);
+    }
+    if ((e.statusCode ?? 0) >= 500) {
+      return Failure(FailureType.server, e.message, code: e.code);
+    }
+    return Failure(
+      FailureType.unknown,
+      e.message.isEmpty ? AppStrings.errUnknown : e.message,
+      code: e.code,
+    );
+  }
+}

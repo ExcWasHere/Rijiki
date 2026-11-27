@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:rijiki/core/enums/event_type.dart';
+import 'package:rijiki/features/event/domain/event_promo.dart';
 
 @immutable
 class PromoEvent {
@@ -12,6 +13,8 @@ class PromoEvent {
     this.startDate,
     this.endDate,
     this.isPublished = true,
+    this.relatedPromoId,
+    this.promo,
   });
 
   final String id;
@@ -23,9 +26,17 @@ class PromoEvent {
   final DateTime? endDate;
   final bool isPublished;
 
+  /// Promo yang terhubung (events.related_promo_id), bila ada.
+  final String? relatedPromoId;
+
+  /// Ringkasan promo dari backend; null bila tidak terhubung.
+  final EventPromo? promo;
+
   factory PromoEvent.fromJson(Map<String, dynamic> json) {
     DateTime? parseDate(Object? raw) =>
         raw == null ? null : DateTime.parse(raw as String);
+
+    final promoJson = json['promo'];
 
     return PromoEvent(
       id: json['id'] as String,
@@ -36,6 +47,10 @@ class PromoEvent {
       startDate: parseDate(json['start_date']),
       endDate: parseDate(json['end_date']),
       isPublished: json['is_published'] as bool? ?? true,
+      relatedPromoId: json['related_promo_id'] as String?,
+      promo: promoJson is Map<String, dynamic>
+          ? EventPromo.fromJson(promoJson)
+          : null,
     );
   }
 
@@ -49,6 +64,8 @@ class PromoEvent {
       startDate: startDate,
       endDate: endDate,
       isPublished: isPublished ?? this.isPublished,
+      relatedPromoId: relatedPromoId,
+      promo: promo,
     );
   }
 }

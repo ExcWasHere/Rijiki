@@ -7,6 +7,12 @@ function bucketFor(env: Bindings, visibility: StorageVisibility): R2Bucket {
   return visibility === 'public' ? env.PUBLIC_BUCKET : env.PRIVATE_BUCKET;
 }
 
+function cacheControlFor(visibility: StorageVisibility): string {
+  return visibility === 'public'
+    ? 'public, max-age=31536000, immutable'
+    : 'private, max-age=300';
+}
+
 export function buildKey(folder: string, ownerId: string, ext: string): string {
   return `${folder}/${ownerId}/${crypto.randomUUID()}.${ext}`;
 }
@@ -20,7 +26,7 @@ export async function putImage(
   await bucketFor(env, visibility).put(key, image.bytes, {
     httpMetadata: {
       contentType: image.mime,
-      cacheControl: visibility === 'public' ? 'public, max-age=31536000, immutable' : 'private, max-age=300',
+      cacheControl: cacheControlFor(visibility),
     },
   });
 }
@@ -39,6 +45,29 @@ export async function deleteObject(
   key: string,
 ): Promise<void> {
   await bucketFor(env, visibility).delete(key);
+}
+
+/**
+ * Menyalin objek ke bucket lain dengan key yang sama (dipakai untuk menyalin
+ * foto testimoni featured ke bucket publik). Mengembalikan false bila objek
+ * sumber tidak ada. Foto dibatasi 5 MB, jadi dibaca utuh ke memori.
+ */
+export async function copyObject(
+  env: Bindings,
+  from: StorageVisibility,
+  to: StorageVisibility,
+  key: string,
+): Promise<boolean> {
+  const source = await bucketFor(env, from).get(key);
+  if (!source) return false;
+
+  await bucketFor(env, to).put(key, await source.arrayBuffer(), {
+    httpMetadata: {
+      contentType: source.httpMetadata?.contentType ?? 'application/octet-stream',
+      cacheControl: cacheControlFor(to),
+    },
+  });
+  return true;
 }
 
 function publicBase(env: Bindings): string {

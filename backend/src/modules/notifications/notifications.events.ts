@@ -1,0 +1,231 @@
+import { getSupabaseAdmin } from '../../config/supabase';
+import type { Bindings } from '../../shared/types/env';
+import type { OrderStatus } from '../orders/orders.types';
+import {
+  notifyCustomerProfile,
+  notifyOwners,
+  notifyUser,
+  notifyWorkerProfile,
+} from './notifications.service';
+
+const STATUS_TITLE: Record<OrderStatus, string> = {
+  order: 'Pesanan diterima',
+  pickup: 'Sepatu sedang dijemput',
+  waiting: 'Sepatu sudah di outlet',
+  cleaning: 'Sepatu sedang dibersihkan',
+  delivery: 'Sepatu sedang diantar',
+  completed: 'Order selesai',
+  cancelled: 'Order dibatalkan',
+};
+
+const STATUS_BODY: Record<OrderStatus, string> = {
+  order: 'Pesananmu sudah kami terima. Kurir akan segera menjemput sepatumu.',
+  pickup: 'Kurir sedang menuju alamatmu untuk menjemput sepatu.',
+  waiting: 'Sepatu sudah tiba di outlet dan menunggu giliran dibersihkan.',
+  cleaning: 'Sepatu sedang dalam proses pembersihan oleh tim Rijiki.',
+  delivery: 'Sepatu yang sudah bersih sedang diantar kembali ke alamatmu.',
+  completed: 'Sepatu sudah kembali bersih. Terima kasih sudah memakai Rijiki!',
+  cancelled: 'Order dibatalkan. Hubungi CS Rijiki bila kamu butuh bantuan.',
+};
+
+export interface OrderNotificationTarget {
+  id: string;
+  order_number: string;
+  customer_id: string | null;
+  assigned_worker_id: string | null;
+}
+
+/** Customer diberi tahu setiap kali status ordernya berubah. */
+export async function notifyOrderStatus(
+  env: Bindings,
+  order: OrderNotificationTarget,
+  status: OrderStatus,
+): Promise<void> {
+  await notifyCustomerProfile(env, order.customer_id, {
+    type: 'order_status',
+    title: `${STATUS_TITLE[status]} · ${order.order_number}`,
+    body: STATUS_BODY[status],
+    data: { order_id: order.id, status },
+  });
+}
+
+/** Worker diberi tahu saat order di-assign atau ia mengambil order dari antrean. */
+export async function notifyOrderAssigned(
+  env: Bindings,
+  order: OrderNotificationTarget,
+): Promise<void> {
+  await notifyWorkerProfile(env, order.assigned_worker_id, {
+    type: 'order_assigned',
+    title: `Order baru untukmu · ${order.order_number}`,
+    body: 'Order ini sudah ditugaskan ke kamu. Buka detail untuk melihat jadwal jemput.',
+    data: { order_id: order.id },
+  });
+}
+
+/** Customer diberi tahu saat pembayaran QRIS-nya lunas. */
+export async function notifyPaymentPaid(
+  env: Bindings,
+  order: { id: string; order_number: string; customer_id: string | null },
+): Promise<void> {
+  await notifyCustomerProfile(env, order.customer_id, {
+    type: 'payment_paid',
+    title: `Pembayaran berhasil · ${order.order_number}`,
+    body: 'Pembayaranmu sudah kami terima. Kurir akan menjemput sepatu sesuai jadwal.',
+    data: { order_id: order.id },
+  });
+  await notifyOwners(env, {
+    type: 'payment_paid',
+    title: `QRIS lunas · ${order.order_number}`,
+    body: 'Pembayaran QRIS untuk order ini sudah diterima.',
+    data: { order_id: order.id },
+  });
+}
+
+/** Customer diberi tahu saat pengajuan tukar poinnya diproses. */
+export async function notifyRedemptionProcessed(
+  env: Bindings,
+  params: {
+    customerProfileId: string;
+    status: 'approved' | 'rejected' | 'fulfilled';
+    rewardName: string;
+    notes: string | null;
+  },
+): Promise<void> {
+  const title =
+    params.status === 'rejected'
+      ? `Tukar poin ditolak · ${params.rewardName}`
+      : params.status === 'fulfilled'
+        ? `Hadiah siap · ${params.rewardName}`
+        : `Tukar poin disetujui · ${params.rewardName}`;
+
+  const body =
+    params.status === 'rejected'
+      ? (params.notes?.trim() || 'Pengajuan tukar poinmu belum bisa kami proses.')
+      : params.status === 'fulfilled'
+        ? 'Hadiah bisa diambil di outlet atau dibawa bersama order berikutnya.'
+        : 'Poin sudah dipotong. Hadiah akan disiapkan oleh tim Rijiki.';
+
+  await notifyCustomerProfile(env, params.customerProfileId, {
+    type: 'point_redemption',
+    title,
+    body,
+    data: { status: params.status },
+  });
+}
+
+/**
+ * Order baru dari aplikasi customer: worker aktif diberi tahu agar bisa
+ * mengambilnya, owner diberi tahu untuk memantau.
+ */
+export async function notifyNewOrder(
+  env: Bindings,
+  order: { id: string; order_number: string },
+): Promise<void> {
+  const admin = getSupabaseAdmin(env);
+  const { data, error } = await admin
+    .from('worker_profiles')
+    .select('user_id')
+    .eq('status', 'active');
+
+  if (error) console.error('notifications: gagal memuat worker aktif', error.message);
+
+  const workerUserIds = ((data ?? []) as Array<{ user_id: string }>).map((row) => row.user_id);
+  await Promise.all([
+    ...workerUserIds.map((userId) =>
+      notifyUser(env, {
+        userId,
+        type: 'order_new',
+        title: `Order baru masuk · ${order.order_number}`,
+        body: 'Ada order baru di antrean. Ambil order bila kamu siap menjemput.',
+        data: { order_id: order.id },
+      }),
+    ),
+    notifyOwners(env, {
+      type: 'order_new',
+      title: `Order baru masuk · ${order.order_number}`,
+      body: 'Customer membuat order baru lewat aplikasi.',
+      data: { order_id: order.id },
+    }),
+  ]);
+}
+
+/** Order offline dicatat di outlet: owner diberi tahu, kecuali pencatatnya sendiri. */
+export async function notifyOfflineOrder(
+  env: Bindings,
+  order: { id: string; order_number: string; customer_name: string },
+  createdByUserId: string,
+): Promise<void> {
+  await notifyOwners(
+    env,
+    {
+      type: 'order_new',
+      title: `Order offline baru · ${order.order_number}`,
+      body: `Order offline atas nama ${order.customer_name} dicatat di outlet.`,
+      data: { order_id: order.id },
+    },
+    createdByUserId,
+  );
+}
+
+/** Customer mengajukan tukar poin: owner perlu menyetujui atau menolak. */
+export async function notifyRedemptionRequested(
+  env: Bindings,
+  params: { redemptionId: string; customerName: string | null; rewardName: string; pointsUsed: number },
+): Promise<void> {
+  await notifyOwners(env, {
+    type: 'point_redemption_request',
+    title: `Pengajuan tukar poin · ${params.rewardName}`,
+    body: `${params.customerName ?? 'Customer'} mengajukan tukar ${params.pointsUsed} poin. Tinjau pengajuannya.`,
+    data: { redemption_id: params.redemptionId },
+  });
+}
+
+/** QR pembayaran kedaluwarsa: customer perlu membuat QR baru. */
+export async function notifyPaymentExpired(
+  env: Bindings,
+  order: { id: string; order_number: string; customer_id: string | null },
+): Promise<void> {
+  await notifyCustomerProfile(env, order.customer_id, {
+    type: 'payment_expired',
+    title: `QR kedaluwarsa · ${order.order_number}`,
+    body: 'Waktu pembayaran habis. Buka detail order untuk membuat QR baru.',
+    data: { order_id: order.id },
+  });
+}
+
+/**
+ * Pesan chat order baru: lawan bicara diberi tahu. Customer mengirim → worker
+ * penangan; bila belum ada worker (order belum diambil), owner yang diberi tahu
+ * supaya pesan tetap ada yang menjawab. Worker/owner mengirim → customer.
+ */
+export async function notifyNewMessage(
+  env: Bindings,
+  order: {
+    id: string;
+    order_number: string;
+    customer_id: string | null;
+    assigned_worker_id: string | null;
+  },
+  message: { senderId: string; senderRole: string; preview: string },
+): Promise<void> {
+  const preview =
+    message.preview.length > 120 ? `${message.preview.slice(0, 117)}...` : message.preview;
+
+  if (message.senderRole === 'customer') {
+    const target = { type: 'order_message', title: `Pesan baru · ${order.order_number}`, body: preview, data: { order_id: order.id } };
+
+    if (order.assigned_worker_id) {
+      await notifyWorkerProfile(env, order.assigned_worker_id, target);
+      return;
+    }
+    await notifyOwners(env, target);
+    return;
+  }
+
+  await notifyCustomerProfile(env, order.customer_id, {
+    type: 'order_message',
+    title: `Pesan dari Rijiki · ${order.order_number}`,
+    body: preview,
+    data: { order_id: order.id },
+  });
+}

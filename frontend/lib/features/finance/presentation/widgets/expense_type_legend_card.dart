@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rijiki/core/enums/expense_type.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/features/finance/presentation/expense_type_ui.dart';
+import 'package:rijiki/features/finance/presentation/utils/expense_type_ui.dart';
 
 class ExpenseTypeLegendCard extends StatelessWidget {
   const ExpenseTypeLegendCard({super.key});

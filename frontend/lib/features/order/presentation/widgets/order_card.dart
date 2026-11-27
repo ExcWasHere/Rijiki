@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rijiki/core/enums/order_status.dart';
 import 'package:rijiki/core/extensions/enum_ui_x.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
-import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/core/utils/date_formatter.dart';
 import 'package:rijiki/features/order/domain/customer_order.dart';
 import 'package:rijiki/features/order/presentation/widgets/order_progress_bar.dart';
@@ -84,7 +84,7 @@ class OrderCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  CurrencyFormatter.rupiah(order.totalPrice),
+                  RupiahFormatter.full(order.totalPrice),
                   style: textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),

@@ -29,8 +29,12 @@ class FinanceExportResult {
   const FinanceExportResult({
     required this.fileName,
     required this.transactionCount,
+    this.bytes,
   });
 
   final String fileName;
   final int transactionCount;
+
+  /// Isi berkas xlsx dari backend; null pada data mock lama.
+  final Uint8List? bytes;
 }

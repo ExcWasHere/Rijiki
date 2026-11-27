@@ -65,5 +65,73 @@ void main() {
         isNull,
       );
     });
+
+    test('Customer tidak bisa membuka halaman owner maupun worker lewat tautan langsung', () {
+      for (final location in [
+        RoutePaths.ownerHome,
+        RoutePaths.ownerOrders,
+        RoutePaths.ownerFinance,
+        RoutePaths.ownerWorkers,
+        RoutePaths.workerHome,
+        RoutePaths.workerOrders,
+      ]) {
+        expect(
+          RoleRedirect.guard(user: customerCompleted, location: location),
+          RoutePaths.customerHome,
+          reason: 'customer seharusnya ditolak di $location',
+        );
+      }
+    });
+
+    test('Worker hanya boleh di area worker, bukan halaman owner atau order customer', () {
+      const worker = AppUser(
+        id: 'user-3',
+        email: 'worker@rijiki.id',
+        role: UserRole.worker,
+        profileCompleted: true,
+      );
+
+      expect(RoleRedirect.guard(user: worker, location: RoutePaths.workerOrders), isNull);
+      expect(RoleRedirect.guard(user: worker, location: RoutePaths.workerProfile), isNull);
+      // Hub manajemen dipakai bersama owner; izin per fitur dicek backend.
+      expect(RoleRedirect.guard(user: worker, location: RoutePaths.managementPoints), isNull);
+      expect(
+        RoleRedirect.guard(user: worker, location: RoutePaths.ownerFinance),
+        RoutePaths.workerHome,
+      );
+      expect(
+        RoleRedirect.guard(user: worker, location: RoutePaths.customerHome),
+        RoutePaths.workerHome,
+      );
+    });
+
+    test('Customer boleh membuka menu profil bersama', () {
+      for (final location in [
+        RoutePaths.customerOrders,
+        RoutePaths.customerProfile,
+        RoutePaths.editProfile,
+        RoutePaths.notifications,
+        RoutePaths.accountSecurity,
+      ]) {
+        expect(
+          RoleRedirect.guard(user: customerCompleted, location: location),
+          isNull,
+          reason: 'customer seharusnya boleh membuka $location',
+        );
+      }
+    });
+
+    test('Owner bebas membuka halaman mana pun yang terdaftar', () {
+      const owner = AppUser(
+        id: 'user-4',
+        email: 'owner@rijiki.id',
+        role: UserRole.owner,
+        profileCompleted: true,
+      );
+
+      expect(RoleRedirect.guard(user: owner, location: RoutePaths.ownerFinance), isNull);
+      expect(RoleRedirect.guard(user: owner, location: RoutePaths.ownerWorkers), isNull);
+      expect(RoleRedirect.guard(user: owner, location: RoutePaths.ownerHome), isNull);
+    });
   });
 }

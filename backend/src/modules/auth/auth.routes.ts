@@ -3,11 +3,16 @@ import { authMiddleware } from '../../middleware/auth';
 import { AppError } from '../../shared/errors';
 import type { AppEnv } from '../../shared/types/env';
 import { parseInput } from '../../shared/utils/validate';
+import { getCustomerProfile } from '../profile/profile.service';
+import { loadAuthContext } from './auth.service';
 import {
+  changePasswordSchema,
+  confirmEmailChangeSchema,
   googleLoginSchema,
   loginSchema,
   refreshSchema,
   registerSchema,
+  requestEmailChangeSchema,
   resendVerificationSchema,
   verifyEmailSchema,
 } from './auth.schema';
@@ -50,9 +55,16 @@ authRoutes.post('/refresh', async (c) => {
   return c.json(await authService.refresh(c.env, input));
 });
 
-authRoutes.get('/me', authMiddleware, (c) => {
+authRoutes.get('/me', authMiddleware, async (c) => {
   const { user, permissions, ownerBypass } = c.get('user');
-  return c.json({ user, permissions, owner_bypass: ownerBypass });
+  const customerProfile =
+    user.role === 'customer' ? await getCustomerProfile(c.env, user.id) : null;
+  return c.json({
+    user,
+    permissions,
+    owner_bypass: ownerBypass,
+    customer_profile: customerProfile,
+  });
 });
 
 authRoutes.post('/logout', authMiddleware, async (c) => {
@@ -60,4 +72,24 @@ authRoutes.post('/logout', authMiddleware, async (c) => {
   if (!token) throw new AppError(401, 'unauthorized', 'Token tidak ditemukan');
   await authService.logout(c.env, token);
   return c.json({ message: 'Berhasil keluar' });
+});
+
+authRoutes.post('/change-password', authMiddleware, async (c) => {
+  const input = parseInput(changePasswordSchema, await c.req.json().catch(() => null));
+  await authService.changePassword(c.env, c.get('user').user, input);
+  return c.json({ message: 'Kata sandi berhasil diganti' });
+});
+
+authRoutes.post('/change-email', authMiddleware, async (c) => {
+  const input = parseInput(requestEmailChangeSchema, await c.req.json().catch(() => null));
+  await authService.requestEmailChange(c.env, c.get('user').user, input);
+  return c.json({ message: 'Kode verifikasi dikirim ke email baru' });
+});
+
+authRoutes.post('/confirm-email-change', authMiddleware, async (c) => {
+  const input = parseInput(confirmEmailChangeSchema, await c.req.json().catch(() => null));
+  await authService.confirmEmailChange(c.env, input);
+
+  const { user } = c.get('user');
+  return c.json(await loadAuthContext(c.env, user.id));
 });

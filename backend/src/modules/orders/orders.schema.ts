@@ -1,0 +1,138 @@
+import { z } from 'zod';
+import { DOCUMENTATION_TYPES, ORDER_STATUSES } from './orders.types';
+
+const promoCode = z
+  .string()
+  .trim()
+  .min(1, 'Kode promo tidak boleh kosong')
+  .max(32, 'Kode promo terlalu panjang')
+  .regex(/^[A-Za-z0-9_-]+$/, 'Kode promo tidak valid')
+  .transform((v) => v.toUpperCase());
+
+/** Maksimal 1 promo layanan + 1 promo ongkir; aturan jenisnya dicek service. */
+const promoCodes = z.array(promoCode).max(2, 'Maksimal 2 kode promo per order').default([]);
+
+const address = (label: string) =>
+  z
+    .string()
+    .trim()
+    .min(5, `${label} terlalu pendek`)
+    .max(300, `${label} maksimal 300 karakter`);
+
+const quoteItemSchema = z.object({
+  service_id: z.string().uuid('Layanan tidak valid'),
+  quantity: z
+    .number()
+    .int('Jumlah harus bilangan bulat')
+    .min(1, 'Jumlah minimal 1')
+    .max(10, 'Jumlah maksimal 10 per item'),
+});
+
+export const quoteOrderSchema = z.object({
+  // Subtotal sengaja tidak diterima dari client: nilainya dihitung dari harga
+  // layanan di database supaya kelayakan promo tidak bisa dipalsukan.
+  items: z.array(quoteItemSchema).max(5, 'Maksimal 5 item per order').optional(),
+  promo_codes: promoCodes,
+});
+
+const orderItemSchema = z.object({
+  service_id: z.string().uuid('Layanan tidak valid'),
+  shoe_brand: z
+    .string()
+    .trim()
+    .min(1, 'Merk sepatu wajib diisi')
+    .max(60, 'Merk sepatu maksimal 60 karakter'),
+  quantity: z
+    .number()
+    .int('Jumlah harus bilangan bulat')
+    .min(1, 'Jumlah minimal 1')
+    .max(10, 'Jumlah maksimal 10 per item'),
+  notes: z
+    .string()
+    .trim()
+    .max(300, 'Catatan maksimal 300 karakter')
+    .nullish()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
+/**
+ * Nama dan nomor HP sengaja tidak ada di sini: order online selalu memakai
+ * data dari profil akun (keputusan tahap A). Field tambahan dari klien
+ * otomatis dibuang oleh zod.
+ */
+export const createOrderSchema = z.object({
+  items: z
+    .array(orderItemSchema)
+    .min(1, 'Pilih minimal satu layanan')
+    .max(5, 'Maksimal 5 item per order'),
+  pickup_address: address('Alamat penjemputan'),
+  delivery_address: address('Alamat pengantaran'),
+  promo_codes: promoCodes,
+});
+
+/** 08xx / 628xx / +628xx -> +628xx. */
+function normalizeIdPhone(raw: string): string {
+  let digits = raw.replace(/[^\d]/g, '');
+  if (digits.startsWith('0')) digits = `62${digits.slice(1)}`;
+  else if (digits.startsWith('8')) digits = `62${digits}`;
+  return `+${digits}`;
+}
+
+const walkInPhone = z
+  .string()
+  .trim()
+  .min(1, 'Nomor HP wajib diisi')
+  .transform(normalizeIdPhone)
+  .refine((v) => /^\+62\d{8,12}$/.test(v), 'Nomor HP tidak valid');
+
+/** Order offline (POS) di outlet: customer tanpa akun, dicatat worker atau owner. */
+export const createOfflineOrderSchema = z.object({
+  walk_in_customer_name: z
+    .string()
+    .trim()
+    .min(2, 'Nama pelanggan terlalu pendek')
+    .max(80, 'Nama pelanggan maksimal 80 karakter'),
+  walk_in_customer_phone: walkInPhone,
+  items: z
+    .array(orderItemSchema)
+    .min(1, 'Pilih minimal satu layanan')
+    .max(5, 'Maksimal 5 item per order'),
+  promo_codes: promoCodes,
+  /** worker_profiles.id; kosong = worker yang login (owner: tanpa worker). */
+  assigned_worker_id: z.string().uuid('Worker tidak valid').nullish(),
+  payment_method: z.enum(['qris', 'cash']),
+  delivery_method: z.enum(['self_pickup', 'delivery']).default('self_pickup'),
+});
+
+export const listOrdersQuerySchema = z.object({
+  status: z.enum(ORDER_STATUSES).optional(),
+  active: z.enum(['true', 'false']).optional(),
+  /** true = order aktif yang belum punya worker (antrean untuk worker, daftar "belum di-assign" untuk owner). */
+  unassigned: z.enum(['true', 'false']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const updateStatusSchema = z.object({
+  new_status: z.enum(ORDER_STATUSES),
+  notes: z.string().trim().max(300, 'Catatan maksimal 300 karakter').nullish(),
+});
+
+export const assignOrderSchema = z.object({
+  /** worker_profiles.id; null = lepas assign. */
+  worker_id: z.string().uuid('Worker tidak valid').nullable(),
+});
+
+/** Field teks pada multipart upload dokumentasi (file ada di field `image`). */
+export const documentationFieldsSchema = z.object({
+  type: z.enum(DOCUMENTATION_TYPES),
+  order_item_id: z.string().uuid('Item order tidak valid').optional(),
+});
+
+export type QuoteOrderInput = z.infer<typeof quoteOrderSchema>;
+export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type CreateOfflineOrderInput = z.infer<typeof createOfflineOrderSchema>;
+export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
+export type UpdateStatusInput = z.infer<typeof updateStatusSchema>;
+export type AssignOrderInput = z.infer<typeof assignOrderSchema>;
+export type DocumentationFieldsInput = z.infer<typeof documentationFieldsSchema>;

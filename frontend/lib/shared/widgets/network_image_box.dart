@@ -23,6 +23,15 @@ class NetworkImageBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    // Hanya satu dimensi agar rasio asli tetap terjaga (fit cover/contain).
+    final cacheWidth = width != null
+        ? (width! * pixelRatio).round()
+        : null;
+    final cacheHeight = cacheWidth == null && height != null
+        ? (height! * pixelRatio).round()
+        : null;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: SizedBox(
@@ -32,6 +41,8 @@ class NetworkImageBox extends StatelessWidget {
           url,
           fit: fit,
           headers: headers,
+          cacheWidth: cacheWidth,
+          cacheHeight: cacheHeight,
           loadingBuilder: (context, child, progress) =>
               progress == null ? child : const LoadingSkeleton(radius: 0),
           errorBuilder: (context, error, stackTrace) => ColoredBox(

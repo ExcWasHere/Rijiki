@@ -7,4 +7,128 @@ abstract final class ApiEndpoints {
   static const String refresh = '/api/auth/refresh';
   static const String me = '/api/auth/me';
   static const String logout = '/api/auth/logout';
+  static const String changePassword = '/api/auth/change-password';
+  static const String changeEmail = '/api/auth/change-email';
+  static const String confirmEmailChange = '/api/auth/confirm-email-change';
+
+  static const String profile = '/api/profile';
+
+  /// Customer: sepatu yang pernah dicuci dan rating yang pernah diberikan.
+  static const String profileShoes = '/api/profile/shoes';
+  static const String profileRatings = '/api/profile/ratings';
+
+  /// Inbox notifikasi semua role.
+  static const String notifications = '/api/notifications';
+  static const String notificationUnreadCount = '/api/notifications/unread-count';
+  static const String notificationReadAll = '/api/notifications/read-all';
+  static String notificationRead(String id) => '$notifications/$id/read';
+
+  /// Registrasi token FCM perangkat (POST/DELETE dengan body `token`).
+  static const String devices = '/api/devices';
+
+  static const String services = '/api/services';
+
+  /// Owner atau worker berizin manage_cms_services: semua layanan, termasuk nonaktif.
+  static const String managementServices = '/api/services/manage';
+  static String serviceById(String id) => '$services/$id';
+
+  static const String promos = '/api/promos';
+  static String promoById(String id) => '$promos/$id';
+
+  /// Customer: event/promo/kolaborasi yang sedang tayang.
+  static const String events = '/api/events';
+
+  /// Owner atau worker berizin manage_cms_events.
+  static const String managementEvents = '/api/management/events';
+  static String managementEventById(String id) => '$managementEvents/$id';
+  static const String managementEventPromoOptions =
+      '$managementEvents/promo-options';
+
+  /// Unggah banner event ke R2 (multipart, field `image`).
+  static const String eventBanner = '/api/media/event-banner';
+
+  /// Customer: saldo dan riwayat poin.
+  static const String pointBalance = '/api/points/balance';
+  static const String pointLedger = '/api/points/ledger';
+
+  /// Customer: hadiah yang bisa ditukar poin, dan pengajuan penukarannya.
+  static const String pointRewards = '/api/points/rewards';
+  static const String pointRedemptions = '/api/points/redemptions';
+
+  /// Owner atau worker berizin manage_cms_merchandise.
+  static const String managementMerchandise = '/api/management/merchandise';
+  static String managementMerchandiseById(String id) =>
+      '$managementMerchandise/$id';
+
+  /// Unggah foto merchandise ke R2 (multipart, field `image`).
+  static const String merchandiseImage = '/api/media/merchandise-image';
+
+  static const String pointRules = '/api/management/point-rules';
+  static String pointRuleById(String id) => '$pointRules/$id';
+
+  static const String managementPointRedemptions =
+      '/api/management/points/redemptions';
+  static String managementPointRedemption(String id) =>
+      '$managementPointRedemptions/$id';
+  static const String managementPointCustomers =
+      '/api/management/points/customers';
+  static const String managementPointAdjust = '/api/management/points/adjust';
+
+  static const String repeatCustomers = '/api/management/customers/repeat';
+
+  /// Owner atau worker berizin view_analytics (dashboard Beranda).
+  static const String dashboardSummary = '/api/management/analytics/dashboard';
+  static const String dashboardRecentOrders =
+      '/api/management/analytics/recent-orders';
+
+  /// Owner atau worker berizin manage_finance.
+  static const String financeSummary = '/api/finance/summary';
+  static const String financeTransactions = '/api/finance/transactions';
+  static const String financeExpenseAiParse = '/api/finance/expenses/ai-parse';
+  static String financeExpenseAiConfirm(String id) =>
+      '$financeExpenseAiParse/$id/confirm';
+  static String financeExpenseAiDiscard(String id) => '$financeExpenseAiParse/$id';
+  static const String financeExport = '/api/finance/export';
+
+  static const String orders = '/api/orders';
+  static const String orderQuote = '/api/orders/quote';
+
+  /// Order offline (POS) di outlet; worker atau owner.
+  static const String orderOffline = '/api/orders/offline';
+  static String orderById(String id) => '$orders/$id';
+  static String orderClaim(String id) => '$orders/$id/claim';
+  static String orderAssign(String id) => '$orders/$id/assign';
+  static String orderStatus(String id) => '$orders/$id/status';
+  static String orderDocumentations(String id) => '$orders/$id/documentations';
+  static String orderDocumentation(String id, String docId) =>
+      '$orders/$id/documentations/$docId';
+
+  static String orderTracking(String id) => '$orders/$id/tracking';
+  static String orderRating(String id) => '$orders/$id/rating';
+
+  /// Chat per order (customer, worker penangan, owner).
+  static String orderMessages(String id) => '$orders/$id/messages';
+  static String orderMessagesRead(String id) => '$orders/$id/messages/read';
+
+  /// Membuat QR QRIS untuk order (idempoten: QR aktif dipakai lagi).
+  static String orderPayment(String id) => '$orders/$id/payment';
+
+  /// Status pembayaran; dipakai polling halaman QRIS.
+  static String paymentById(String id) => '/api/payments/$id';
+
+  static const String testimonialsFeatured = '/api/testimonials/featured';
+  static const String managementTestimonials = '/api/management/testimonials';
+  static const String managementTestimonialsExport =
+      '/api/management/testimonials/export';
+  static String managementTestimonialFeatured(String id) =>
+      '$managementTestimonials/$id/featured';
+
+  static const String workers = '/api/workers';
+  static const String workersKpiOverview = '/api/workers/kpi-overview';
+  static String workerReviews(String id) => '$workers/$id/reviews';
+  static String workerKpi(String id) => '$workers/$id/kpi';
+  static String workerPermissions(String id) => '/api/owner/workers/$id/permissions';
+
+  static const String avatar = '/api/media/avatar';
+  static String privateMedia(String key) => '/api/media/private/$key';
 }

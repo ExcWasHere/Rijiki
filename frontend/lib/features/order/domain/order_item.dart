@@ -9,6 +9,7 @@ class OrderItem {
     required this.price,
     this.quantity = 1,
     this.notes,
+    this.itemCode,
   });
 
   final String id;
@@ -20,6 +21,7 @@ class OrderItem {
   final int quantity;
 
   final String? notes;
+  final String? itemCode;
 
   int get lineTotal => price * quantity;
 }

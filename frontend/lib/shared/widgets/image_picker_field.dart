@@ -149,6 +149,7 @@ class _Attached extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final cacheWidth = (48 * MediaQuery.devicePixelRatioOf(context)).round();
 
     return Container(
       width: double.infinity,
@@ -167,6 +168,8 @@ class _Attached extends StatelessWidget {
                     path,
                     width: 48,
                     height: 48,
+                    cacheWidth: cacheWidth,
+                    cacheHeight: cacheWidth,
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => _brokenImage(),
                   )
@@ -174,6 +177,8 @@ class _Attached extends StatelessWidget {
                     File(path),
                     width: 48,
                     height: 48,
+                    cacheWidth: cacheWidth,
+                    cacheHeight: cacheWidth,
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => _brokenImage(),
                   ),

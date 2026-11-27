@@ -23,6 +23,12 @@ export interface AppUser {
   is_active: boolean;
 }
 
+export interface CustomerProfile {
+  default_address: string | null;
+  default_lat: number | null;
+  default_lng: number | null;
+}
+
 export interface AuthContextUser {
   user: AppUser;
   permissions: AppPermission[];

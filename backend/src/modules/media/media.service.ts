@@ -14,6 +14,8 @@ import type { AuthContextUser } from '../../shared/types/user';
 import { canReadPrivate } from './media.policy';
 
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+export const EVENT_BANNER_MAX_BYTES = 3 * 1024 * 1024;
+export const MERCHANDISE_IMAGE_MAX_BYTES = 3 * 1024 * 1024;
 
 export async function uploadAvatar(
   env: Bindings,
@@ -48,6 +50,38 @@ export async function uploadAvatar(
   return { avatar_url: url };
 }
 
+/**
+ * Banner event: hanya mengunggah ke bucket publik dan mengembalikan URL-nya.
+ * Tidak menyentuh tabel events; URL disimpan lewat POST/PATCH event. Bila form
+ * dibatalkan setelah unggah, berkasnya tertinggal di R2 (diterima untuk saat ini).
+ */
+export async function uploadEventBanner(
+  env: Bindings,
+  userId: string,
+  file: unknown,
+): Promise<{ image_url: string }> {
+  const image = await readImageFile(file, EVENT_BANNER_MAX_BYTES);
+  const key = buildKey('events', userId, image.ext);
+  await putImage(env, 'public', key, image);
+  return { image_url: publicUrl(env, key) };
+}
+
+/**
+ * Foto merchandise: hanya mengunggah ke bucket publik dan mengembalikan URL-nya.
+ * URL disimpan lewat POST/PATCH merchandise. Bila form dibatalkan setelah
+ * unggah, berkasnya tertinggal di R2 (diterima untuk saat ini).
+ */
+export async function uploadMerchandiseImage(
+  env: Bindings,
+  userId: string,
+  file: unknown,
+): Promise<{ image_url: string }> {
+  const image = await readImageFile(file, MERCHANDISE_IMAGE_MAX_BYTES);
+  const key = buildKey('merchandise', userId, image.ext);
+  await putImage(env, 'public', key, image);
+  return { image_url: publicUrl(env, key) };
+}
+
 export async function getPrivateImage(
   env: Bindings,
   ctx: AuthContextUser,
@@ -57,7 +91,9 @@ export async function getPrivateImage(
     throw new AppError(404, 'not_found', 'Gambar tidak ditemukan');
   }
 
-  if (!canReadPrivate(ctx, key)) {
+  // PENTING: canReadPrivate async. Tanpa await, Promise selalu dianggap true
+  // dan semua gambar privat akan terbuka untuk siapa pun yang login.
+  if (!(await canReadPrivate(env, ctx, key))) {
     throw new AppError(403, 'forbidden', 'Tidak punya akses ke gambar ini');
   }
 

@@ -4,7 +4,11 @@ import 'package:rijiki/core/constants/app_strings.dart';
 import 'package:rijiki/core/error/failure.dart';
 import 'package:rijiki/core/session/session_provider.dart';
 import 'package:rijiki/features/auth/domain/auth_repo.dart';
+import 'package:rijiki/features/home/presentation/controllers/home_controller.dart';
 import 'package:rijiki/features/onboarding/presentation/controllers/onboarding_controller.dart';
+import 'package:rijiki/features/order/presentation/controllers/order_detail_controller.dart';
+import 'package:rijiki/features/order/presentation/controllers/order_list_controller.dart';
+import 'package:rijiki/shared/widgets/private_image.dart';
 
 enum LoginOutcome { success, needsVerification, failed }
 
@@ -90,16 +94,72 @@ class AuthController extends AsyncNotifier<void> {
     return ok ?? false;
   }
 
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final repository = ref.read(authRepositoryProvider);
+    final ok = await _run(() async {
+      await repository.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return true;
+    });
+    return ok ?? false;
+  }
+
+  /// Mengirim kode OTP ke email baru; `true` bila kode terkirim.
+  Future<bool> requestEmailChange({
+    required String newEmail,
+    required String password,
+  }) async {
+    final repository = ref.read(authRepositoryProvider);
+    final sent = await _run(() async {
+      await repository.requestEmailChange(
+        newEmail: newEmail,
+        password: password,
+      );
+      return true;
+    });
+    return sent == true;
+  }
+
+  Future<bool> confirmEmailChange({
+    required String newEmail,
+    required String code,
+  }) async {
+    final repository = ref.read(authRepositoryProvider);
+    final session = ref.read(sessionProvider.notifier);
+
+    final ok = await _run(() async {
+      await repository.confirmEmailChange(newEmail: newEmail, code: code);
+      return true;
+    });
+    if (ok != true) return false;
+
+    final current = ref.read(sessionProvider);
+    if (current != null) session.setUser(current.copyWith(email: newEmail));
+    return true;
+  }
+
+  
   Future<void> logout() async {
     final repository = ref.read(authRepositoryProvider);
     final session = ref.read(sessionProvider.notifier);
 
     _set(const AsyncLoading());
+    // Lepas token FCM lebih dulu: setelah logout token akses sudah dicabut.
+    await ref.read(pushServiceProvider).stop();
     try {
       await repository.logout();
     } finally {
       session.clear();
       ref.invalidate(onboardingControllerProvider);
+      ref.invalidate(ordersProvider);
+      ref.invalidate(homeActiveOrdersProvider);
+      ref.invalidate(orderDetailProvider);
+      ref.invalidate(privateImageProvider);
     }
     _set(const AsyncData(null));
   }

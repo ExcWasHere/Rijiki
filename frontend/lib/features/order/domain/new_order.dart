@@ -46,7 +46,8 @@ class NewOrder {
     required this.items,
     required this.pickupAddress,
     required this.deliveryAddress,
-    this.promoCode,
+    this.promoCodes = const [],
+    this.idempotencyKey,
   });
 
   final String customerName;
@@ -54,5 +55,9 @@ class NewOrder {
   final List<OrderDraftItem> items;
   final String pickupAddress;
   final String deliveryAddress;
-  final String? promoCode;
+  final List<String> promoCodes;
+
+  /// Kunci per upaya checkout. Kirim ulang karena gagal jaringan memakai kunci
+  /// yang sama sehingga order tidak terbuat dua kali.
+  final String? idempotencyKey;
 }

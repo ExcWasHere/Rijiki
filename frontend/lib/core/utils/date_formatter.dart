@@ -12,6 +12,27 @@ abstract final class DateFormatter {
 
   static String dateTime(DateTime date) => '${shortDate(date)}, ${time(date)}';
 
+  /// Rentang tanggal; tahun yang sama hanya ditulis sekali di ujung.
+  static String range(DateTime start, DateTime end) {
+    if (start.year == end.year) {
+      return '${start.day} ${_months[start.month - 1]} - ${shortDate(end)}';
+    }
+    return '${shortDate(start)} - ${shortDate(end)}';
+  }
+
+  /// "Hari ini" / "Kemarin" / tanggal, untuk pengelompokan daftar.
+  static String groupLabel(DateTime date, {DateTime? now}) {
+    final today = dateOnly(now ?? DateTime.now());
+    final day = dateOnly(date);
+    final diff = today.difference(day).inDays;
+    if (diff == 0) return 'Hari ini';
+    if (diff == 1) return 'Kemarin';
+    return shortDate(day);
+  }
+
+  static DateTime dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
   static String greeting(DateTime now) {
     final hour = now.hour;
     if (hour < 11) return 'Selamat pagi';

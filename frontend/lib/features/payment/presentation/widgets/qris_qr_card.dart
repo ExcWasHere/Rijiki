@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/core/utils/currency_formatter.dart';
+import 'package:rijiki/core/utils/rupiah_formatter.dart';
 import 'package:rijiki/features/payment/domain/payment.dart';
 
 class QrisQrCard extends StatelessWidget {
@@ -69,7 +69,7 @@ class QrisQrCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            CurrencyFormatter.rupiah(payment.amount),
+            RupiahFormatter.full(payment.amount),
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),

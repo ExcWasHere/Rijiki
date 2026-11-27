@@ -28,3 +28,9 @@ lerna-debug.log*
 .DS_Store
 
 .dev.vars
+
+# wrangler dev state
+.wrangler/
+
+# hasil bundel test
+test-build/

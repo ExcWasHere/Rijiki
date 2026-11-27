@@ -1,8 +1,28 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { validateEnv } from './config/env';
+import { rateLimit } from './middleware/rate-limit';
+import { managementAnalyticsRoutes } from './modules/analytics/analytics.routes';
 import { authRoutes } from './modules/auth/auth.routes';
+import { managementCustomersRoutes } from './modules/customers/customers.routes';
+import { eventsRoutes, managementEventsRoutes } from './modules/events/events.routes';
+import { financeRoutes } from './modules/finance/finance.routes';
 import { mediaRoutes } from './modules/media/media.routes';
+import { managementMerchandiseRoutes } from './modules/merchandise/merchandise.routes';
+import { devicesRoutes, notificationsRoutes } from './modules/notifications/notifications.routes';
+import { ordersRoutes } from './modules/orders/orders.routes';
+import { paymentsRoutes } from './modules/payments/payments.routes';
+import {
+  managementPointsRoutes,
+  pointRulesRoutes,
+  pointsRoutes,
+} from './modules/points/points.routes';
+import { profileRoutes } from './modules/profile/profile.routes';
+import { promosRoutes } from './modules/promos/promos.routes';
+import { managementTestimonialsRoutes, testimonialsRoutes } from './modules/ratings/ratings.routes';
+import { servicesRoutes } from './modules/services/services.routes';
+import { webhooksRoutes } from './modules/webhooks/webhooks.routes';
+import { ownerWorkersRoutes, workersRoutes } from './modules/workers/workers.routes';
 import { AppError } from './shared/errors';
 import type { AppEnv } from './shared/types/env';
 
@@ -22,8 +42,41 @@ export function createApp() {
 
   app.get('/', (c) => c.json({ name: 'rijiki-backend', status: 'ok' }));
 
+  // Endpoint tanpa autentikasi dibatasi per IP: menahan credential stuffing,
+  // brute force OTP, dan banjir notifikasi webhook palsu.
+  app.use(
+    '/api/auth/*',
+    rateLimit({ binding: 'AUTH_RATE_LIMITER', fallbackLimit: 20 }),
+  );
+  app.use(
+    '/api/webhooks/*',
+    rateLimit({ binding: 'WEBHOOK_RATE_LIMITER', fallbackLimit: 120 }),
+  );
+
   app.route('/api/auth', authRoutes);
   app.route('/api/media', mediaRoutes);
+  app.route('/api/profile', profileRoutes);
+  app.route('/api/services', servicesRoutes);
+  app.route('/api/promos', promosRoutes);
+  app.route('/api/events', eventsRoutes);
+  app.route('/api/orders', ordersRoutes);
+  app.route('/api/payments', paymentsRoutes);
+  app.route('/api/points', pointsRoutes);
+  app.route('/api/notifications', notificationsRoutes);
+  app.route('/api/devices', devicesRoutes);
+  app.route('/api/testimonials', testimonialsRoutes);
+  app.route('/api/management/events', managementEventsRoutes);
+  app.route('/api/management/merchandise', managementMerchandiseRoutes);
+  app.route('/api/management/testimonials', managementTestimonialsRoutes);
+  app.route('/api/management/point-rules', pointRulesRoutes);
+  app.route('/api/management/points', managementPointsRoutes);
+  app.route('/api/management/customers', managementCustomersRoutes);
+  app.route('/api/finance', financeRoutes);
+  app.route('/api/management/analytics', managementAnalyticsRoutes);
+  app.route('/api/workers', workersRoutes);
+  app.route('/api/owner/workers', ownerWorkersRoutes);
+  // Tanpa auth Bearer: dipanggil Midtrans, dilindungi verifikasi signature_key.
+  app.route('/api/webhooks', webhooksRoutes);
 
   app.notFound((c) =>
     c.json({ error: { code: 'not_found', message: 'Endpoint tidak ditemukan' } }, 404),
