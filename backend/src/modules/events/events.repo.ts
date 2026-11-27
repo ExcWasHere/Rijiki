@@ -3,6 +3,7 @@ import { AppError } from '../../shared/errors';
 import type { Bindings } from '../../shared/types/env';
 import { toNumber, toNumberOrNull } from '../../shared/utils/number';
 import type {
+  EventPromoRow,
   EventPromoView,
   EventRow,
   EventType,
@@ -22,10 +23,12 @@ const PROMO_FIELDS = [
   'min_subtotal',
   'max_discount_amount',
   'usage_limit',
+  'usage_limit_per_customer',
   'first_order_only',
   'start_date',
   'end_date',
   'is_active',
+  'promo_services(service_id, services(name))',
 ].join(', ');
 
 const EVENT_SELECT = [
@@ -49,42 +52,44 @@ function failed(label: string, message: string): AppError {
   return new AppError(500, 'event_failed', `Gagal ${label}. Coba lagi ya.`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function one(value: any): any {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
+/** PostgREST mengembalikan relasi satu-baris sebagai objek atau array. */
+function promoOf(row: EventRow): EventPromoRow | null {
+  const raw = row.promo;
+  if (Array.isArray(raw)) return (raw[0] as EventPromoRow | undefined) ?? null;
+  return raw ? (raw as EventPromoRow) : null;
 }
 
-function mapPromo(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  promo: any,
-  usage: number,
-  today: string,
-): EventPromoView {
+function mapPromo(promo: EventPromoRow, usage: number, today: string): EventPromoView {
   const limit = toNumberOrNull(promo.usage_limit);
   const quotaLeft = limit === null ? null : Math.max(0, limit - usage);
-  const inPeriod = today >= (promo.start_date as string) && today <= (promo.end_date as string);
+  const inPeriod = today >= promo.start_date && today <= promo.end_date;
+  const services = promo.promo_services ?? [];
   return {
-    id: promo.id as string,
-    code: promo.code as string,
-    title: promo.title as string,
-    description: (promo.description as string | null) ?? null,
+    id: promo.id,
+    code: promo.code,
+    title: promo.title,
+    description: promo.description ?? null,
     discount_type: promo.discount_type,
     discount_value: toNumber(promo.discount_value),
-    applies_to: (promo.applies_to as 'subtotal' | 'shipping' | null) ?? 'subtotal',
+    applies_to: promo.applies_to ?? 'subtotal',
     min_subtotal: toNumberOrNull(promo.min_subtotal),
     max_discount_amount: toNumberOrNull(promo.max_discount_amount),
     first_order_only: Boolean(promo.first_order_only),
-    start_date: promo.start_date as string,
-    end_date: promo.end_date as string,
+    start_date: promo.start_date,
+    end_date: promo.end_date,
     is_active: Boolean(promo.is_active),
+    usage_limit_per_customer: toNumberOrNull(promo.usage_limit_per_customer),
+    service_ids: services.map((row) => row.service_id),
+    service_names: services
+      .map((row) => row.services?.name)
+      .filter((name): name is string => typeof name === 'string' && name.length > 0),
     quota_left: quotaLeft,
     available: Boolean(promo.is_active) && inPeriod && (quotaLeft === null || quotaLeft > 0),
   };
 }
 
 function mapEvent(row: EventRow, usage: Map<string, number>, today: string): EventView {
-  const promo = one(row.promo);
+  const promo = promoOf(row);
   return {
     id: row.id as string,
     title: row.title as string,
@@ -96,7 +101,7 @@ function mapEvent(row: EventRow, usage: Map<string, number>, today: string): Eve
     end_date: (row.end_date as string | null) ?? null,
     is_published: Boolean(row.is_published),
     created_at: row.created_at as string,
-    promo: promo ? mapPromo(promo, usage.get(promo.id as string) ?? 0, today) : null,
+    promo: promo ? mapPromo(promo, usage.get(promo.id) ?? 0, today) : null,
   };
 }
 
@@ -159,14 +164,16 @@ export async function listAvailablePromoEvents(env: Bindings, today: string): Pr
     .limit(LIST_LIMIT);
   if (error) throw failed('memuat daftar promo', error.message);
 
-  const rows = (data ?? []) as unknown as EventRow[];
+  // Select dibangun dari konstanta, jadi tipe parser PostgREST tidak terbaca;
+  // bentuknya divalidasi oleh mapPromo.
+  const rows = (data ?? []) as unknown as EventPromoRow[];
   const usage = await usageCounts(
     env,
-    rows.map((row) => row.id as string),
+    rows.map((row) => row.id),
   );
 
   return rows
-    .map((row) => ({ row, promo: mapPromo(row, usage.get(row.id as string) ?? 0, today) }))
+    .map((row) => ({ row, promo: mapPromo(row, usage.get(row.id) ?? 0, today) }))
     .filter(({ promo }) => promo.available)
     .map(({ row, promo }) => ({
       id: promo.id,
@@ -178,7 +185,7 @@ export async function listAvailablePromoEvents(env: Bindings, today: string): Pr
       start_date: promo.start_date,
       end_date: promo.end_date,
       is_published: true,
-      created_at: row.created_at as string,
+      created_at: row.created_at,
       promo,
     }));
 }

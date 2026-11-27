@@ -199,6 +199,54 @@ describe('harga dan promo', () => {
     );
   });
 
+  it('promo ditolak saat keranjang belum berisi layanan', () => {
+    // Tanpa item, potongan selalu 0; dulu kode tetap "diterima" sehingga
+    // customer tidak tahu kenapa harga tidak berubah.
+    assert.throws(
+      () => evaluatePromo(promo(), { subtotal: 0, shipping: 10_000, lines: [], usage: EMPTY_USAGE }),
+      (err: unknown) => err instanceof AppError && /Pilih layanan dulu/.test(err.message),
+    );
+  });
+
+  it('promo yang potongannya membulat jadi nol ditolak', () => {
+    assert.throws(
+      () =>
+        evaluatePromo(promo({ discount_value: 1 }), {
+          subtotal: 40,
+          shipping: 0,
+          lines: [{ service_id: 'svc-1', amount: 40 }],
+          usage: EMPTY_USAGE,
+        }),
+      (err: unknown) => err instanceof AppError && /tidak memberi potongan/.test(err.message),
+    );
+  });
+
+  it('promo khusus layanan ditolak bila layanan itu tidak ada di keranjang', () => {
+    assert.throws(
+      () =>
+        evaluatePromo(promo({ promo_services: [{ service_id: 'svc-lain' }] }), {
+          subtotal: 40_000,
+          shipping: 0,
+          lines: [{ service_id: 'svc-dipilih', amount: 40_000 }],
+          usage: EMPTY_USAGE,
+        }),
+      (err: unknown) => err instanceof AppError && /tidak berlaku untuk layanan/.test(err.message),
+    );
+  });
+
+  it('promo khusus layanan hanya memotong layanan yang dipilih', () => {
+    const result = evaluatePromo(promo({ promo_services: [{ service_id: 'svc-a' }] }), {
+      subtotal: 90_000,
+      shipping: 0,
+      lines: [
+        { service_id: 'svc-a', amount: 40_000 },
+        { service_id: 'svc-b', amount: 50_000 },
+      ],
+      usage: EMPTY_USAGE,
+    });
+    assert.equal(result.discount, 4_000);
+  });
+
   it('total = subtotal - diskon + ongkir', () => {
     assert.deepEqual(computeTotals(100_000, 15_000, 10_000), {
       subtotal: 100_000,

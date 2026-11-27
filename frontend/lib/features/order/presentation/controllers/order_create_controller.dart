@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rijiki/app/providers.dart';
@@ -168,9 +170,47 @@ class OrderCreateController extends Notifier<OrderCreateState> {
   void setSameDeliveryAddress(bool value) =>
       state = state.copyWith(sameDeliveryAddress: value);
 
-  /// Promo bisa bergantung pada layanan dan subtotal, jadi dilepas saat
-  /// keranjang berubah; customer menerapkannya lagi dan dicek ulang server.
-  PromoUiState _promoAfterCartChange() => const PromoUiState();
+  /// Promo bisa bergantung pada layanan dan subtotal, jadi setelah keranjang
+  /// berubah promo yang sudah dipakai dicek ulang ke server. Yang masih sah
+  /// tetap terpasang; yang tidak lagi sah dilepas beserta alasannya, supaya
+  /// customer tidak mengira potongannya masih berlaku.
+  Future<void> _revalidatePromo() async {
+    final codes = state.promo.appliedCodes;
+    if (codes.isEmpty || state.promo.isChecking) return;
+    final items = state.items;
+    try {
+      final quote = await ref
+          .read(orderRepositoryProvider)
+          .quotePrice(
+            subtotal: state.subtotal,
+            promoCodes: codes,
+            items: items,
+          );
+      if (!ref.mounted || !identical(state.items, items)) return;
+      final kept = quote.promoCodes;
+      final dropped = [
+        for (final code in codes)
+          if (!kept.contains(code)) code,
+      ];
+      state = state.copyWith(
+        promo: PromoUiState(
+          applied: quote.promos,
+          error: dropped.isEmpty
+              ? null
+              : 'Promo ${dropped.join(', ')} dilepas karena tidak berlaku lagi '
+                    'untuk pesanan ini.',
+        ),
+      );
+    } on PromoException catch (e) {
+      if (!ref.mounted || !identical(state.items, items)) return;
+      state = state.copyWith(
+        promo: PromoUiState(error: 'Promo dilepas: ${e.message}'),
+      );
+    } catch (_) {
+      // Gangguan jaringan: promo dibiarkan terpasang. Ringkasan order akan
+      // menampilkan galatnya saat menghitung ulang harga.
+    }
+  }
 
   void addItem() {
     if (state.items.length >= maxItems) return;
@@ -183,8 +223,8 @@ class OrderCreateController extends Notifier<OrderCreateState> {
     if (state.items.length <= 1) return;
     state = state.copyWith(
       items: state.items.where((item) => item.id != id).toList(),
-      promo: _promoAfterCartChange(),
     );
+    unawaited(_revalidatePromo());
   }
 
   void updateItem(
@@ -208,8 +248,8 @@ class OrderCreateController extends Notifier<OrderCreateState> {
           else
             item,
       ],
-      promo: cartChanged ? _promoAfterCartChange() : null,
     );
+    if (cartChanged) unawaited(_revalidatePromo());
   }
 
   /// Menambah kode promo. Server memeriksa gabungan promo yang sudah dipakai
@@ -219,6 +259,15 @@ class OrderCreateController extends Notifier<OrderCreateState> {
     final code = rawCode.trim().toUpperCase();
     final current = state.promo;
     if (code.isEmpty || current.isChecking) return false;
+    if (state.quoteItemsKey.isEmpty) {
+      state = state.copyWith(
+        promo: PromoUiState(
+          applied: current.applied,
+          error: 'Pilih layanan dulu sebelum memakai kode promo.',
+        ),
+      );
+      return false;
+    }
     if (current.appliedCodes.contains(code)) {
       state = state.copyWith(
         promo: PromoUiState(
@@ -247,11 +296,15 @@ class OrderCreateController extends Notifier<OrderCreateState> {
       state = state.copyWith(
         promo: PromoUiState(applied: current.applied, error: e.message),
       );
-    } catch (_) {
+    } catch (e) {
+      // Galat lain (mis. profil belum punya alamat) tetap ditampilkan apa
+      // adanya supaya customer tahu langkah berikutnya, bukan pesan generik.
       state = state.copyWith(
         promo: PromoUiState(
           applied: current.applied,
-          error: 'Kode promo gagal diperiksa. Coba lagi.',
+          error: e is Failure && e.message.isNotEmpty
+              ? e.message
+              : 'Kode promo gagal diperiksa. Coba lagi.',
         ),
       );
     }

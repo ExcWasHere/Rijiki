@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rijiki/app/router/route_paths.dart';
@@ -7,12 +6,11 @@ import 'package:rijiki/core/enums/event_type.dart';
 import 'package:rijiki/core/extensions/enum_ui_x.dart';
 import 'package:rijiki/core/theme/app_colors.dart';
 import 'package:rijiki/core/theme/app_spacing.dart';
-import 'package:rijiki/core/utils/date_formatter.dart';
-import 'package:rijiki/features/event/domain/event_promo.dart';
 import 'package:rijiki/features/event/domain/promo_event.dart';
 import 'package:rijiki/features/event/presentation/controllers/customer_events_controller.dart';
 import 'package:rijiki/features/event/presentation/controllers/events_refresh.dart';
 import 'package:rijiki/features/event/presentation/utils/event_promo_format.dart';
+import 'package:rijiki/features/event/presentation/widgets/event_detail_sheet.dart';
 import 'package:rijiki/features/points/domain/point_ledger_entry.dart';
 import 'package:rijiki/features/points/domain/point_redemption.dart';
 import 'package:rijiki/features/points/domain/reward.dart';
@@ -184,7 +182,7 @@ class _EventPageState extends ConsumerState<EventPage>
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: _PromoEventCard(
                       event: item,
-                      onTap: () => _showDetail(context, item),
+                      onTap: () => showEventDetailSheet(context, item),
                     ),
                   ),
               ],
@@ -301,27 +299,6 @@ class _EventPageState extends ConsumerState<EventPage>
       ),
     );
   }
-}
-
-String? _period(PromoEvent event) {
-  final start = event.startDate;
-  final end = event.endDate;
-  if (start != null && end != null) {
-    return '${DateFormatter.shortDate(start)} - ${DateFormatter.shortDate(end)}';
-  }
-  return DateFormatter.validity(start, end);
-}
-
-void _showDetail(BuildContext context, PromoEvent event) {
-  final messenger = ScaffoldMessenger.of(context);
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    backgroundColor: AppColors.surface,
-    builder: (sheetContext) =>
-        _EventDetailSheet(event: event, messenger: messenger),
-  );
 }
 
 class _EventHeader extends StatelessWidget {
@@ -533,31 +510,6 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
 class _PromoEventCard extends StatelessWidget {
   const _PromoEventCard({required this.event, required this.onTap});
 
@@ -570,7 +522,7 @@ class _PromoEventCard extends StatelessWidget {
     final accent = event.type.accent;
     final cardColor = Color.lerp(AppColors.surface, accent, 0.06)!;
     final promo = event.promo;
-    final period = _period(event);
+    final period = eventPeriod(event);
     final banner = event.bannerImageUrl;
 
     return Material(
@@ -604,9 +556,9 @@ class _PromoEventCard extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  _Pill(label: event.type.label, color: accent),
+                  EventPill(label: event.type.label, color: accent),
                   if (promo != null)
-                    _Pill(
+                    EventPill(
                       label: promo.discountLabel,
                       color: AppColors.rijikiOrange,
                     ),
@@ -672,144 +624,6 @@ class _PromoEventCard extends StatelessWidget {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EventDetailSheet extends StatelessWidget {
-  const _EventDetailSheet({required this.event, required this.messenger});
-
-  final PromoEvent event;
-  final ScaffoldMessengerState messenger;
-
-  Future<void> _copy(BuildContext context, EventPromo promo) async {
-    await Clipboard.setData(ClipboardData(text: promo.code));
-    if (context.mounted) Navigator.pop(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Kode ${promo.code} disalin. Pakai saat membuat order.'),
-        ),
-      );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final accent = event.type.accent;
-    final promo = event.promo;
-    final period = _period(event);
-    final banner = event.bannerImageUrl;
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          0,
-          AppSpacing.lg,
-          AppSpacing.lg,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (banner != null && banner.isNotEmpty) ...[
-              NetworkImageBox(
-                url: banner,
-                width: double.infinity,
-                height: 160,
-                radius: 16,
-              ),
-              const SizedBox(height: AppSpacing.md),
-            ],
-            _Pill(label: event.type.label, color: accent),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              event.title,
-              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            if (period != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                period,
-                style: textTheme.labelMedium?.copyWith(color: accent),
-              ),
-            ],
-            if (event.description != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                event.description!,
-                style: textTheme.bodyMedium?.copyWith(height: 1.45),
-              ),
-            ],
-            if (promo != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.rijikiOrange.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(
-                    color: AppColors.rijikiOrange.withValues(alpha: 0.35),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      promo.discountLabel,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: AppColors.rijikiOrange,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Berlaku sampai ${DateFormatter.shortDate(promo.endDate)}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                    for (final line in promo.conditions)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('• '),
-                            Expanded(
-                              child: Text(line, style: textTheme.bodySmall),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: AppSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            promo.code,
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () => _copy(context, promo),
-                          icon: const Icon(Icons.copy_rounded, size: 18),
-                          label: const Text('Salin kode'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
         ),
       ),
     );
